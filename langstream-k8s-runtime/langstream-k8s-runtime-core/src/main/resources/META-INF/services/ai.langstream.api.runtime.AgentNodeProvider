@@ -1,6 +1,6 @@
 ai.langstream.runtime.impl.k8s.agents.PythonCodeAgentProvider
 ai.langstream.runtime.impl.k8s.agents.KubernetesGenAIToolKitFunctionAgentProvider
-ai.langstream.runtime.impl.k8s.agents.S3SourceAgentProvider
+ai.langstream.runtime.impl.k8s.agents.ObjectStorageSourceAgentProvider
 ai.langstream.runtime.impl.k8s.agents.WebCrawlerSourceAgentProvider
 ai.langstream.runtime.impl.k8s.agents.TextProcessingAgentsProvider
 ai.langstream.runtime.impl.k8s.agents.KafkaConnectAgentsProvider

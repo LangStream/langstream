@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.queryhttp;
+package ai.langstream.agents.azureblobstorage.source;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.TransformContext;

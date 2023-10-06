@@ -37,5 +37,4 @@ public interface RecordSink {
     default void emitError(Record sourceRecord, Throwable error) {
         emit(new AgentProcessor.SourceRecordAndResult(sourceRecord, null, error));
     }
-
 }

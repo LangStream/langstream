@@ -97,6 +97,14 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
+                    Execute the agent over a list of documents
+                    """)
+    @JsonProperty("loop-over")
+    private String loopOver;
+
+    @ConfigProperty(
+            description =
+                    """
                             Batch size for submitting the embeddings requests.
                             """,
             defaultValue = "10")

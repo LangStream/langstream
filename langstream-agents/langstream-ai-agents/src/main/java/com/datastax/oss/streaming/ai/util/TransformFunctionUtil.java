@@ -309,6 +309,7 @@ public class TransformFunctionUtil {
         return new ComputeAIEmbeddingsStep(
                 config.getText(),
                 config.getEmbeddingsFieldName(),
+                config.getLoopOver(),
                 config.getBatchSize(),
                 config.getFlushInterval(),
                 config.getConcurrency(),

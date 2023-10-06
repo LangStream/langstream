@@ -175,14 +175,16 @@ public class JstlFunctions {
             if (one instanceof Collection col) {
                 results.addAll(col);
             } else {
-                throw new IllegalArgumentException("First argument of fn:addAll is not a list, it is a " + one.getClass());
+                throw new IllegalArgumentException(
+                        "First argument of fn:addAll is not a list, it is a " + one.getClass());
             }
         }
         if (two != null) {
             if (two instanceof Collection col) {
                 results.addAll(col);
             } else {
-                throw new IllegalArgumentException("Second argument of fn:addAll is not a list, it is a " + one.getClass());
+                throw new IllegalArgumentException(
+                        "Second argument of fn:addAll is not a list, it is a " + one.getClass());
             }
         }
         return results;

@@ -104,6 +104,24 @@ public class JstlEvaluator<T> {
                         JstlFunctions.class.getMethod("filter", Object.class, String.class));
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "addAll",
+                        JstlFunctions.class.getMethod("addAll", Object.class, String.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "emptyList",
+                        JstlFunctions.class.getMethod("emptyList"));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "emptyMap",
+                        JstlFunctions.class.getMethod("emptyMap"));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction("fn", "toInt", JstlFunctions.class.getMethod("toInt", Object.class));
         this.expressionContext
                 .getFunctionMapper()

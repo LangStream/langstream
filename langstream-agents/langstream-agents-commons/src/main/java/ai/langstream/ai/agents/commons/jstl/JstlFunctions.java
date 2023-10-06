@@ -154,6 +154,40 @@ public class JstlFunctions {
         return result;
     }
 
+    public static List<Object> emptyList() {
+        return List.of();
+    }
+
+    public static Map<String, Object> emptyMap() {
+        return Map.of();
+    }
+
+    public static List<Object> listOf(Object object) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        return List.of(object);
+    }
+
+    public static List<Object> addAll(Object one, Object two) {
+        List<Object> results = new ArrayList<>();
+        if (one != null) {
+            if (one instanceof Collection col) {
+                results.addAll(col);
+            } else {
+                throw new IllegalArgumentException("First argument of fn:addAll is not a list, it is a " + one.getClass());
+            }
+        }
+        if (two != null) {
+            if (two instanceof Collection col) {
+                results.addAll(col);
+            } else {
+                throw new IllegalArgumentException("Second argument of fn:addAll is not a list, it is a " + one.getClass());
+            }
+        }
+        return results;
+    }
+
     public static List<Object> filter(Object input, String expression) {
         if (input == null) {
             return null;

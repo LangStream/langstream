@@ -121,6 +121,9 @@ public class JstlEvaluator<T> {
                 .mapFunction("fn", "emptyList", JstlFunctions.class.getMethod("emptyList"));
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction("fn", "listOf", JstlFunctions.class.getMethod("listOf", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction("fn", "emptyMap", JstlFunctions.class.getMethod("emptyMap"));
         this.expressionContext
                 .getFunctionMapper()

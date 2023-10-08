@@ -84,6 +84,7 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    with the results of the query. In the query parameters you can refer to the
                    record fields using "record.field".
                    """)
+    @JsonProperty("loop-over")
     private String loopOver;
 
     @ConfigProperty(

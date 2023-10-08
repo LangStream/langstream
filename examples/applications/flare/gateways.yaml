@@ -18,7 +18,7 @@
 gateways:
   - id: "user-input"
     type: produce
-    topic: "questions-topic"
+    topic: "input-topic"
     parameters:
       - sessionId
     produceOptions:
@@ -28,7 +28,7 @@ gateways:
 
   - id: "bot-output"
     type: consume
-    topic: "answers-topic"
+    topic: "output-topic"
     parameters:
       - sessionId
     consumeOptions:

@@ -27,26 +27,28 @@ pipeline:
   # Add the text of the initial task to the list of documents to retrieve
   # and prepare the structure
   - name: "init-structure"
+    id: "kickstart-chat"
     type: "document-to-json"
-    input: "questions-topic"
+    input: "input-topic"
     configuration:
       text-field: "text"
   - name: "kickstart-document-retrieval"
-  - type: "compute"
+    type: "compute"
     output: "flare-loop-input-topic"
     configuration:
       fields:
         - name: "value.documents_to_retrieve"
-          value: "fn:listOf(value)"
+          expression: "fn:listOf(value)"
         - name: "value.related_documents"
-          value: "fn:emptyList()"
+          expression: "fn:emptyList()"
 
   ## Flare loop
   # for each document to retrieve we compute the embeddings vector
   # documents_to_retrieve: [ { text: "the text", embeddings: [1,2,3] }, .... ]
   - name: "compute-embeddings"
+    id: "flare-loop"
     type: "compute-ai-embeddings"
-    input: "flare-loop-topic"
+    input: "flare-loop-input-topic"
     configuration:
       loop-over: "value.documents_to_retrieve"
       model: "${secrets.open-ai.embeddings-model}"
@@ -91,7 +93,8 @@ pipeline:
       completion-field: "value.result"
       logprobs: 5
       logprobs-field: "value.tokens"
-      prompt: |
+      prompt:
+          - |
               You have to perform a task that is written below, it starts with StartOfTask and ends with EndOfTask.
               There is a list of documents that you must use to perform the task.
               Each document starts after StartOfDocument and ends before EndOfDocument.
@@ -104,14 +107,14 @@ pipeline:
               {{/ value.related_documents}}
         
               StartOfTask
-              {{ value.question }}
+              {{ value.text }}
               EndOfTask
   - name: "ensure-quality-of-result"
     type: "flare-controller"
     configuration:
         tokens-field: "value.tokens.tokens"
         logprobs-field: "value.tokens.logprobs"
-        loop-topic: "flare-input-topic"
+        loop-topic: "flare-loop-input-topic"
         retrieve-documents-field: "value.documents_to_retrieve"
   - name: "cleanup-response"
     type: "drop-fields"
@@ -120,6 +123,5 @@ pipeline:
       fields:
         - "retrieved_documents"
         - "documents_to_retrieve"
-        - "question_embeddings"
         - "related_documents"
         - "token-probs"

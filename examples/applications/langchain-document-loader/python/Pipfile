@@ -1,0 +1,6 @@
+[dev-packages]
+pyYaml = "*"
+langstream-ai = "*"
+langchain = "*"
+pytest = "*"
+tox = "*"

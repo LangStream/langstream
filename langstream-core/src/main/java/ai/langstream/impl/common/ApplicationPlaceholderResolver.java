@@ -241,8 +241,10 @@ public class ApplicationPlaceholderResolver {
             return resolveMap(context, (Map<String, Object>) object);
         } else if (object instanceof Collection) {
             return resolveCollection(context, (Collection<?>) object);
+        } else if (object instanceof String) {
+            return resolveSingleValue(context, (String) object);
         } else {
-            return resolveSingleValue(context, object == null ? null : object.toString());
+            return object;
         }
     }
 

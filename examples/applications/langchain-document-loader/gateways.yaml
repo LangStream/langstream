@@ -19,5 +19,3 @@ gateways:
   - id: consume-output
     type: consume
     topic: output-topic
-
-

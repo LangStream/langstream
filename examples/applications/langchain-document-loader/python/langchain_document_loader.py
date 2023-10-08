@@ -36,13 +36,15 @@ class LangChainDocumentLoaderSource(Source):
         loader_class = config.get("loader-class", "")
         if not hasattr(LOADERS_MODULE, loader_class):
             raise ValueError(f"Unknown loader: {loader_class}")
-        kwargs = config.get("loader-args", {})
+        kwargs = {k.replace("-", "_"): v for k, v in
+                  config.get("loader-args", {}).items()}
         self.loader = getattr(LOADERS_MODULE, loader_class)(**kwargs)
 
         splitter_class = config.get("splitter-class", "RecursiveCharacterTextSplitter")
         if not hasattr(SPLITTERS_MODULE, splitter_class):
             raise ValueError(f"Unknown loader: {splitter_class}")
-        kwargs = config.get("splitter-args", {})
+        kwargs = {k.replace("-", "_"): v for k, v in
+                  config.get("splitter-args", {}).items()}
         self.splitter = getattr(SPLITTERS_MODULE, splitter_class)(**kwargs)
 
     def read(self) -> List[Dict]:

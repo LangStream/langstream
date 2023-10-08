@@ -27,5 +27,5 @@ pipeline:
       load-interval-seconds: 3600
       loader-class: WebBaseLoader
       loader-args:
-        web_path: ["https://langstream.ai/"]
+        web-path: ["https://langstream.ai/"]
       splitter-class: RecursiveCharacterTextSplitter

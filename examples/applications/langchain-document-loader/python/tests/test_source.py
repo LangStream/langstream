@@ -33,8 +33,8 @@ def test():
     splitter-class: CharacterTextSplitter
     splitter-args:
       separator: " "
-      chunk_size: 1
-      chunk_overlap: 0
+      chunk-size: 1
+      chunk-overlap: 0
     """
 
     source.init(yaml.safe_load(config))

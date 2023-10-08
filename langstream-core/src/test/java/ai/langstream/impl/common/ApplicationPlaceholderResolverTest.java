@@ -17,6 +17,7 @@ package ai.langstream.impl.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.parser.ModelBuilder;
@@ -128,6 +129,7 @@ class ApplicationPlaceholderResolverTest {
                                               stream-to-topic: "${globals.stream-response-topic}"
                                               sinkType: "some-sink-type-on-your-cluster"
                                               access-key: "${secrets.ak.value}"
+                                              int-value: 42
                                         """),
                                 """
                                 instance:
@@ -147,8 +149,7 @@ class ApplicationPlaceholderResolverTest {
 
         final Application resolved =
                 ApplicationPlaceholderResolver.resolvePlaceholders(applicationInstance);
-        assertEquals(
-                "my-access-key",
+        AgentConfiguration agentConfiguration =
                 resolved
                         .getModule("module-1")
                         .getPipelines()
@@ -159,54 +160,13 @@ class ApplicationPlaceholderResolverTest {
                         .stream()
                         .filter(agent -> agent.getId().equals("agent1"))
                         .findFirst()
-                        .orElseThrow()
-                        .getConfiguration()
-                        .get("access-key"));
+                        .orElseThrow();
+        assertEquals("my-access-key", agentConfiguration.getConfiguration().get("access-key"));
+        assertEquals(42, agentConfiguration.getConfiguration().get("int-value"));
+        assertEquals("my-input-topic", agentConfiguration.getInput().definition());
+        assertEquals("my-output-topic", agentConfiguration.getOutput().definition());
         assertEquals(
-                "my-input-topic",
-                resolved
-                        .getModule("module-1")
-                        .getPipelines()
-                        .values()
-                        .iterator()
-                        .next()
-                        .getAgents()
-                        .stream()
-                        .filter(agent -> agent.getId().equals("agent1"))
-                        .findFirst()
-                        .orElseThrow()
-                        .getInput()
-                        .definition());
-        assertEquals(
-                "my-output-topic",
-                resolved
-                        .getModule("module-1")
-                        .getPipelines()
-                        .values()
-                        .iterator()
-                        .next()
-                        .getAgents()
-                        .stream()
-                        .filter(agent -> agent.getId().equals("agent1"))
-                        .findFirst()
-                        .orElseThrow()
-                        .getOutput()
-                        .definition());
-        assertEquals(
-                "my-stream-topic",
-                resolved
-                        .getModule("module-1")
-                        .getPipelines()
-                        .values()
-                        .iterator()
-                        .next()
-                        .getAgents()
-                        .stream()
-                        .filter(agent -> agent.getId().equals("agent1"))
-                        .findFirst()
-                        .orElseThrow()
-                        .getConfiguration()
-                        .get("stream-to-topic"));
+                "my-stream-topic", agentConfiguration.getConfiguration().get("stream-to-topic"));
         assertEquals(
                 "my-stream-topic",
                 resolved.getModule("module-1").getTopics().get("my-stream-topic").getName());

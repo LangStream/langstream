@@ -16,9 +16,12 @@
 package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.TransformContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
+import jakarta.el.PropertyNotFoundException;
 import jakarta.el.ValueExpression;
+import java.io.IOException;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.apache.el.ExpressionFactoryImpl;
@@ -27,10 +30,15 @@ public class JstlEvaluator<T> {
 
     private static final ExpressionFactory FACTORY = new ExpressionFactoryImpl();
     private final ValueExpression valueExpression;
+    private final String expression;
     private final ELContext expressionContext;
 
     public JstlEvaluator(String expression, Class<? extends T> type) {
         this.expressionContext = new StandardContext(FACTORY);
+        this.expression =
+                expression.startsWith("${") && expression.endsWith("}")
+                        ? expression.substring(2, expression.length() - 1)
+                        : expression;
         registerFunctions();
         this.valueExpression = FACTORY.createValueExpression(expressionContext, expression, type);
     }
@@ -189,6 +197,28 @@ public class JstlEvaluator<T> {
                 .setValue(expressionContext, adapter.getHeader().get("eventTime"));
         FACTORY.createValueExpression(expressionContext, "${properties}", Map.class)
                 .setValue(expressionContext, adapter.getHeader().get("properties"));
-        return this.valueExpression.getValue(expressionContext);
+        try {
+            return this.valueExpression.getValue(expressionContext);
+        } catch (PropertyNotFoundException notFound) {
+
+            // this is a very common error, so we provide a better error message
+            if (expression.startsWith("value.")) {
+                Object valueObject = transformContext.getValueObject();
+                if (valueObject instanceof String s) {
+                    try {
+                        new ObjectMapper().readValue(s, Object.class);
+                    } catch (IOException error) {
+                        throw new IllegalArgumentException(
+                                "The property referred by "
+                                        + expression
+                                        + " couldn't be found, "
+                                        + "this the error from a JSON parser: \n"
+                                        + error.getMessage(),
+                                notFound);
+                    }
+                }
+            }
+            throw new IllegalArgumentException(notFound);
+        }
     }
 }

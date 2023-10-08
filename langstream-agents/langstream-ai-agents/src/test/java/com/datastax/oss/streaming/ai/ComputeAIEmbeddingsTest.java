@@ -18,6 +18,8 @@ package com.datastax.oss.streaming.ai;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.embeddings.MockEmbeddingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -136,5 +138,51 @@ public class ComputeAIEmbeddingsTest {
         final List asList = new ObjectMapper().convertValue(jsonNode.get("newField"), List.class);
         assertEquals(asList, expectedEmbeddings);
         assertEquals(outputRecord.getSchema().getSchemaInfo().getType(), SchemaType.JSON);
+    }
+
+    @Test
+    void testLoopOver() throws Exception {
+        MockEmbeddingsService mockService = new MockEmbeddingsService();
+        mockService.setEmbeddingsForText("Jane The Princess", Arrays.asList(1.0d, 2.0d, 3.0d));
+        mockService.setEmbeddingsForText("George The Prince", Arrays.asList(1.0d, 5.0d, 3.0d));
+        ComputeAIEmbeddingsStep step =
+                new ComputeAIEmbeddingsStep(
+                        "{{ record.firstName }} {{ record.lastName }}",
+                        "record.newField",
+                        "value.documents_to_retrieve",
+                        1,
+                        0,
+                        1,
+                        mockService);
+
+        SimpleRecord record =
+                SimpleRecord.of(
+                        null,
+                        """
+                {
+                    "documents_to_retrieve": [
+                       {
+                            "firstName": "Jane",
+                            "lastName": "The Princess"
+                       },
+                       {
+                            "firstName": "George",
+                            "lastName": "The Prince"
+                       }
+                    ]
+                }
+                """);
+
+        TransformContext transformContext = TransformContext.recordToTransformContext(record, true);
+        step.process(transformContext);
+        ai.langstream.api.runner.code.Record result =
+                TransformContext.transformContextToRecord(transformContext).orElseThrow();
+
+        Object value = result.value();
+
+        assertEquals(
+                """
+                {documents_to_retrieve=[{firstName=Jane, lastName=The Princess, newField=[1.0, 2.0, 3.0]}, {firstName=George, lastName=The Prince, newField=[1.0, 5.0, 3.0]}]}""",
+                value.toString());
     }
 }

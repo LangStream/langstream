@@ -76,7 +76,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
         this.loopOverFieldName = loopOver;
         this.embeddingsFieldName = embeddingsFieldName;
         if (loopOver != null && !loopOver.isEmpty()) {
-            this.loopOverAccessor = new JstlEvaluator<List>(loopOver, List.class);
+            this.loopOverAccessor = new JstlEvaluator<List>("${" + loopOver + "}", List.class);
             if (!embeddingsFieldName.startsWith("record.")) {
                 throw new IllegalArgumentException(
                         "With loop-over the embeddings field but be something like record.xxx");
@@ -174,7 +174,11 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                                                         newList,
                                                         loopOverFieldName,
                                                         Schema.createArray(
-                                                                Schema.create(Schema.Type.MAP)),
+                                                                Schema.createMap(
+                                                                        Schema.createMap(
+                                                                                Schema.create(
+                                                                                        Schema.Type
+                                                                                                .STRING)))),
                                                         avroKeySchemaCache,
                                                         avroValueSchemaCache);
                                                 holder.handle().complete(null);
@@ -213,6 +217,10 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                         })
                 .whenComplete(
                         (a, b) -> {
+                            if (b != null) {
+                                log.error("Error while processing batch", b);
+                            }
+                            errorForAll(records, b);
                             completionHandle.complete(null);
                         });
     }
@@ -239,6 +247,10 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
     @Override
     public CompletableFuture<?> processAsync(TransformContext transformContext) {
         CompletableFuture<?> handle = new CompletableFuture<>();
+        handle.whenComplete(
+                (a, b) -> {
+                    log.info("Outcome {}", a, b);
+                });
         batchExecutor.add(new RecordHolder(transformContext, handle));
         return handle;
     }

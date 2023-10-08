@@ -88,7 +88,8 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                 new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
                         .generateSupportedTypesDocumentation();
 
-        Assertions.assertEquals("""
+        Assertions.assertEquals(
+                """
                      {
                        "ai-chat-completions" : {
                          "name" : "Compute chat completions",

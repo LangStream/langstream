@@ -120,6 +120,15 @@ jobs:
     name: End to End tests
     runs-on: LangStream-4-cores
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Python
+            category: python
+          - name: Other
+            category: other
+
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -149,13 +158,17 @@ jobs:
 
       - uses: azure/setup-kubectl@v3
 
-      - name: 'Build and test'
+      - name: Build docker
         run: |
           chmod +x mvnw
           uname -m
           ./dev/prepare-minikube-for-e2e-tests.sh
+
+      - name: Run tests
+        run: |
+          chmod +x mvnw
           ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests
-          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -DexcludedGroups="needs-credentials" -Dlangstream.tests.recycleenv=true
+          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="${{ matrix.category }}" -Dlangstream.tests.recycleenv=true
 
       - name: Upload Surefire reports
         uses: actions/upload-artifact@v3

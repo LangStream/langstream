@@ -16,7 +16,7 @@
 
 name: "Extract and manipulate text"
 topics:
-  - name: "chunks-topic"
+  - name: "ls-test-chunks-topic"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Read from S3"
@@ -25,8 +25,7 @@ pipeline:
       bucketName: "${secrets.s3.bucket-name}"
       endpoint: "${secrets.s3.endpoint}"
       access-key: "${secrets.s3.access-key}"
-      secret-key: "${secrets.s3.secret}"
-      region: "${secrets.s3.region}"
+      secret-key: "${secrets.s3.secret-key}"
       idle-time: 5
   - name: "Extract text"
     type: "text-extractor"
@@ -56,6 +55,7 @@ pipeline:
         copy-properties: true
   - name: "prepare-structure"
     type: "compute"
+    output: "ls-test-chunks-topic"
     configuration:
       fields:
          - name: "value.filename"
@@ -70,13 +70,3 @@ pipeline:
          - name: "value.chunk_num_tokens"
            expression: "properties.chunk_num_tokens"
            type: STRING
-  - name: "compute-embeddings"
-    id: "step1"
-    type: "compute-ai-embeddings"
-    output: "chunks-topic"
-    configuration:
-      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
-      embeddings-field: "value.embeddings_vector"
-      text: "{{ value.text }}"
-      batch-size: 10
-      flush-interval: 500

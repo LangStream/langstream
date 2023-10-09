@@ -15,22 +15,10 @@
  */
 package ai.langstream.tests.util;
 
-import java.io.IOException;
-import java.util.Map;
+public class TestSuites {
 
-public interface CodeStorageProvider {
+    public static final String CATEGORY_PYTHON = "python";
+    public static final String CATEGORY_OTHER = "other";
 
-    record CodeStorageConfig(String type, Map<String, String> configuration) {}
-
-    CodeStorageConfig start();
-
-    void cleanup();
-
-    void stop();
-
-    void createBucket(String bucketName) throws IOException;
-
-    void uploadFromFile(String path, String bucketName, String objectName) throws IOException;
-
-    boolean objectExists(String bucketName, String objectName) throws IOException;
+    public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
 }

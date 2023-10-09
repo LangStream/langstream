@@ -16,15 +16,18 @@
 package ai.langstream.tests;
 
 import ai.langstream.tests.util.BaseEndToEndTest;
+import ai.langstream.tests.util.TestSuites;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
+@Tag(TestSuites.CATEGORY_PYTHON)
 public class PythonAgentsIT extends BaseEndToEndTest {
 
     @Test

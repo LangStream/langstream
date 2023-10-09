@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.tests.util.BaseEndToEndTest;
+import ai.langstream.tests.util.TestSuites;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -27,11 +28,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
+@Tag(TestSuites.CATEGORY_OTHER)
 public class CassandraSinkIT extends BaseEndToEndTest {
 
     @BeforeEach

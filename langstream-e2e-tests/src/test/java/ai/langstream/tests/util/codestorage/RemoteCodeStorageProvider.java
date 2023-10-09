@@ -17,8 +17,11 @@ package ai.langstream.tests.util.codestorage;
 
 import ai.langstream.tests.util.CodeStorageProvider;
 import ai.langstream.tests.util.SystemOrEnv;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,6 +31,8 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
     private static final String ENV_PREFIX = "LANGSTREAM_TESTS_CODESTORAGEREMOTE_PROPS_";
     private static final String TYPE;
     private static final Map<String, String> CONFIG;
+    private Set<String> createdBuckets = new HashSet<>();
+    private CodeStorageClient codeStorageClient;
 
     static {
         CONFIG = new HashMap<>();
@@ -51,12 +56,60 @@ public class RemoteCodeStorageProvider implements CodeStorageProvider {
             throw new IllegalArgumentException(
                     "langstream.tests.codestorageremote.type must be set");
         }
-        return new CodeStorageConfig(TYPE, CONFIG);
+        final CodeStorageConfig codeStorageConfig = new CodeStorageConfig(TYPE, CONFIG);
+        if (codeStorageClient == null) {
+            if (TYPE.equals("s3")) {
+                codeStorageClient =
+                        new S3CLIContainerClient("ls-test-s3-client", codeStorageConfig);
+                codeStorageClient.start();
+            } else if (TYPE.equals("azure")) {
+                codeStorageClient =
+                        new AzureBlobCLIContainerClient("ls-test-azure-client", codeStorageConfig);
+                codeStorageClient.start();
+            }
+        }
+        return codeStorageConfig;
     }
 
     @Override
-    public void cleanup() {}
+    public void cleanup() {
+        for (String b : createdBuckets) {
+            try {
+                codeStorageClient.deleteBucket(b);
+            } catch (IOException e) {
+                log.error("Failed to delete bucket {}", b, e);
+            }
+        }
+        createdBuckets.clear();
+    }
 
     @Override
     public void stop() {}
+
+    @Override
+    public void createBucket(String bucketName) throws IOException {
+        checkClient();
+        codeStorageClient.createBucket(bucketName);
+        createdBuckets.add(bucketName);
+    }
+
+    private void checkClient() {
+        if (codeStorageClient == null) {
+            throw new UnsupportedOperationException(
+                    "code storage client not supported for type " + TYPE);
+        }
+    }
+
+    @Override
+    public void uploadFromFile(String path, String bucketName, String objectName)
+            throws IOException {
+        checkClient();
+        codeStorageClient.uploadFromFile(path, bucketName, objectName);
+    }
+
+    @Override
+    public boolean objectExists(String bucketName, String objectName) throws IOException {
+        checkClient();
+        return codeStorageClient.objectExists(bucketName, objectName);
+    }
 }

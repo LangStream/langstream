@@ -52,4 +52,9 @@ public class ConsumeGatewayMessage {
         final String answer = chatHistoryModel.get("answer").toString();
         return answer;
     }
+
+    @SneakyThrows
+    public Map<String, Object> recordValueAsMap() {
+        return JSON_MAPPER.readValue((String) record.getValue(), Map.class);
+    }
 }

@@ -18,37 +18,46 @@ package ai.langstream.tests.util.codestorage;
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.CodeStorageProvider;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.IOException;
 import java.util.Map;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
 
-    private final KubernetesClient client;
     protected static final String NAMESPACE = "ls-test-minio";
     private boolean started;
-
-    public LocalMinioCodeStorageProvider(KubernetesClient client) {
-        this.client = client;
-    }
+    private CodeStorageClient codeStorageClient;
 
     @Override
     public CodeStorageConfig start() {
+        final CodeStorageConfig config = createCodeConfig();
         if (!started) {
             deploy();
+            codeStorageClient = new S3CLIContainerClient(NAMESPACE, config);
+            codeStorageClient.start();
             started = true;
         }
+        return config;
+    }
+
+    private CodeStorageConfig createCodeConfig() {
         return new CodeStorageConfig(
                 "s3",
                 Map.of(
-                        "endpoint", "http://minio.%s.svc.cluster.local:9000".formatted(NAMESPACE),
+                        "endpoint", getEndpoint(),
                         "access-key", "minioadmin",
                         "secret-key", "minioadmin"));
     }
 
+    private String getEndpoint() {
+        return "http://minio.%s.svc.cluster.local:9000".formatted(NAMESPACE);
+    }
+
     private void deploy() {
-        client.resource(
+        BaseEndToEndTest.getClient()
+                .resource(
                         new NamespaceBuilder()
                                 .withNewMetadata()
                                 .withName(NAMESPACE)
@@ -119,6 +128,7 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
                             app: minio
                         """,
                 NAMESPACE);
+        log.info("MinIO ready");
     }
 
     @Override
@@ -126,6 +136,23 @@ public class LocalMinioCodeStorageProvider implements CodeStorageProvider {
 
     @Override
     public void stop() {
-        client.namespaces().withName(NAMESPACE).delete();
+        BaseEndToEndTest.getClient().namespaces().withName(NAMESPACE).delete();
+    }
+
+    @Override
+    public void createBucket(String bucketName) throws IOException {
+        codeStorageClient.createBucket(bucketName);
+    }
+
+    @Override
+    public void uploadFromFile(String path, String bucketName, String objectName)
+            throws IOException {
+        codeStorageClient.uploadFromFile(path, bucketName, objectName);
+    }
+
+    @Override
+    @SneakyThrows
+    public boolean objectExists(String bucketName, String objectName) throws IOException {
+        return codeStorageClient.objectExists(bucketName, objectName);
     }
 }

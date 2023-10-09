@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.tests.util;
+package ai.langstream.tests.util.codestorage;
 
 import java.io.IOException;
-import java.util.Map;
 
-public interface CodeStorageProvider {
+public interface CodeStorageClient {
 
-    record CodeStorageConfig(String type, Map<String, String> configuration) {}
-
-    CodeStorageConfig start();
-
-    void cleanup();
-
-    void stop();
+    void start();
 
     void createBucket(String bucketName) throws IOException;
+
+    void deleteBucket(String bucketName) throws IOException;
 
     void uploadFromFile(String path, String bucketName, String objectName) throws IOException;
 

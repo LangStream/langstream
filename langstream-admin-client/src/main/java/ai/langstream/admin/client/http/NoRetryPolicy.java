@@ -13,27 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.admin.client;
+package ai.langstream.admin.client.http;
 
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import lombok.Getter;
+public class NoRetryPolicy implements RetryPolicy {
 
-@Getter
-public class HttpRequestFailedException extends Exception {
-    private final HttpRequest request;
-    private final HttpResponse<?> response;
+    public static final NoRetryPolicy INSTANCE = new NoRetryPolicy();
 
-    public HttpRequestFailedException(HttpRequest request, HttpResponse<?> response) {
-        this.request = request;
-        this.response = response;
+    private NoRetryPolicy() {
     }
 
     @Override
-    public String toString() {
-        return "HttpRequestFailedException{" +
-               "request=" + request +
-               ", response=" + response +
-               '}';
+    public int maxAttempts() {
+        return 0;
+    }
+
+    @Override
+    public long delay(int attempt) {
+        return 0;
     }
 }

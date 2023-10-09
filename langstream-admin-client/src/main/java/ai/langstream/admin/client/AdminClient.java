@@ -21,12 +21,15 @@ import ai.langstream.admin.client.http.Retry;
 import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -265,6 +268,15 @@ public class AdminClient implements AutoCloseable {
             final String path =
                     tenantAppPath("/" + application + "/code/" + codeArchiveId + "/info");
             return http(newGet(path)).body();
+        }
+
+        @Override
+        @SneakyThrows
+        public HttpResponse<InputStream> logs(String application, List<String> filter) {
+            final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
+            final HttpRequest request =
+                    newGet(tenantAppPath("/" + application + "/logs" + filterStr));
+            return http(request, HttpResponse.BodyHandlers.ofInputStream());
         }
     }
 

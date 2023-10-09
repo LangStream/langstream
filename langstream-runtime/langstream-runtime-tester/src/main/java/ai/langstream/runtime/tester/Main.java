@@ -16,10 +16,15 @@
 package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.storage.GlobalMetadataStore;
+import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
 import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.apigateway.LangStreamApiGateway;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.impl.storage.GlobalMetadataStoreManager;
+import ai.langstream.impl.storage.LocalStore;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -29,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -143,6 +149,13 @@ public class Main {
                             "--spring.config.location=classpath:gateway.application.properties");
                 }
 
+                final GlobalMetadataStore globalMetadataStore =
+                        GlobalMetadataStoreRegistry.loadStore(
+                                "local",
+                                Map.of());
+                final GlobalMetadataStoreManager globalMetadataStoreManager =
+                        new GlobalMetadataStoreManager(globalMetadataStore, new InMemoryApplicationStore());
+                globalMetadataStoreManager.putTenant(tenant, TenantConfiguration.builder().build());
                 runner.start();
                 try (LocalApplicationRunner.ApplicationRuntime applicationRuntime =
                         runner.deployApplicationWithSecrets(

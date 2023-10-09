@@ -15,14 +15,26 @@
  */
 package ai.langstream.cli.commands.docker;
 
+import ai.langstream.admin.client.AdminClient;
+import ai.langstream.admin.client.AdminClientConfiguration;
+import ai.langstream.admin.client.http.GenericRetryExecution;
+import ai.langstream.admin.client.http.HttpClientProperties;
+import ai.langstream.admin.client.http.NoRetryPolicy;
+import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
+import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
+import org.apache.commons.io.input.Tailer;
+import org.apache.commons.io.input.TailerListener;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "run", header = "Run on a docker container a LangStream application")
@@ -61,6 +73,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             names = {"--start-webservices"},
             description = "Start LangStream webservices")
     private boolean startWebservices = true;
+    @CommandLine.Option(
+            names = {"--start-ui"},
+            description = "Start the UI")
+    private boolean startUI = true;
 
     @CommandLine.Option(
             names = {"--only-agent"},
@@ -250,7 +266,6 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add(dockerCommand);
         commandLine.add("run");
         commandLine.add("--rm");
-        commandLine.add("-it");
         commandLine.add("-e");
         commandLine.add("START_BROKER=" + startBroker);
         commandLine.add("-e");
@@ -316,8 +331,128 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             System.out.println(String.join(" ", commandLine));
         }
 
-        ProcessBuilder processBuilder = new ProcessBuilder(commandLine).inheritIO();
+        final Path outputLog = Files.createTempFile("langstream", ".log");
+        log("Logging to file: " + outputLog.toAbsolutePath());
+        ProcessBuilder processBuilder = new ProcessBuilder(commandLine)
+                .redirectErrorStream(true)
+                .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
+        Executors.newSingleThreadExecutor()
+                .execute(() -> tailLogSysOut(outputLog));
+
+        if (startUI) {
+            startUI(tenant, applicationId, outputLog);
+        }
         process.waitFor();
+    }
+
+    private void startUI(String tenant, String applicationId, Path outputLog) {
+        String body;
+        try (final AdminClient localAdminClient = new AdminClient(AdminClientConfiguration.builder()
+                .tenant(tenant)
+                .webServiceUrl("http://localhost:8090")
+                .build(), getAdminClientLogger(),
+                HttpClientProperties.builder()
+                        .retry(() -> new GenericRetryExecution(NoRetryPolicy.INSTANCE))
+                        .build());) {
+
+            int attempts = 0;
+            while (true) {
+                try {
+                    body = localAdminClient.applications().get(applicationId, false);
+                    break;
+                } catch (Throwable e) {
+                    attempts++;
+                    log("Waiting for application to be ready #" + attempts);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        }
+        final List<Gateways.Gateway> gateways = Gateways.readFromApplicationDescription(body);
+        UIAppCmd.startServer(() -> {
+            final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
+            appModel.setTenant(tenant);
+            appModel.setApplicationId(applicationId);
+            appModel.setRemoteBaseUrl("ws://localhost:8091");
+            appModel.setGateways(gateways);
+            return appModel;
+
+        }, "ws://localhost:8091", getTailLogSupplier(outputLog));
+    }
+
+    private UIAppCmd.LogSupplier getTailLogSupplier(Path outputLog) {
+        return line -> {
+            while (true) {
+                try (Tailer tailer = Tailer.builder()
+                        .setTailFromEnd(true)
+                        .setStartThread(false)
+                        .setTailerListener(new TailerListener() {
+                            @Override
+                            public void fileNotFound() {
+
+                            }
+
+                            @Override
+                            public void fileRotated() {
+
+                            }
+
+                            @Override
+                            public void handle(Exception e) {
+                            }
+
+                            @Override
+                            public void handle(String s) {
+                                line.accept(s);
+                            }
+
+                            @Override
+                            public void init(Tailer tailer) {
+
+                            }
+                        }).setDelayDuration(Duration.ofMillis(100)).setFile(outputLog.toFile()).get();) {
+                    tailer.run();
+                }
+            }
+        };
+    }
+
+    private void tailLogSysOut(Path outputLog) {
+
+        TailerListener listener = new TailerListener() {
+            @Override
+            public void fileNotFound() {
+            }
+
+            @Override
+            public void fileRotated() {
+            }
+
+            @Override
+            public void handle(Exception e) {
+            }
+
+            @Override
+            public void handle(String s) {
+                log(s);
+            }
+
+            @Override
+            public void init(Tailer tailer) {
+            }
+        };
+        try (final Tailer tailer = Tailer.builder()
+                .setTailerListener(listener)
+                .setStartThread(false)
+                .setDelayDuration(Duration.ofMillis(100))
+                .setFile(outputLog.toFile()).get();) {
+            while (true) {
+                tailer.run();
+            }
+        }
     }
 }

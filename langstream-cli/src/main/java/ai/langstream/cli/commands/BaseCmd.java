@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -78,36 +79,41 @@ public abstract class BaseCmd implements Runnable {
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
     private AdminClient client;
     private LangStreamCLIConfig config;
+    private Map<String, String> applicationDescriptions = new HashMap<>();
 
     protected abstract RootCmd getRootCmd();
 
     protected AdminClient getClient() {
         if (client == null) {
             final AdminClientLogger logger =
-                    new AdminClientLogger() {
-                        @Override
-                        public void log(Object message) {
-                            BaseCmd.this.log(message);
-                        }
-
-                        @Override
-                        public void error(Object message) {
-                            BaseCmd.this.err(message);
-                        }
-
-                        @Override
-                        public boolean isDebugEnabled() {
-                            return getRootCmd().isVerbose();
-                        }
-
-                        @Override
-                        public void debug(Object message) {
-                            BaseCmd.this.debug(message);
-                        }
-                    };
+                    getAdminClientLogger();
             client = new AdminClient(toAdminConfiguration(), logger);
         }
         return client;
+    }
+
+    protected AdminClientLogger getAdminClientLogger() {
+        return new AdminClientLogger() {
+            @Override
+            public void log(Object message) {
+                BaseCmd.this.log(message);
+            }
+
+            @Override
+            public void error(Object message) {
+                BaseCmd.this.err(message);
+            }
+
+            @Override
+            public boolean isDebugEnabled() {
+                return getRootCmd().isVerbose();
+            }
+
+            @Override
+            public void debug(Object message) {
+                BaseCmd.this.debug(message);
+            }
+        };
     }
 
     protected LangStreamCLIConfig getConfig() {
@@ -561,5 +567,11 @@ public abstract class BaseCmd implements Runnable {
             hexString.append(hex);
         }
         return hexString.toString();
+    }
+
+
+    protected String getAppDescriptionOrLoad(String application) {
+        return applicationDescriptions.computeIfAbsent(
+                application, app -> getClient().applications().get(application, false));
     }
 }

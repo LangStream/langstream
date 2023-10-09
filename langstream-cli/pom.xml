@@ -34,6 +34,7 @@
     <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
 
     <org.eclipse.jgit.version>6.7.0.202309050840-r</org.eclipse.jgit.version>
+    <undertow.version>2.1.0.Final</undertow.version>
   </properties>
   <dependencies>
     <dependency>
@@ -79,6 +80,17 @@
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
       <version>${org.eclipse.jgit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.undertow</groupId>
+      <artifactId>undertow-core</artifactId>
+      <version>${undertow.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.14.0</version>
     </dependency>
   </dependencies>
   <build>

@@ -19,13 +19,17 @@ topics:
   - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "Load documents and chunk them with LangChain"
+  - name: "Load documents with LangChain"
     type: "python-source"
-    output: "output-topic"
     configuration:
-      className: langchain_document_loader.LangChainDocumentLoaderSource
+      className: langchain_agents.LangChainDocumentLoaderSource
       load-interval-seconds: 3600
       loader-class: WebBaseLoader
       loader-args:
         web-path: ["https://langstream.ai/"]
+  - name: "Chunk documents with LangChain"
+    type: "python-processor"
+    output: "output-topic"
+    configuration:
+      className: langchain_agents.LangChainTextSplitterProcessor
       splitter-class: RecursiveCharacterTextSplitter

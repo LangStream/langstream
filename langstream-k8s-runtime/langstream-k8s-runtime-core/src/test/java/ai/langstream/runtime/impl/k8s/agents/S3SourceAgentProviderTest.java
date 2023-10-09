@@ -103,55 +103,104 @@ class S3SourceAgentProviderTest {
 
         Assertions.assertEquals(
                 """
-                {
-                  "s3-source" : {
-                    "name" : "S3 Source",
-                    "description" : "Reads data from S3 bucket",
-                    "properties" : {
-                      "access-key" : {
-                        "description" : "Access key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      },
-                      "bucketName" : {
-                        "description" : "The name of the bucket to read from.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "langstream-source"
-                      },
-                      "endpoint" : {
-                        "description" : "The endpoint of the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "http://minio-endpoint.-not-set:9090"
-                      },
-                      "file-extensions" : {
-                        "description" : "Comma separated list of file extensions to filter by.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "pdf,docx,html,htm,md,txt"
-                      },
-                      "idle-time" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "integer",
-                        "defaultValue" : "5"
-                      },
-                      "region" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "string"
-                      },
-                      "secret-key" : {
-                        "description" : "Secret key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      }
-                    }
-                  }
-                }""",
+                        {
+                          "azure-blob-storage-source" : {
+                            "name" : "Azure Blob Storage Source",
+                            "description" : "Reads data from Azure blobs. There are three supported ways to authenticate:\\n- SAS token\\n- Storage account name and key\\n- Storage account connection string",
+                            "properties" : {
+                              "container" : {
+                                "description" : "The name of the Azure econtainer to read from.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "langstream-azure-source"
+                              },
+                              "endpoint" : {
+                                "description" : "Endpoint to connect to. Usually it's https://<storage-account>.blob.core.windows.net.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "file-extensions" : {
+                                "description" : "Comma separated list of file extensions to filter by.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "pdf,docx,html,htm,md,txt"
+                              },
+                              "idle-time" : {
+                                "description" : "Time in seconds to sleep after polling for new files.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "5"
+                              },
+                              "sas-token" : {
+                                "description" : "Azure SAS token. If not provided, storage account name and key must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "storage-account-connection-string" : {
+                                "description" : "Azure storage account connection string. If not provided, SAS token must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "storage-account-key" : {
+                                "description" : "Azure storage account key. If not provided, SAS token must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "storage-account-name" : {
+                                "description" : "Azure storage account name. If not provided, SAS token must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "s3-source" : {
+                            "name" : "S3 Source",
+                            "description" : "Reads data from S3 bucket",
+                            "properties" : {
+                              "access-key" : {
+                                "description" : "Access key for the S3 server.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "minioadmin"
+                              },
+                              "bucketName" : {
+                                "description" : "The name of the bucket to read from.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "langstream-source"
+                              },
+                              "endpoint" : {
+                                "description" : "The endpoint of the S3 server.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "http://minio-endpoint.-not-set:9090"
+                              },
+                              "file-extensions" : {
+                                "description" : "Comma separated list of file extensions to filter by.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "pdf,docx,html,htm,md,txt"
+                              },
+                              "idle-time" : {
+                                "description" : "Time in seconds to sleep after polling for new files.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "5"
+                              },
+                              "region" : {
+                                "description" : "Region for the S3 server.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "secret-key" : {
+                                "description" : "Secret key for the S3 server.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "minioadmin"
+                              }
+                            }
+                          }
+                        }""",
                 SerializationUtil.prettyPrintJson(model));
     }
 }

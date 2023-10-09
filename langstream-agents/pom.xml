@@ -41,5 +41,6 @@
         <module>langstream-vector-agents</module>
         <module>langstream-agents-flow-control</module>
         <module>langstream-agent-http-request</module>
+        <module>langstream-agent-azure-blob-storage-source</module>
     </modules>
 </project>

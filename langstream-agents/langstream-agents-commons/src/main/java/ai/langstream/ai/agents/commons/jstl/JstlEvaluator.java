@@ -123,8 +123,22 @@ public class JstlEvaluator<T> {
                 .getFunctionMapper()
                 .mapFunction(
                         "fn",
-                        "listOf",
-                        JstlFunctions.class.getMethod("listOf", Object.class, String.class));
+                        "mapToListOfStructs",
+                        JstlFunctions.class.getMethod(
+                                "mapToListOfStructs", Object.class, String.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "listToListOfStructs",
+                        JstlFunctions.class.getMethod(
+                                "listToListOfStructs", Object.class, String.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "listAdd",
+                        JstlFunctions.class.getMethod("listAdd", Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "emptyMap", JstlFunctions.class.getMethod("emptyMap"));

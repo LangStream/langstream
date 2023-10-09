@@ -239,7 +239,7 @@ class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
                                     configuration:
                                       fields:
                                         - name: "value.documents_to_retrieve"
-                                          expression: "fn:listOf(value, 'text')"
+                                          expression: "fn:listOfStructs(value, 'text')"
                                         - name: "value.related_documents"
                                           expression: "fn:emptyList()"
 

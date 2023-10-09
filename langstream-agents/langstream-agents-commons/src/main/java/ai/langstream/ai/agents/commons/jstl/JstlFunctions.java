@@ -162,7 +162,7 @@ public class JstlFunctions {
         return Map.of();
     }
 
-    public static List<Object> listOf(Object object, String fields) {
+    public static List<Object> mapToListOfStructs(Object object, String fields) {
         if (object == null) {
             throw new IllegalArgumentException("listOf doesn't allow a null value");
         }
@@ -172,6 +172,37 @@ public class JstlFunctions {
                 result.put(field, map.get(field));
             }
             return List.of(result);
+        }
+        throw new IllegalArgumentException(
+                "listOf doesn't allow a non-map value, found a " + object.getClass());
+    }
+
+    public static List<Object> listToListOfStructs(Object object, String field) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        List<Object> result = new ArrayList<>();
+        if (object instanceof Collection col) {
+            for (Object item : col) {
+                Map<String, Object> map = new HashMap<>();
+                map.put(field, item);
+                result.add(map);
+            }
+            return result;
+        }
+        throw new IllegalArgumentException(
+                "listToListOfStructs doesn't allow a non-list value, found a " + object.getClass());
+    }
+
+    public static List<Object> listAdd(Object object, Object value) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        List<Object> result = new ArrayList<>();
+        if (object instanceof Collection col) {
+            result.addAll(col);
+            result.add(value);
+            return result;
         }
         throw new IllegalArgumentException(
                 "listOf doesn't allow a non-map value, found a " + object.getClass());

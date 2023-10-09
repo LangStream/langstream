@@ -38,15 +38,24 @@ pipeline:
     configuration:
       fields:
         - name: "value.documents_to_retrieve"
-          expression: "fn:listOf(fn:toJson(value))"
+          expression: "fn:listAdd(fn:emptyList(), value.text)"
         - name: "value.related_documents"
           expression: "fn:emptyList()"
 
   ## Flare loop
   # for each document to retrieve we compute the embeddings vector
   # documents_to_retrieve: [ { text: "the text", embeddings: [1,2,3] }, .... ]
-  - name: "compute-embeddings"
+  - name: "convert-docs-to-struct"
     id: "flare-loop"
+    type: "compute"
+    output: "flare-loop-input-topic"
+    configuration:
+      fields:
+        - name: "value.documents_to_retrieve"
+          expression: "fn:listToListOfStructs(value.documents_to_retrieve, 'text')"
+        - name: "value.related_documents"
+          expression: "fn:emptyList()"
+  - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     input: "flare-loop-input-topic"
     configuration:
@@ -89,7 +98,7 @@ pipeline:
   - name: "query-the-LLM"
     type: "ai-text-completions"
     configuration:
-      model: "${secrets.open-ai.chat-completions-model}"
+      model: "${secrets.open-ai.text-completions-model}"
       completion-field: "value.result"
       logprobs: 5
       logprobs-field: "value.tokens"
@@ -117,11 +126,9 @@ pipeline:
         loop-topic: "flare-loop-input-topic"
         retrieve-documents-field: "value.documents_to_retrieve"
   - name: "cleanup-response"
-    type: "drop-fields"
+    type: "compute"
     output: "output-topic"
     configuration:
       fields:
-        - "retrieved_documents"
-        - "documents_to_retrieve"
-        - "related_documents"
-        - "token-probs"
+        - name: "value"
+          expression: "value.result"

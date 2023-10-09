@@ -131,6 +131,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
             log.info("Record {} - {} iterations in Flare controller", record, iterationCount);
         }
         List<String> tokens = tokensAccessor.evaluate(transformContext);
+        log.info("Flare: tokens: {}", tokens);
         List<Double> logProbs = logsProbsAccessor.evaluate(transformContext);
 
         List<String> logConfidenceSpans =
@@ -141,6 +142,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
                 });
 
         if (logConfidenceSpans.isEmpty()) {
+            log.info("The record is good, sending it to the next agent");
             // record is good, send it to the next agent
             recordSink.emitSingleResult(record, record);
             return;

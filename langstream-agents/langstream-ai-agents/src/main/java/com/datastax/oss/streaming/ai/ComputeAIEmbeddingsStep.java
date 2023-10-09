@@ -129,7 +129,6 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
 
         try {
             for (RecordHolder holder : records) {
-                log.info("Processing record {}", holder.transformContext().toJsonRecord());
                 TransformContext transformContext = holder.transformContext();
                 JsonRecord jsonRecord = transformContext.toJsonRecord();
                 if (loopOverAccessor == null) {
@@ -245,10 +244,6 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
     @Override
     public CompletableFuture<?> processAsync(TransformContext transformContext) {
         CompletableFuture<?> handle = new CompletableFuture<>();
-        handle.whenComplete(
-                (a, b) -> {
-                    log.info("Outcome {}", a, b);
-                });
         batchExecutor.add(new RecordHolder(transformContext, handle));
         return handle;
     }

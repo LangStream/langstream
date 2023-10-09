@@ -24,6 +24,7 @@ import crawlercommons.sitemaps.SiteMapParser;
 import crawlercommons.sitemaps.SiteMapURL;
 import java.io.IOException;
 import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.CookieStore;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -68,7 +69,10 @@ public class WebCrawler {
         this.status = status;
 
         CookieManager cookieManager = new CookieManager();
-        cookieManager.setCookiePolicy(java.net.CookiePolicy.ACCEPT_ALL);
+        cookieManager.setCookiePolicy(
+                configuration.isHandleCookies()
+                        ? CookiePolicy.ACCEPT_ALL
+                        : CookiePolicy.ACCEPT_NONE);
         this.cookieStore = cookieManager.getCookieStore();
     }
 

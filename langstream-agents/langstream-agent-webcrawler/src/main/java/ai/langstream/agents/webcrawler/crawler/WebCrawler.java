@@ -69,8 +69,10 @@ public class WebCrawler {
         this.status = status;
 
         CookieManager cookieManager = new CookieManager();
-        cookieManager.setCookiePolicy(configuration.isHandleCookies() ? CookiePolicy.ACCEPT_ALL  :
-                CookiePolicy.ACCEPT_NONE);
+        cookieManager.setCookiePolicy(
+                configuration.isHandleCookies()
+                        ? CookiePolicy.ACCEPT_ALL
+                        : CookiePolicy.ACCEPT_NONE);
         this.cookieStore = cookieManager.getCookieStore();
     }
 

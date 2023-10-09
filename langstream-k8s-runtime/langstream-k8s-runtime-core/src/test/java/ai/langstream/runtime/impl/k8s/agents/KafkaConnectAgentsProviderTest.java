@@ -135,8 +135,7 @@ class KafkaConnectAgentsProviderTest {
         final Map<String, AgentConfigurationModel> model =
                 new PluginsRegistry()
                         .lookupAgentImplementation(
-                                "sink",
-                                new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
+                                "sink", new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
                         .generateSupportedTypesDocumentation();
 
         Assertions.assertEquals(

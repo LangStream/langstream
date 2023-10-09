@@ -16,16 +16,17 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <groupId>ai.langstream</groupId>
     <artifactId>langstream-agents</artifactId>
+    <groupId>ai.langstream</groupId>
     <version>0.1.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>langstream-agents-text-processing</artifactId>
-  <packaging>jar</packaging>
-  <name>LangStream - Apache Tika Agents</name>
+
+  <artifactId>langstream-agent-http-request</artifactId>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -34,30 +35,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-core</artifactId>
-      <version>2.8.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers-standard-package</artifactId>
-      <version>2.8.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-langdetect-tika</artifactId>
-      <version>2.8.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers</artifactId>
-      <version>2.8.0</version>
-      <type>pom</type>
-    </dependency>
-    <dependency>
-      <groupId>com.knuddels</groupId>
-      <artifactId>jtokkit</artifactId>
-      <version>0.6.1</version>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-commons</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -67,6 +47,10 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.samskivert</groupId>
+      <artifactId>jmustache</artifactId>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -83,20 +67,7 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>localstack</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
-  <properties>
-    <tika-core.version>2.8.0</tika-core.version>
-  </properties>
   <build>
     <plugins>
       <plugin>

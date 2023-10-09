@@ -22,11 +22,10 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Set;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class FlareControllerAgentProvider extends AbstractComposableAgentProvider {
@@ -81,7 +80,6 @@ public class FlareControllerAgentProvider extends AbstractComposableAgentProvide
                 required = true)
         @JsonProperty("loop-topic")
         private String loopTopic;
-
 
         @ConfigProperty(
                 description =

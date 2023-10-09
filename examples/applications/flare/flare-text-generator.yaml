@@ -21,8 +21,6 @@ topics:
     creation-mode: create-if-not-exists
   - name: "output-topic"
     creation-mode: create-if-not-exists
-errors:
-    on-failure: "skip"
 pipeline:
   # Add the text of the initial task to the list of documents to retrieve
   # and prepare the structure
@@ -48,7 +46,7 @@ pipeline:
   - name: "convert-docs-to-struct"
     id: "flare-loop"
     type: "compute"
-    output: "flare-loop-input-topic"
+    input: "flare-loop-input-topic"
     configuration:
       fields:
         - name: "value.documents_to_retrieve"
@@ -57,7 +55,6 @@ pipeline:
           expression: "fn:emptyList()"
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
-    input: "flare-loop-input-topic"
     configuration:
       loop-over: "value.documents_to_retrieve"
       model: "${secrets.open-ai.embeddings-model}"
@@ -76,7 +73,7 @@ pipeline:
       query: |
               SELECT text,embeddings_vector
               FROM documents
-              ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20
+              ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 5
       fields:
         - "record.embeddings"
       # as we are looping over a list of document, the result of the query
@@ -102,22 +99,19 @@ pipeline:
       completion-field: "value.result"
       logprobs: 5
       logprobs-field: "value.tokens"
+      max-tokens: 100
       prompt:
           - |
-              You have to perform a task that is written below, it starts with StartOfTask and ends with EndOfTask.
-              There is a list of documents that you must use to perform the task.
-              Each document starts after StartOfDocument and ends before EndOfDocument.
+              There is a list of documents that you must use to perform your task.
               Do not provide information that is not related to the provided documents.
               
               {{# value.related_documents}}
-              StartOfDocument
               {{text}}
-              EndOfDocument
               {{/ value.related_documents}}
         
-              StartOfTask
+              This is the task:
               {{ value.text }}
-              EndOfTask
+
   - name: "ensure-quality-of-result"
     type: "flare-controller"
     configuration:

@@ -124,11 +124,11 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
             iterationCount = 0;
         }
         if (iterationCount > maxIterations) {
-            log.info("Record {} did too many iterations - {}, stopping", record, iterationCount);
+            log.info("The record did too many iterations - {}, stopping", iterationCount);
             recordSink.emitSingleResult(record, record);
             return;
         } else {
-            log.info("Record {} - {} iterations in Flare controller", record, iterationCount);
+            log.info("Record did {} iterations in Flare controller", iterationCount);
         }
         List<String> tokens = tokensAccessor.evaluate(transformContext);
         log.info("Flare: tokens: {}", tokens);
@@ -209,7 +209,9 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
             for (int j = span[0]; j < span[1]; j++) {
                 spanBuilder.append(tokens.get(j));
             }
-            result.add(spanBuilder.toString());
+            if (!spanBuilder.isEmpty()) {
+                result.add(spanBuilder.toString());
+            }
         }
 
         return result;

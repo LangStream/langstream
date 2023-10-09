@@ -15,14 +15,11 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import ai.langstream.admin.client.AdminClient;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
@@ -30,8 +27,8 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "logs", header = "Get LangStream application logs")
 public class GetApplicationLogsCmd extends BaseApplicationCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+    @CommandLine.Parameters(description = "ID of the application")
+    private String applicationId;
 
     @CommandLine.Option(
             names = {"-f"},
@@ -41,19 +38,8 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
-        final AdminClient client = getClient();
-        final HttpRequest request =
-                client.newGet(client.tenantAppPath("/" + name + "/logs" + filterStr));
         final HttpResponse<InputStream> response =
-                client.getHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
-        if (response.statusCode() != 200) {
-            throw new RuntimeException(
-                    "Failed to get application logs: "
-                            + response.statusCode()
-                            + " "
-                            + new String(response.body().readAllBytes(), StandardCharsets.UTF_8));
-        }
+                getClient().applications().logs(applicationId, filter);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(response.body()));
         String line;

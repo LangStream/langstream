@@ -28,4 +28,14 @@ public class HttpRequestFailedException extends Exception {
         this.request = request;
         this.response = response;
     }
+
+    @Override
+    public String toString() {
+        return "HttpRequestFailedException{"
+                + "request="
+                + request
+                + ", response="
+                + response
+                + '}';
+    }
 }

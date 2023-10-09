@@ -112,8 +112,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         return getCurrentProfile().getApiGatewayUrl();
     }
 
-    private Map<String, String> applicationDescriptions = new HashMap<>();
-
     @SneakyThrows
     protected void validateGateway(
             String application,
@@ -183,11 +181,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             throw new IllegalArgumentException(
                     "credentials and test-credentials cannot be used together");
         }
-    }
-
-    private String getAppDescriptionOrLoad(String application) {
-        return applicationDescriptions.computeIfAbsent(
-                application, app -> getClient().applications().get(application, false));
     }
 
     protected Map<String, String> generatedParamsForChatGateway(

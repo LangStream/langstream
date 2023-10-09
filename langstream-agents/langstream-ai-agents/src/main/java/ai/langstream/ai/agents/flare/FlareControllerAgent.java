@@ -21,6 +21,8 @@ import static ai.langstream.ai.agents.commons.TransformContext.transformContextT
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.AbstractAgentCode;
+import ai.langstream.api.runner.code.AgentCode;
+import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
@@ -30,6 +32,7 @@ import ai.langstream.api.util.ConfigurationUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
@@ -61,10 +64,6 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
 
     @Override
     public void init(Map<String, Object> configuration) {
-        String field =
-                ConfigurationUtils.requiredNonEmptyField(
-                        configuration, "current-response-field", () -> "re-rank agent");
-
         String tokensField = ConfigurationUtils.getString("tokens-field", "", configuration);
         String logProbsField = ConfigurationUtils.getString("logprobs-field", "", configuration);
         tokensAccessor = new JstlEvaluator("${" + tokensField + "}", List.class);
@@ -125,9 +124,11 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
             iterationCount = 0;
         }
         if (iterationCount > maxIterations) {
-            log.info("Record {} did too many iterations, stopping", iterationCount);
+            log.info("Record {} did too many iterations - {}, stopping", record, iterationCount);
             recordSink.emitSingleResult(record, record);
             return;
+        } else {
+            log.info("Record {} - {} iterations in Flare controller", record, iterationCount);
         }
         List<String> tokens = tokensAccessor.evaluate(transformContext);
         List<Double> logProbs = logsProbsAccessor.evaluate(transformContext);
@@ -210,5 +211,20 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
         }
 
         return result;
+    }
+
+    public static class FlareControllerAgentCodeProvider implements AgentCodeProvider {
+
+        private static final Set<String> STEP_TYPES = Set.of("flare-controller");
+
+        @Override
+        public boolean supports(String agentType) {
+            return STEP_TYPES.contains(agentType);
+        }
+
+        @Override
+        public AgentCode createInstance(String agentType) {
+            return new FlareControllerAgent();
+        }
     }
 }

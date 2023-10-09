@@ -162,11 +162,19 @@ public class JstlFunctions {
         return Map.of();
     }
 
-    public static List<Object> listOf(Object object) {
+    public static List<Object> listOf(Object object, String fields) {
         if (object == null) {
             throw new IllegalArgumentException("listOf doesn't allow a null value");
         }
-        return List.of(object);
+        if (object instanceof Map map) {
+            Map<String, Object> result = new HashMap<>();
+            for (String field : fields.split(",")) {
+                result.put(field, map.get(field));
+            }
+            return List.of(result);
+        }
+        throw new IllegalArgumentException(
+                "listOf doesn't allow a non-map value, found a " + object.getClass());
     }
 
     public static List<Object> addAll(Object one, Object two) {

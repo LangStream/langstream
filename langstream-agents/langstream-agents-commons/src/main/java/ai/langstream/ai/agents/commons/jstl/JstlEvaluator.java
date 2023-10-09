@@ -121,7 +121,10 @@ public class JstlEvaluator<T> {
                 .mapFunction("fn", "emptyList", JstlFunctions.class.getMethod("emptyList"));
         this.expressionContext
                 .getFunctionMapper()
-                .mapFunction("fn", "listOf", JstlFunctions.class.getMethod("listOf", Object.class));
+                .mapFunction(
+                        "fn",
+                        "listOf",
+                        JstlFunctions.class.getMethod("listOf", Object.class, String.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "emptyMap", JstlFunctions.class.getMethod("emptyMap"));
@@ -223,5 +226,9 @@ public class JstlEvaluator<T> {
             }
             throw new IllegalArgumentException(notFound);
         }
+    }
+
+    public String toString() {
+        return "JstlEvaluator(expression=" + this.expression + ")";
     }
 }

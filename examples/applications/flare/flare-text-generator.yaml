@@ -38,7 +38,7 @@ pipeline:
     configuration:
       fields:
         - name: "value.documents_to_retrieve"
-          expression: "fn:listOf(value)"
+          expression: "fn:listOf(fn:toJson(value))"
         - name: "value.related_documents"
           expression: "fn:emptyList()"
 
@@ -67,7 +67,7 @@ pipeline:
       query: |
               SELECT text,embeddings_vector
               FROM documents
-              ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20"
+              ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20
       fields:
         - "record.embeddings"
       # as we are looping over a list of document, the result of the query

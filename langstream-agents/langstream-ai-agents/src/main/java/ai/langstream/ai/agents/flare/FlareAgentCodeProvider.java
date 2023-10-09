@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.ai.agents;
+package ai.langstream.ai.agents.flare;
 
-import ai.langstream.ai.agents.rerank.ReRankAgent;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import java.util.Set;
 
-public class ReRankAgentCodeProvider implements AgentCodeProvider {
+public class FlareAgentCodeProvider implements AgentCodeProvider {
 
-    private static final Set<String> STEP_TYPES = Set.of("re-rank");
+    private static final Set<String> STEP_TYPES = Set.of("flare-controller");
 
     @Override
     public boolean supports(String agentType) {
@@ -31,6 +30,6 @@ public class ReRankAgentCodeProvider implements AgentCodeProvider {
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new ReRankAgent();
+        return new FlareControllerAgent();
     }
 }

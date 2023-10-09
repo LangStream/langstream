@@ -129,6 +129,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
 
         try {
             for (RecordHolder holder : records) {
+                log.info("Processing record {}", holder.transformContext().toJsonRecord());
                 TransformContext transformContext = holder.transformContext();
                 JsonRecord jsonRecord = transformContext.toJsonRecord();
                 if (loopOverAccessor == null) {
@@ -153,6 +154,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                     AtomicInteger remaining = new AtomicInteger(nestedRecords.size());
 
                     for (Object document : nestedRecords) {
+                        log.info("Processing nested record {}", document);
                         // this is a mutable map
                         Map<String, Object> newMap =
                                 new ConcurrentHashMap<>((Map<String, Object>) document);
@@ -161,13 +163,16 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                         mustacheContext.put("record", document);
                         String text = template.execute(mustacheContext);
                         texts.add(text);
+                        log.info("text {}", text);
                         textsAndCompletions.add(
                                 new TextAndReference(
                                         text,
                                         (List<Double> embeddingsForText) -> {
                                             newMap.put(fieldInRecord, embeddingsForText);
                                             int r = remaining.decrementAndGet();
+                                            log.info("Remaining {}", r);
                                             if (r == 0) {
+                                                log.info("final list {}", newList);
                                                 // all the nested records are done, we can override
                                                 // the field, in the original record
                                                 transformContext.setResultField(
@@ -201,18 +206,11 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                 embeddingsService.computeEmbeddings(texts);
 
         embeddings
-                .whenComplete(
-                        (result, error) -> {
-                            if (error != null) {
-                                errorForAll(records, error);
-                            } else {
-                                for (int i = 0; i < textsAndCompletions.size(); i++) {
-                                    List<Double> embeddingsForText = result.get(i);
-                                    textsAndCompletions
-                                            .get(i)
-                                            .completion()
-                                            .accept(embeddingsForText);
-                                }
+                .thenAccept(
+                        (result) -> {
+                            for (int i = 0; i < textsAndCompletions.size(); i++) {
+                                List<Double> embeddingsForText = result.get(i);
+                                textsAndCompletions.get(i).completion().accept(embeddingsForText);
                             }
                         })
                 .whenComplete(

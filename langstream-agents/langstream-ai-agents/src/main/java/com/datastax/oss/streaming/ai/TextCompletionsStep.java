@@ -152,9 +152,26 @@ public class TextCompletionsStep implements TransformStep {
                         logMap.put("logprobs", logprobs != null ? logprobs : List.of());
 
                         transformContext.setResultField(
-                                TransformContext.toJson(logMap),
+                                logMap,
                                 logProbsField,
-                                Schema.create(Schema.Type.STRING),
+                                Schema.createRecord(
+                                        "logprobs",
+                                        "",
+                                        "logprobs",
+                                        false,
+                                        List.of(
+                                                new Schema.Field(
+                                                        "tokens",
+                                                        Schema.createArray(
+                                                                Schema.create(Schema.Type.STRING)),
+                                                        "",
+                                                        null),
+                                                new Schema.Field(
+                                                        "logprobs",
+                                                        Schema.createArray(
+                                                                Schema.create(Schema.Type.DOUBLE)),
+                                                        "",
+                                                        null))),
                                 avroKeySchemaCache,
                                 avroValueSchemaCache);
                     }

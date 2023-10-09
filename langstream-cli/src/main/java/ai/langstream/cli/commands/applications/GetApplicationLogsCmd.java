@@ -38,7 +38,8 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final HttpResponse<InputStream> response = getClient().applications().logs(applicationId, filter);
+        final HttpResponse<InputStream> response =
+                getClient().applications().logs(applicationId, filter);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(response.body()));
         String line;

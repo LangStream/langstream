@@ -28,7 +28,6 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

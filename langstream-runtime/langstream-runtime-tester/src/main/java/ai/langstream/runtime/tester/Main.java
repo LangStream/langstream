@@ -24,7 +24,6 @@ import ai.langstream.apigateway.LangStreamApiGateway;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.impl.storage.GlobalMetadataStoreManager;
-import ai.langstream.impl.storage.LocalStore;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -150,11 +149,10 @@ public class Main {
                 }
 
                 final GlobalMetadataStore globalMetadataStore =
-                        GlobalMetadataStoreRegistry.loadStore(
-                                "local",
-                                Map.of());
+                        GlobalMetadataStoreRegistry.loadStore("local", Map.of());
                 final GlobalMetadataStoreManager globalMetadataStoreManager =
-                        new GlobalMetadataStoreManager(globalMetadataStore, new InMemoryApplicationStore());
+                        new GlobalMetadataStoreManager(
+                                globalMetadataStore, new InMemoryApplicationStore());
                 globalMetadataStoreManager.putTenant(tenant, TenantConfiguration.builder().build());
                 runner.start();
                 try (LocalApplicationRunner.ApplicationRuntime applicationRuntime =

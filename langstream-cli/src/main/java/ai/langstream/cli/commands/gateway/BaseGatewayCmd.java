@@ -112,8 +112,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         return getCurrentProfile().getApiGatewayUrl();
     }
 
-
-
     @SneakyThrows
     protected void validateGateway(
             String application,
@@ -184,7 +182,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                     "credentials and test-credentials cannot be used together");
         }
     }
-
 
     protected Map<String, String> generatedParamsForChatGateway(
             String application, String gatewayId) {

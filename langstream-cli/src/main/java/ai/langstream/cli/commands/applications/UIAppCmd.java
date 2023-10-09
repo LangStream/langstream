@@ -17,7 +17,6 @@ package ai.langstream.cli.commands.applications;
 
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
-import ai.langstream.cli.commands.gateway.BaseGatewayCmd;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.protocols.ssl.UndertowXnioSsl;
@@ -49,9 +48,7 @@ import org.xnio.OptionMap;
 import org.xnio.Xnio;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "ui",
-        header = "Run UI for interact with the application")
+@CommandLine.Command(name = "ui", header = "Run UI for interact with the application")
 public class UIAppCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Application ID")
@@ -72,30 +69,34 @@ public class UIAppCmd extends BaseApplicationCmd {
         final String apiGatewayUrl = currentProfile.getApiGatewayUrl();
         appModel.setRemoteBaseUrl(apiGatewayUrl);
 
-        final LogSupplier logSupplier = new LogSupplier() {
-            @Override
-            @SneakyThrows
-            public void run(Consumer<String> lineConsumer) {
-                final HttpResponse<InputStream> response = getClient().applications().logs(applicationId, List.of());
-                InputStream inputStream = response.body();
-                InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-                BufferedReader bufferedReader = new BufferedReader(reader);
+        final LogSupplier logSupplier =
+                new LogSupplier() {
+                    @Override
+                    @SneakyThrows
+                    public void run(Consumer<String> lineConsumer) {
+                        final HttpResponse<InputStream> response =
+                                getClient().applications().logs(applicationId, List.of());
+                        InputStream inputStream = response.body();
+                        InputStreamReader reader =
+                                new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+                        BufferedReader bufferedReader = new BufferedReader(reader);
 
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    lineConsumer.accept(line);
-                }
-            }
-        };
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            lineConsumer.accept(line);
+                        }
+                    }
+                };
         final Undertow server = startServer(() -> appModel, apiGatewayUrl, logSupplier);
-        final int port = ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
+        final int port =
+                ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
         log("Started UI at http://localhost:" + port);
         Thread.sleep(Long.MAX_VALUE);
-
     }
 
     @SneakyThrows
-    public static Undertow startServer(Supplier<AppModel> appModel, String apiGatewayUrl, LogSupplier logsStream) {
+    public static Undertow startServer(
+            Supplier<AppModel> appModel, String apiGatewayUrl, LogSupplier logsStream) {
         String forwardHost;
         if (apiGatewayUrl.startsWith("wss://")) {
             forwardHost = "https://" + apiGatewayUrl.substring("wss://".length());
@@ -105,58 +106,66 @@ public class UIAppCmd extends BaseApplicationCmd {
         if (forwardHost.endsWith("/")) {
             forwardHost = forwardHost.substring(0, forwardHost.length() - 1);
         }
-        LoadBalancingProxyClient loadBalancer = new LoadBalancingProxyClient()
-                .addHost(new URI(forwardHost), forwardHost.startsWith("https://") ?
-                        new UndertowXnioSsl(Xnio.getInstance(), OptionMap.builder().getMap()) : null)
-                .setConnectionsPerThread(20);
+        LoadBalancingProxyClient loadBalancer =
+                new LoadBalancingProxyClient()
+                        .addHost(
+                                new URI(forwardHost),
+                                forwardHost.startsWith("https://")
+                                        ? new UndertowXnioSsl(
+                                                Xnio.getInstance(), OptionMap.builder().getMap())
+                                        : null)
+                        .setConnectionsPerThread(20);
 
-        final ProxyHandler proxyHandler = ProxyHandler.builder()
-                .setProxyClient(loadBalancer)
-                .setMaxRequestTime(30000).build();
-
-
+        final ProxyHandler proxyHandler =
+                ProxyHandler.builder()
+                        .setProxyClient(loadBalancer)
+                        .setMaxRequestTime(30000)
+                        .build();
 
         final HttpHandler logsHandler = new LogsHandler(logsStream);
 
-        HttpHandler blockingHandler = exchange -> {
-            exchange.startBlocking();
-            if (exchange.isInIoThread()) {
-                exchange.dispatch(logsHandler);
-            } else {
-                logsHandler.handleRequest(exchange);
-            }
-        };
+        HttpHandler blockingHandler =
+                exchange -> {
+                    exchange.startBlocking();
+                    if (exchange.isInIoThread()) {
+                        exchange.dispatch(logsHandler);
+                    } else {
+                        logsHandler.handleRequest(exchange);
+                    }
+                };
 
         AtomicInteger port = new AtomicInteger();
 
-        ResourceHandler resourceHandler = Handlers.resource(
-                new ClassPathResourceManager(UIAppCmd.class.getClassLoader(), "app-ui")
-        );
-        HttpHandler appConfigHandler = exchange -> {
-            final AppModel result = appModel.get();
-            result.setBaseUrl("ws://localhost:" + port.get());
-            final String json = jsonBodyWriter.writeValueAsString(result);
-            exchange.getResponseHeaders().put(HttpString.tryFromString("Content-Type"), "application/json");
-            exchange.getResponseSender().send(json);
-        };
-        RoutingHandler routingHandler = Handlers.routing()
-                .get("/api/application", appConfigHandler)
-                .get("/api/logs", blockingHandler)
-                .get("/v1/*", proxyHandler)
-                .setFallbackHandler(resourceHandler);
+        ResourceHandler resourceHandler =
+                Handlers.resource(
+                        new ClassPathResourceManager(UIAppCmd.class.getClassLoader(), "app-ui"));
+        HttpHandler appConfigHandler =
+                exchange -> {
+                    final AppModel result = appModel.get();
+                    result.setBaseUrl("ws://localhost:" + port.get());
+                    final String json = jsonBodyWriter.writeValueAsString(result);
+                    exchange.getResponseHeaders()
+                            .put(HttpString.tryFromString("Content-Type"), "application/json");
+                    exchange.getResponseSender().send(json);
+                };
+        RoutingHandler routingHandler =
+                Handlers.routing()
+                        .get("/api/application", appConfigHandler)
+                        .get("/api/logs", blockingHandler)
+                        .get("/v1/*", proxyHandler)
+                        .setFallbackHandler(resourceHandler);
 
-
-        Undertow server = Undertow.builder()
-                .addHttpListener(0, "localhost")
-                .setHandler(routingHandler)
-                .build();
+        Undertow server =
+                Undertow.builder()
+                        .addHttpListener(0, "localhost")
+                        .setHandler(routingHandler)
+                        .build();
         server.start();
         port.set(((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
         new ProcessBuilder("open", "http://localhost:" + port).start().waitFor();
         return server;
     }
-
 
     @Data
     public static class AppModel {
@@ -167,31 +176,31 @@ public class UIAppCmd extends BaseApplicationCmd {
         private List<Gateways.Gateway> gateways;
     }
 
-    public interface LogSupplier  {
+    public interface LogSupplier {
         void run(Consumer<String> line);
-
     }
 
     @AllArgsConstructor
     private static class LogsHandler implements HttpHandler {
 
-
         private final LogSupplier logSupplier;
 
         @Override
         public void handleRequest(HttpServerExchange exchange) throws Exception {
-            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain; charset=" + StandardCharsets.UTF_8);
+            exchange.getResponseHeaders()
+                    .put(Headers.CONTENT_TYPE, "text/plain; charset=" + StandardCharsets.UTF_8);
             final byte[] bytes = "\n".getBytes(StandardCharsets.UTF_8);
 
-            logSupplier.run(line -> {
-                try {
-                    exchange.getOutputStream().write(line.getBytes(StandardCharsets.UTF_8));
-                    exchange.getOutputStream().write(bytes);
-                    exchange.getOutputStream().flush();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            logSupplier.run(
+                    line -> {
+                        try {
+                            exchange.getOutputStream().write(line.getBytes(StandardCharsets.UTF_8));
+                            exchange.getOutputStream().write(bytes);
+                            exchange.getOutputStream().flush();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
             exchange.endExchange();
         }
     }

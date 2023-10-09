@@ -85,8 +85,7 @@ public abstract class BaseCmd implements Runnable {
 
     protected AdminClient getClient() {
         if (client == null) {
-            final AdminClientLogger logger =
-                    getAdminClientLogger();
+            final AdminClientLogger logger = getAdminClientLogger();
             client = new AdminClient(toAdminConfiguration(), logger);
         }
         return client;
@@ -568,7 +567,6 @@ public abstract class BaseCmd implements Runnable {
         }
         return hexString.toString();
     }
-
 
     protected String getAppDescriptionOrLoad(String application) {
         return applicationDescriptions.computeIfAbsent(

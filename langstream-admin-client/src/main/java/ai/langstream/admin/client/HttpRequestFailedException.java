@@ -31,9 +31,11 @@ public class HttpRequestFailedException extends Exception {
 
     @Override
     public String toString() {
-        return "HttpRequestFailedException{" +
-               "request=" + request +
-               ", response=" + response +
-               '}';
+        return "HttpRequestFailedException{"
+                + "request="
+                + request
+                + ", response="
+                + response
+                + '}';
     }
 }

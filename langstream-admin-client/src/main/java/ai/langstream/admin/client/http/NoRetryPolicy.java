@@ -19,8 +19,7 @@ public class NoRetryPolicy implements RetryPolicy {
 
     public static final NoRetryPolicy INSTANCE = new NoRetryPolicy();
 
-    private NoRetryPolicy() {
-    }
+    private NoRetryPolicy() {}
 
     @Override
     public int maxAttempts() {

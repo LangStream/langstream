@@ -73,6 +73,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             names = {"--start-webservices"},
             description = "Start LangStream webservices")
     private boolean startWebservices = true;
+
     @CommandLine.Option(
             names = {"--start-ui"},
             description = "Start the UI")
@@ -333,12 +334,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
         final Path outputLog = Files.createTempFile("langstream", ".log");
         log("Logging to file: " + outputLog.toAbsolutePath());
-        ProcessBuilder processBuilder = new ProcessBuilder(commandLine)
-                .redirectErrorStream(true)
-                .redirectOutput(outputLog.toFile());
+        ProcessBuilder processBuilder =
+                new ProcessBuilder(commandLine)
+                        .redirectErrorStream(true)
+                        .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
-        Executors.newSingleThreadExecutor()
-                .execute(() -> tailLogSysOut(outputLog));
+        Executors.newSingleThreadExecutor().execute(() -> tailLogSysOut(outputLog));
 
         if (startUI) {
             startUI(tenant, applicationId, outputLog);
@@ -348,13 +349,16 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     private void startUI(String tenant, String applicationId, Path outputLog) {
         String body;
-        try (final AdminClient localAdminClient = new AdminClient(AdminClientConfiguration.builder()
-                .tenant(tenant)
-                .webServiceUrl("http://localhost:8090")
-                .build(), getAdminClientLogger(),
-                HttpClientProperties.builder()
-                        .retry(() -> new GenericRetryExecution(NoRetryPolicy.INSTANCE))
-                        .build());) {
+        try (final AdminClient localAdminClient =
+                new AdminClient(
+                        AdminClientConfiguration.builder()
+                                .tenant(tenant)
+                                .webServiceUrl("http://localhost:8090")
+                                .build(),
+                        getAdminClientLogger(),
+                        HttpClientProperties.builder()
+                                .retry(() -> new GenericRetryExecution(NoRetryPolicy.INSTANCE))
+                                .build()); ) {
 
             int attempts = 0;
             while (true) {
@@ -373,48 +377,48 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             }
         }
         final List<Gateways.Gateway> gateways = Gateways.readFromApplicationDescription(body);
-        UIAppCmd.startServer(() -> {
-            final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
-            appModel.setTenant(tenant);
-            appModel.setApplicationId(applicationId);
-            appModel.setRemoteBaseUrl("ws://localhost:8091");
-            appModel.setGateways(gateways);
-            return appModel;
-
-        }, "ws://localhost:8091", getTailLogSupplier(outputLog));
+        UIAppCmd.startServer(
+                () -> {
+                    final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
+                    appModel.setTenant(tenant);
+                    appModel.setApplicationId(applicationId);
+                    appModel.setRemoteBaseUrl("ws://localhost:8091");
+                    appModel.setGateways(gateways);
+                    return appModel;
+                },
+                "ws://localhost:8091",
+                getTailLogSupplier(outputLog));
     }
 
     private UIAppCmd.LogSupplier getTailLogSupplier(Path outputLog) {
         return line -> {
             while (true) {
-                try (Tailer tailer = Tailer.builder()
-                        .setTailFromEnd(true)
-                        .setStartThread(false)
-                        .setTailerListener(new TailerListener() {
-                            @Override
-                            public void fileNotFound() {
+                try (Tailer tailer =
+                        Tailer.builder()
+                                .setTailFromEnd(true)
+                                .setStartThread(false)
+                                .setTailerListener(
+                                        new TailerListener() {
+                                            @Override
+                                            public void fileNotFound() {}
 
-                            }
+                                            @Override
+                                            public void fileRotated() {}
 
-                            @Override
-                            public void fileRotated() {
+                                            @Override
+                                            public void handle(Exception e) {}
 
-                            }
+                                            @Override
+                                            public void handle(String s) {
+                                                line.accept(s);
+                                            }
 
-                            @Override
-                            public void handle(Exception e) {
-                            }
-
-                            @Override
-                            public void handle(String s) {
-                                line.accept(s);
-                            }
-
-                            @Override
-                            public void init(Tailer tailer) {
-
-                            }
-                        }).setDelayDuration(Duration.ofMillis(100)).setFile(outputLog.toFile()).get();) {
+                                            @Override
+                                            public void init(Tailer tailer) {}
+                                        })
+                                .setDelayDuration(Duration.ofMillis(100))
+                                .setFile(outputLog.toFile())
+                                .get(); ) {
                     tailer.run();
                 }
             }
@@ -423,33 +427,32 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     private void tailLogSysOut(Path outputLog) {
 
-        TailerListener listener = new TailerListener() {
-            @Override
-            public void fileNotFound() {
-            }
+        TailerListener listener =
+                new TailerListener() {
+                    @Override
+                    public void fileNotFound() {}
 
-            @Override
-            public void fileRotated() {
-            }
+                    @Override
+                    public void fileRotated() {}
 
-            @Override
-            public void handle(Exception e) {
-            }
+                    @Override
+                    public void handle(Exception e) {}
 
-            @Override
-            public void handle(String s) {
-                log(s);
-            }
+                    @Override
+                    public void handle(String s) {
+                        log(s);
+                    }
 
-            @Override
-            public void init(Tailer tailer) {
-            }
-        };
-        try (final Tailer tailer = Tailer.builder()
-                .setTailerListener(listener)
-                .setStartThread(false)
-                .setDelayDuration(Duration.ofMillis(100))
-                .setFile(outputLog.toFile()).get();) {
+                    @Override
+                    public void init(Tailer tailer) {}
+                };
+        try (final Tailer tailer =
+                Tailer.builder()
+                        .setTailerListener(listener)
+                        .setStartThread(false)
+                        .setDelayDuration(Duration.ofMillis(100))
+                        .setFile(outputLog.toFile())
+                        .get(); ) {
             while (true) {
                 tailer.run();
             }

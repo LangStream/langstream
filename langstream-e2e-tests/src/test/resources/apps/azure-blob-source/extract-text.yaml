@@ -21,6 +21,7 @@ topics:
 pipeline:
   - name: "Read from Azure"
     type: "azure-blob-storage-source"
+    id: azure
     configuration:
       container: "${secrets.azure.container-name}"
       endpoint: "${secrets.azure.endpoint}"

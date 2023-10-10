@@ -48,9 +48,9 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.jboss.jandex</groupId>
+        <groupId>io.smallrye</groupId>
         <artifactId>jandex-maven-plugin</artifactId>
-        <version>${jandex-maven-plugin.version}</version>
+        <version>3.1.5</version>
         <executions>
           <execution>
             <id>make-index</id>

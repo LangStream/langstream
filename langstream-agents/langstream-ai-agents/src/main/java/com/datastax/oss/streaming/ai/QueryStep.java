@@ -111,16 +111,22 @@ public class QueryStep implements TransformStep {
         List<Object> params = new ArrayList<>();
         fieldsEvaluators.forEach(
                 field -> {
-                    log.info("Evaluating {}", field);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Evaluating {}", field);
+                    }
                     Object value = field.evaluate(transformContext);
-                    log.info("Result {} type {}", value, value != null ? value.getClass() : "null");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Result {} type {}", value, value != null ? value.getClass() : "null");
+                    }
                     params.add(value);
                 });
         List<Map<String, Object>> results = dataSource.fetchData(query, params);
         if (results == null) {
             results = List.of();
         }
-        log.info("Result from datasource: {}", results);
+        if (log.isDebugEnabled()) {
+            log.debug("Result from datasource: {}", results);
+        }
         return results;
     }
 }

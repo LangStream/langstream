@@ -613,7 +613,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                "type" : "string"
                              }
                            },
-                           "loopOver" : {
+                           "loop-over" : {
                              "description" : "Loop over a list of items taken from the record. For instance value.documents.\\nIt must refer to a list of maps. In this case the output-field parameter\\nbut be like \\"record.fieldname\\" in order to replace or set a field in each record\\nwith the results of the query. In the query parameters you can refer to the\\nrecord fields using \\"record.field\\".",
                              "required" : false,
                              "type" : "string"

@@ -41,7 +41,7 @@
              style="height: 38rem; max-height: 38rem">
 
 
-            <div class="p-4 w-full overflow-scroll h-full bg-black " id="logs-box">
+            <div class="p-4 w-full overflow-scroll h-full bg-black scroll-smooth" id="logs-box">
                 <div class="text-white w-full text-xs mb-2 h-full" id="logs">
                 </div>
             </div>
@@ -66,8 +66,11 @@
         </div>
         <!--Gateway-->
         <div class="flex flex-col min-w-3xl max-w-4xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem">
-            <div class="flex-1 p-6 mb-8" id="setup-box">
-                <div class="mb-4">
+            <div class="flex-1 p-6 mb-8" id="setup-box" style="display: none">
+                <label class="block text-gray-700 text-l mb-2" id="setup-no-gateways" style="display: none">
+                    <strong>No gateways found</strong>, define gateways in the <code>gateways.yaml</code> file to start testing your application.
+                </label>
+                <div class="mb-4" id="produce-gateway-box">
                     <label class="block text-gray-700 text-xs mb-2" for="select1">
                         Produce messages to
                     </label>
@@ -76,7 +79,7 @@
                             id="select1">
                     </select>
                 </div>
-                <div class="mb-4">
+                <div class="mb-4" id="consume-gateway-box">
                     <label class="block text-gray-700 text-xs mb-2" for="select2">
                         Consume messages from
                     </label>
@@ -86,14 +89,14 @@
                     </select>
                 </div>
                 <div class="flex justify-center">
-                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="setup()">Connect</button>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="setup()" id="setup-connect-button">Connect</button>
                 </div>
             </div>
 
 
             <div class="p-6 flex-initial rounded-lg  w-full flex flex-row" id="info-box" style="display: none"></div>
             <div class="w-full flex-1 mx-auto p-6 flex flex-col min-h-0" id="chat-box" style="display: none">
-                <div class="border p-4 rounded-lg grow overflow-y-auto mb-4 flex flex-col" id="messages"
+                <div class="border p-4 rounded-lg grow overflow-y-auto mb-4 flex flex-col scroll-smooth" id="messages"
                      style="flex-grow: 1"></div>
                 <div class="flex">
                     <input type="text"
@@ -165,28 +168,47 @@
     }
 
 
+    function getGatewayParameters(gatewayId) {
+        const gw = handler.applicationConfig.gateways.find(g => g.id === gatewayId)
+        if (gw.parameters && gw.parameters.length) {
+            return gw.parameters
+        }
+        if (gw["chatOptions"] && gw["chatOptions"]["headers"]) {
+            const result = []
+            const headers = gw["chatOptions"]["headers"] || []
+            for (let h of headers) {
+                if (h["valueFromParameters"]) {
+                    result.push(h["valueFromParameters"])
+                }
+            }
+            return result
+        }
+        return []
+    }
+
     function setup() {
 
         const produceGateway = document.getElementById("produce-gateway").value
         const consumeGateway = document.getElementById("consume-gateway").value
         const genParams = {}
-        const produceParams = handler.applicationConfig.gateways.find(g => g.id === produceGateway)
-            .parameters.map(p => {
-                if (!genParams[p]) {
-                    genParams[p] = randomString()
-                }
-                return {key: p, value: genParams[p]}
-            })
-        const consumeParams = handler.applicationConfig.gateways.find(g => g.id === consumeGateway)
-            .parameters.map(p => {
-                if (!genParams[p]) {
-                    genParams[p] = randomString()
-                }
-                return {key: p, value: genParams[p]}
-            })
-
-        startProducer(produceGateway, produceParams)
-        startConsumer(consumeGateway, consumeParams)
+        if (produceGateway) {
+            const produceParams = getGatewayParameters(produceGateway).map(p => {
+                    if (!genParams[p]) {
+                        genParams[p] = randomString()
+                    }
+                    return {key: p, value: genParams[p]}
+                })
+            startProducer(produceGateway, produceParams)
+        }
+        if (consumeGateway) {
+            const consumeParams = getGatewayParameters(consumeGateway).map(p => {
+                    if (!genParams[p]) {
+                        genParams[p] = randomString()
+                    }
+                    return {key: p, value: genParams[p]}
+                })
+            startConsumer(consumeGateway, consumeParams)
+        }
 
         document.getElementById("info-box").style.display = "block"
         document.getElementById("setup-box").style.display = "none"
@@ -214,11 +236,12 @@
                 ${message}
             </div>
         </div>`
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 
     }
 
     function onUserSent() {
-        if (!document.getElementById("chat-input").value != "") {
+        if (!document.getElementById("chat-input").value) {
             return;
         }
         const message = document.getElementById("chat-input").value;
@@ -247,16 +270,20 @@
         document.getElementById("chat-input").focus()
     }
 
-    function startProducer(gateway, parameters = []) {
+    function generateConnectionUrl(gatewayId, parameters) {
         const applicationConfig = handler.applicationConfig
-        const baseUrl = `${applicationConfig.baseUrl}/v1/produce/${applicationConfig.tenant}/${applicationConfig.applicationId}/${gateway}`
+        const gateway = applicationConfig.gateways.find(g => g.id === gatewayId)
+        const baseUrl = `${applicationConfig.baseUrl}/v1/${gateway.type}/${applicationConfig.tenant}/${applicationConfig.applicationId}/${gatewayId}`
         let queryString = "?"
         for (const param of parameters) {
-            // TODO: encode
-            queryString += `param:${param.key}=${param.value}&`
+            queryString += `param:${param.key}=${encodeURIComponent(param.value)}&`
         }
+        return baseUrl + queryString
+    }
 
-        const finalUrl = baseUrl + queryString
+    function startProducer(gateway, parameters = []) {
+        const applicationConfig = handler.applicationConfig
+        const finalUrl = generateConnectionUrl(gateway, parameters);
         try {
             handler.producer = new WebSocket(finalUrl);
             updateProducerInfo("Connecting to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
@@ -292,14 +319,8 @@
 
     function startConsumer(gateway, parameters = {}) {
         const applicationConfig = handler.applicationConfig
-        const baseUrl = `${applicationConfig.baseUrl}/v1/consume/${applicationConfig.tenant}/${applicationConfig.applicationId}/${gateway}`
-        let queryString = "?"
-        for (const param of parameters) {
-            // TODO: encode
-            queryString += `param:${param.key}=${param.value}&`
-        }
 
-        const finalUrl = baseUrl + queryString
+        const finalUrl = generateConnectionUrl(gateway, parameters);
         try {
             updateConsumerInfo("Connecting to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
             handler.consumer = new WebSocket(finalUrl);
@@ -345,19 +366,39 @@
         updateAppInfo("Tenant", handler.applicationConfig.tenant)
         updateAppInfo("Application", handler.applicationConfig.applicationId)
 
-        handler.applicationConfig.gateways.filter(g => g.type === "produce")
+        let foundConsumeGateway = false
+        let foundProduceGateway = false
+
+        handler.applicationConfig.gateways.filter(g => g.type === "produce" || g.type === "chat")
             .forEach(g => {
+                foundProduceGateway = true
                 const newOption = document.createElement("option");
-                newOption.text = g.id;
+                newOption.text = g.id + " (type: " + g.type + ")"
+                newOption.setAttribute("value", g.id);
                 document.getElementById("produce-gateway").add(newOption)
             })
 
-        handler.applicationConfig.gateways.filter(g => g.type === "consume")
+        handler.applicationConfig.gateways.filter(g => g.type === "consume" || g.type === "chat")
             .forEach(g => {
+                foundConsumeGateway = true
                 const newOption = document.createElement("option");
-                newOption.text = g.id;
+                newOption.text = g.id + " (type: " + g.type + ")"
+                newOption.setAttribute("value", g.id);
                 document.getElementById("consume-gateway").add(newOption)
             })
+        if (!foundProduceGateway && !foundConsumeGateway) {
+            document.getElementById('setup-no-gateways').style.display = "block"
+            document.getElementById('produce-gateway-box').style.display = "none"
+            document.getElementById('consume-gateway-box').style.display = "none"
+            document.getElementById('setup-connect-button').style.display = "none"
+        }
+        if (!foundConsumeGateway) {
+            document.getElementById('consume-gateway-box').style.display = "none"
+        }
+        if (!foundProduceGateway) {
+            document.getElementById('produce-gateway-box').style.display = "none"
+        }
+        document.getElementById('setup-box').style.display = "block"
     }
 
     function onLoad() {
@@ -369,12 +410,13 @@
 
     window.onload = async () => {
         onLoad();
-        // mockOnload()
+         //mockOnload()
     }
 
     function mockOnload() {
         onSetup({
             baseUrl: "ws://localhost:8091",
+            remoteBaseUrl: "ws://localhost:8091",
             tenant: "default-my-tenant-o6-ch",
             applicationId: "test-000001-web",
             gateways: [
@@ -385,8 +427,17 @@
                 },
                 {
                     id: "produce-input",
-                    type: "produce",
+            //        type: "produce",
                     parameters: ["sessionId"],
+                },
+                {
+                    id: "chat-no-auth",
+                    type: "chat",
+                    "chatOptions": {
+                        "headers": [{
+                            "valueFromParameters": "session-id"
+                        }]
+                    }
                 }
             ]
         })

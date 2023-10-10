@@ -9,4 +9,5 @@ ai.langstream.runtime.impl.k8s.agents.IdentityAgentProvider
 ai.langstream.runtime.impl.k8s.agents.QueryVectorDBAgentProvider
 ai.langstream.runtime.impl.k8s.agents.ReRankAgentProvider
 ai.langstream.runtime.impl.k8s.agents.FlowControlAgentsProvider
+ai.langstream.runtime.impl.k8s.agents.FlareControllerAgentProvider
 ai.langstream.runtime.impl.k8s.agents.HttpRequestAgentProvider

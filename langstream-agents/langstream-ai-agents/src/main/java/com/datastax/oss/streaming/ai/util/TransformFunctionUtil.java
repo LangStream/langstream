@@ -309,6 +309,7 @@ public class TransformFunctionUtil {
         return new ComputeAIEmbeddingsStep(
                 config.getText(),
                 config.getEmbeddingsFieldName(),
+                config.getLoopOver(),
                 config.getBatchSize(),
                 config.getFlushInterval(),
                 config.getConcurrency(),
@@ -351,18 +352,29 @@ public class TransformFunctionUtil {
         config.getFields()
                 .forEach(
                         field -> {
-                            if (!FIELD_NAMES.contains(field)
-                                    && !field.startsWith("value.")
-                                    && !field.startsWith("key.")
-                                    && !field.startsWith("properties")) {
-                                throw new IllegalArgumentException(
-                                        String.format(
-                                                "Invalid field name for query step: %s", field));
+                            if (config.getLoopOver() != null && !config.getLoopOver().isEmpty()) {
+                                if (!field.contains("record.")) {
+                                    throw new IllegalArgumentException(
+                                            String.format(
+                                                    "Invalid field name for query step (with loop-over you must use record.xxx: %s",
+                                                    field));
+                                }
+                            } else {
+                                if (!FIELD_NAMES.contains(field)
+                                        && !field.startsWith("value.")
+                                        && !field.startsWith("key.")
+                                        && !field.startsWith("properties.")) {
+                                    throw new IllegalArgumentException(
+                                            String.format(
+                                                    "Invalid field name for query step: %s",
+                                                    field));
+                                }
                             }
                         });
         return QueryStep.builder()
                 .outputFieldName(config.getOutputField())
                 .query(config.getQuery())
+                .loopOver(config.getLoopOver())
                 .onlyFirst(config.isOnlyFirst())
                 .fields(config.getFields())
                 .dataSource(dataSource)

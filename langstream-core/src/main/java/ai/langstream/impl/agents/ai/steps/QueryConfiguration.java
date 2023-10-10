@@ -78,6 +78,18 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
     @ConfigProperty(
             description =
                     """
+                   Loop over a list of items taken from the record. For instance value.documents.
+                   It must refer to a list of maps. In this case the output-field parameter
+                   but be like "record.fieldname" in order to replace or set a field in each record
+                   with the results of the query. In the query parameters you can refer to the
+                   record fields using "record.field".
+                   """)
+    @JsonProperty("loop-over")
+    private String loopOver;
+
+    @ConfigProperty(
+            description =
+                    """
                    Fields of the record to use as input parameters for the query.
                    """)
     private List<String> fields;

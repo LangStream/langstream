@@ -42,6 +42,15 @@ public class JstlPredicate implements TransformPredicate {
         } catch (PropertyNotFoundException ex) {
             log.warn("a property in the when expression was not found in the message", ex);
             return false;
+        } catch (IllegalArgumentException ex) {
+            if (ex.getCause() instanceof PropertyNotFoundException) {
+                log.warn(
+                        "a property in the when expression was not found in the message",
+                        ex.getCause());
+                return false;
+            } else {
+                throw ex;
+            }
         }
     }
 }

@@ -154,6 +154,81 @@ public class JstlFunctions {
         return result;
     }
 
+    public static List<Object> emptyList() {
+        return List.of();
+    }
+
+    public static Map<String, Object> emptyMap() {
+        return Map.of();
+    }
+
+    public static List<Object> mapToListOfStructs(Object object, String fields) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        if (object instanceof Map map) {
+            Map<String, Object> result = new HashMap<>();
+            for (String field : fields.split(",")) {
+                result.put(field, map.get(field));
+            }
+            return List.of(result);
+        }
+        throw new IllegalArgumentException(
+                "listOf doesn't allow a non-map value, found a " + object.getClass());
+    }
+
+    public static List<Object> listToListOfStructs(Object object, String field) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        List<Object> result = new ArrayList<>();
+        if (object instanceof Collection col) {
+            for (Object item : col) {
+                Map<String, Object> map = new HashMap<>();
+                map.put(field, item);
+                result.add(map);
+            }
+            return result;
+        }
+        throw new IllegalArgumentException(
+                "listToListOfStructs doesn't allow a non-list value, found a " + object.getClass());
+    }
+
+    public static List<Object> listAdd(Object object, Object value) {
+        if (object == null) {
+            throw new IllegalArgumentException("listOf doesn't allow a null value");
+        }
+        List<Object> result = new ArrayList<>();
+        if (object instanceof Collection col) {
+            result.addAll(col);
+            result.add(value);
+            return result;
+        }
+        throw new IllegalArgumentException(
+                "listOf doesn't allow a non-map value, found a " + object.getClass());
+    }
+
+    public static List<Object> addAll(Object one, Object two) {
+        List<Object> results = new ArrayList<>();
+        if (one != null) {
+            if (one instanceof Collection col) {
+                results.addAll(col);
+            } else {
+                throw new IllegalArgumentException(
+                        "First argument of fn:addAll is not a list, it is a " + one.getClass());
+            }
+        }
+        if (two != null) {
+            if (two instanceof Collection col) {
+                results.addAll(col);
+            } else {
+                throw new IllegalArgumentException(
+                        "Second argument of fn:addAll is not a list, it is a " + one.getClass());
+            }
+        }
+        return results;
+    }
+
     public static List<Object> filter(Object input, String expression) {
         if (input == null) {
             return null;

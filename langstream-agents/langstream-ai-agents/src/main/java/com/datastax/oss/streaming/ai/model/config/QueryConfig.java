@@ -24,6 +24,9 @@ public class QueryConfig extends StepConfig {
     @JsonProperty(value = "query", required = true)
     private String query;
 
+    @JsonProperty(value = "loop-over")
+    private String loopOver;
+
     @JsonProperty(value = "fields", required = false)
     private List<String> fields;
 

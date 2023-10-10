@@ -221,6 +221,7 @@
         if (!message) {
             return
         }
+        message = message.replace(/\n/g, '<br/>');
         if (boxId) {
             const current = document.getElementById(`langstream-stream-${boxId}`)
             if (current) {

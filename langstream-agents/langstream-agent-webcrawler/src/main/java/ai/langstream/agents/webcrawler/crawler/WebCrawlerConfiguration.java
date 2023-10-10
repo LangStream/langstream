@@ -55,7 +55,6 @@ public class WebCrawlerConfiguration {
                 // for instance it is something like http:something (without slashes)
                 return false;
             }
-            log.info("pathOnly: {}", pathOnly);
             if (pathOnly.isEmpty()) {
                 path = "/";
             } else {

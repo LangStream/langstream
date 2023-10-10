@@ -16,9 +16,8 @@
 package com.datastax.oss.streaming.ai;
 
 import ai.langstream.ai.agents.commons.TransformContext;
-import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 
 /**
  * Compute AI Embeddings for one or more records fields and put the value into a new or existing
@@ -36,55 +34,62 @@ import org.apache.avro.generic.GenericRecord;
 @Slf4j
 public class QueryStep implements TransformStep {
 
-    @Builder.Default private final List<String> fields = new ArrayList<>();
+    @Builder.Default private final List<String> fields;
     private final String outputFieldName;
     private final String query;
     private final boolean onlyFirst;
     private final QueryStepDataSource dataSource;
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
+    private final List<JstlEvaluator<Object>> fieldsEvaluators = new ArrayList<>();
+    private final String loopOver;
+    private JstlEvaluator<List> loopOverAccessor;
+
+    QueryStep(
+            List<String> fields,
+            String outputFieldName,
+            String query,
+            boolean onlyFirst,
+            QueryStepDataSource dataSource,
+            String loopOver,
+            JstlEvaluator<List> loopOverAccessor) {
+        this.fields = fields;
+        this.outputFieldName = outputFieldName;
+        this.query = query;
+        this.onlyFirst = onlyFirst;
+        this.dataSource = dataSource;
+        this.loopOver = loopOver;
+        this.loopOverAccessor = loopOverAccessor;
+        this.fields.forEach(
+                field -> {
+                    fieldsEvaluators.add(new JstlEvaluator<>("${" + field + "}", Object.class));
+                });
+        if (loopOver != null && !loopOver.isEmpty()) {
+            this.loopOverAccessor = new JstlEvaluator<List>("${" + loopOver + "}", List.class);
+        } else {
+            this.loopOverAccessor = null;
+        }
+    }
 
     @Override
     public void process(TransformContext transformContext) {
-        List<Object> params = new ArrayList<>();
-        fields.forEach(
-                field -> {
-                    if (field.equals("value")) {
-                        params.add(transformContext.getValueObject());
-                    } else if (field.equals("key")) {
-                        params.add(transformContext.getKeyObject());
-                    } else if (field.equals("messageKey")) {
-                        params.add(transformContext.getKey());
-                    } else if (field.startsWith("properties.")) {
-                        String propName = field.substring("properties.".length());
-                        params.add(transformContext.getProperties().get(propName));
-                    } else if (field.equals("destinationTopic")) {
-                        params.add(transformContext.getOutputTopic());
-                    } else if (field.equals("topicName")) {
-                        params.add(transformContext.getInputTopic());
-                    } else if (field.equals("eventTime")) {
-                        params.add(transformContext.getEventTime());
-                    } else if (field.startsWith("value.")) {
-                        params.add(
-                                getField(
-                                        "value",
-                                        field,
-                                        transformContext.getValueSchemaType(),
-                                        transformContext.getValueObject()));
-                    } else if (field.startsWith("key.")) {
-                        params.add(
-                                getField(
-                                        "key",
-                                        field,
-                                        transformContext.getKeySchemaType(),
-                                        transformContext.getKeyObject()));
-                    }
-                });
-
-        List<Map<String, Object>> results = dataSource.fetchData(query, params);
-        if (results == null) {
-            results = List.of();
+        List<Map<String, Object>> results;
+        if (loopOverAccessor == null) {
+            results = performQuery(transformContext);
+        } else {
+            // loop over a list
+            // for each item we name if "record" and we perform the query
+            List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
+            results = new ArrayList<>();
+            for (Object document : nestedRecords) {
+                TransformContext nestedRecordContext = new TransformContext();
+                nestedRecordContext.setRecordObject(document);
+                // set in the item the result
+                List<Map<String, Object>> resultsForDocument = performQuery(nestedRecordContext);
+                results.addAll(resultsForDocument);
+            }
         }
+
         Object finalResult = results;
         Schema schema;
         if (onlyFirst) {
@@ -102,67 +107,29 @@ public class QueryStep implements TransformStep {
                 finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
     }
 
-    private Object getField(
-            String key, String field, TransformSchemaType keySchemaType, Object keyObject) {
-        String fieldName = field.substring((key.length() + 1));
-        if (keyObject instanceof Map) {
-            return ((Map<String, Object>) keyObject).get(fieldName);
+    private List<Map<String, Object>> performQuery(TransformContext transformContext) {
+        List<Object> params = new ArrayList<>();
+        fieldsEvaluators.forEach(
+                field -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Evaluating {}", field);
+                    }
+                    Object value = field.evaluate(transformContext);
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Result {} type {}",
+                                value,
+                                value != null ? value.getClass() : "null");
+                    }
+                    params.add(value);
+                });
+        List<Map<String, Object>> results = dataSource.fetchData(query, params);
+        if (results == null) {
+            results = List.of();
         }
-        switch (keySchemaType) {
-            case AVRO:
-                GenericRecord avroRecord = (GenericRecord) keyObject;
-                return getAvroField(fieldName, avroRecord);
-            case JSON:
-                JsonNode json = (JsonNode) keyObject;
-                return getJsonField(fieldName, json);
-            default:
-                throw new TransformFunctionException(
-                        String.format(
-                                "%s.* can only be used in query step with AVRO or JSON schema",
-                                key));
+        if (log.isDebugEnabled()) {
+            log.debug("Result from datasource: {}", results);
         }
-    }
-
-    private static Object getJsonField(String fieldName, JsonNode json) {
-        JsonNode node = json.get(fieldName);
-        if (node != null && !node.isNull()) {
-            if (node.isArray()) {
-                List<Object> values = new ArrayList<>();
-                for (JsonNode elem : node) {
-                    values.add(jsonNodeToPrimitive(elem));
-                }
-                return values;
-            } else {
-                return jsonNodeToPrimitive(node);
-            }
-        } else {
-            throw new TransformFunctionException(
-                    String.format("Field %s is null in JSON record", fieldName));
-        }
-    }
-
-    private static Object jsonNodeToPrimitive(JsonNode node) {
-        if (node.isNumber()) {
-            return node.asDouble();
-        } else if (node.isBoolean()) {
-            return node.asBoolean();
-        } else {
-            return node.asText();
-        }
-    }
-
-    private static Object getAvroField(String fieldName, GenericRecord avroRecord) {
-        Object rawValue = avroRecord.get(fieldName);
-        if (rawValue != null) {
-            // TODO: handle numbers...
-            if (rawValue instanceof CharSequence) {
-                // AVRO utf8...
-                rawValue = rawValue.toString();
-            }
-        } else {
-            throw new TransformFunctionException(
-                    String.format("Field %s is null in AVRO record", fieldName));
-        }
-        return rawValue;
+        return results;
     }
 }

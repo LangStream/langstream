@@ -1,2 +1,3 @@
 ai.langstream.ai.agents.GenAIAgentCodeProvider
-ai.langstream.ai.agents.ReRankAgentCodeProvider
+ai.langstream.ai.agents.rerank.ReRankAgentCodeProvider
+ai.langstream.ai.agents.flare.FlareAgentCodeProvider

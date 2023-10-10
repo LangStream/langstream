@@ -31,6 +31,9 @@ public class ComputeAIEmbeddingsConfig extends StepConfig {
     @JsonProperty(value = "embeddings-field", required = true)
     private String embeddingsFieldName;
 
+    @JsonProperty(value = "loop-over")
+    private String loopOver;
+
     @JsonProperty("batch-size")
     private int batchSize = 10;
 

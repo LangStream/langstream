@@ -116,7 +116,10 @@ public class QueryStep implements TransformStep {
                     }
                     Object value = field.evaluate(transformContext);
                     if (log.isDebugEnabled()) {
-                        log.debug("Result {} type {}", value, value != null ? value.getClass() : "null");
+                        log.debug(
+                                "Result {} type {}",
+                                value,
+                                value != null ? value.getClass() : "null");
                     }
                     params.add(value);
                 });

@@ -22,6 +22,7 @@ import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.NoRetryPolicy;
 import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
+import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
@@ -267,6 +268,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add(dockerCommand);
         commandLine.add("run");
         commandLine.add("--rm");
+        commandLine.add("-i");
         commandLine.add("-e");
         commandLine.add("START_BROKER=" + startBroker);
         commandLine.add("-e");
@@ -342,12 +344,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         Executors.newSingleThreadExecutor().execute(() -> tailLogSysOut(outputLog));
 
         if (startUI) {
-            startUI(tenant, applicationId, outputLog);
+            Executors.newSingleThreadExecutor().execute(() -> startUI(tenant, applicationId, outputLog, process));
         }
         process.waitFor();
     }
 
-    private void startUI(String tenant, String applicationId, Path outputLog) {
+    private void startUI(String tenant, String applicationId, Path outputLog, Process process) {
         String body;
         try (final AdminClient localAdminClient =
                 new AdminClient(
@@ -360,14 +362,14 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                                 .retry(() -> new GenericRetryExecution(NoRetryPolicy.INSTANCE))
                                 .build()); ) {
 
-            int attempts = 0;
             while (true) {
+                if (!process.isAlive()) {
+                    return;
+                }
                 try {
                     body = localAdminClient.applications().get(applicationId, false);
                     break;
                 } catch (Throwable e) {
-                    attempts++;
-                    log("Waiting for application to be ready #" + attempts);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ex) {
@@ -377,6 +379,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             }
         }
         final List<Gateways.Gateway> gateways = Gateways.readFromApplicationDescription(body);
+        final String finalBody = body;
+        final String mermaidDefinition = MermaidAppDiagramGenerator.generate(finalBody);
         UIAppCmd.startServer(
                 () -> {
                     final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
@@ -384,6 +388,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     appModel.setApplicationId(applicationId);
                     appModel.setRemoteBaseUrl("ws://localhost:8091");
                     appModel.setGateways(gateways);
+                    appModel.setApplicationDefinition(finalBody);
+                    appModel.setMermaidDefinition(mermaidDefinition);
                     return appModel;
                 },
                 "ws://localhost:8091",

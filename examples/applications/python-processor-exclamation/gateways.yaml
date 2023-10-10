@@ -36,4 +36,13 @@ gateways:
         headers:
           - key: langstream-client-session-id
             valueFromParameters: sessionId
+  - id: chat
+    type: chat
+    chat-options:
+      answers-topic: output-topic
+      questions-topic: input-topic
+      headers:
+        - key: langstream-client-session-id
+          value-from-parameters: sessionId
+
 

@@ -219,7 +219,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
         for (Map<String, Object> header : headers) {
             if (header.containsKey("valueFromParameters")) {
-                final Object key = header.getOrDefault("key", header.get("valueFromParameters"));
+                final Object key = header.get("valueFromParameters");
                 result.put(key.toString(), UUID.randomUUID().toString());
             }
         }

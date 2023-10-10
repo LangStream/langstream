@@ -80,7 +80,9 @@ public class ChatHandler extends AbstractHandler {
         }
         if (gateway.getChatOptions() != null && gateway.getChatOptions().getHeaders() != null) {
             for (Gateway.KeyValueComparison header : gateway.getChatOptions().getHeaders()) {
-                parameters.add(header.key());
+                if (header.valueFromParameters() != null) {
+                    parameters.add(header.valueFromParameters());
+                }
             }
         }
         return parameters;

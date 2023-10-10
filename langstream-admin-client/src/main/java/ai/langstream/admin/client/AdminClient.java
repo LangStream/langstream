@@ -186,17 +186,19 @@ public class AdminClient implements AutoCloseable {
         if (params == null || params.isEmpty()) {
             return "";
         }
-        return "?" + params.entrySet().stream()
-                .filter(e -> e.getValue() != null && !e.getValue().isBlank())
-                .map(
-                        e ->
-                                String.format(
-                                        "%s=%s",
-                                        URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8),
-                                        URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
-                .collect(Collectors.joining("&"));
+        return "?"
+                + params.entrySet().stream()
+                        .filter(e -> e.getValue() != null && !e.getValue().isBlank())
+                        .map(
+                                e ->
+                                        String.format(
+                                                "%s=%s",
+                                                URLEncoder.encode(
+                                                        e.getKey(), StandardCharsets.UTF_8),
+                                                URLEncoder.encode(
+                                                        e.getValue(), StandardCharsets.UTF_8)))
+                        .collect(Collectors.joining("&"));
     }
-
 
     public Applications applications() {
         return new ApplicationsImpl();
@@ -291,15 +293,13 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public HttpResponse<InputStream> logs(String application, List<String> filter, String format) {
+        public HttpResponse<InputStream> logs(
+                String application, List<String> filter, String format) {
             final String filterStr = filter == null ? "" : String.join(",", filter);
-            final String query = formatQueryString(
-                    Map.of(
-                            "filter", filterStr,
-                            "format", format == null ? "" : format
-            ));
-            final HttpRequest request =
-                    newGet(tenantAppPath("/" + application + "/logs" + query));
+            final String query =
+                    formatQueryString(
+                            Map.of("filter", filterStr, "format", format == null ? "" : format));
+            final HttpRequest request = newGet(tenantAppPath("/" + application + "/logs" + query));
             return http(request, HttpResponse.BodyHandlers.ofInputStream());
         }
     }

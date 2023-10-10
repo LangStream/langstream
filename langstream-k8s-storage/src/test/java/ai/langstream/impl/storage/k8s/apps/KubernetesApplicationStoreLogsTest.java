@@ -30,11 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
@@ -67,8 +65,6 @@ class KubernetesApplicationStoreLogsTest {
         List<ApplicationStore.PodLogHandler> podHandlers =
                 store.logs("mytenant", "myapp", new ApplicationStore.LogOptions());
 
-
-
         final CountDownLatch done = new CountDownLatch(2);
 
         podHandlers
@@ -76,7 +72,8 @@ class KubernetesApplicationStoreLogsTest {
                 .start(
                         new ApplicationStore.LogLineConsumer() {
                             @Override
-                            public ApplicationStore.LogLineResult onPodNotRunning(String state, String reason) {
+                            public ApplicationStore.LogLineResult onPodNotRunning(
+                                    String state, String reason) {
                                 log.info("Pod not running: {} {}", state, reason);
                                 return new ApplicationStore.LogLineResult(true, 2L);
                             }
@@ -88,7 +85,8 @@ class KubernetesApplicationStoreLogsTest {
                             }
 
                             @Override
-                            public ApplicationStore.LogLineResult onLogLine(String content, long timestamp) {
+                            public ApplicationStore.LogLineResult onLogLine(
+                                    String content, long timestamp) {
                                 assertEquals("hello from myapp-agent111-0", content);
                                 done.countDown();
                                 return new ApplicationStore.LogLineResult(false, null);
@@ -103,7 +101,8 @@ class KubernetesApplicationStoreLogsTest {
                         new ApplicationStore.LogLineConsumer() {
 
                             @Override
-                            public ApplicationStore.LogLineResult onPodNotRunning(String state, String reason) {
+                            public ApplicationStore.LogLineResult onPodNotRunning(
+                                    String state, String reason) {
                                 log.info("Pod not running: {} {}", state, reason);
                                 return new ApplicationStore.LogLineResult(true, 2L);
                             }
@@ -115,7 +114,8 @@ class KubernetesApplicationStoreLogsTest {
                             }
 
                             @Override
-                            public ApplicationStore.LogLineResult onLogLine(String content, long timestamp) {
+                            public ApplicationStore.LogLineResult onLogLine(
+                                    String content, long timestamp) {
                                 assertEquals("hello from myapp-agent111-1", content);
                                 done.countDown();
                                 return new ApplicationStore.LogLineResult(false, null);
@@ -126,7 +126,6 @@ class KubernetesApplicationStoreLogsTest {
                         });
 
         done.await(30, TimeUnit.SECONDS);
-
 
         final CountDownLatch doneFiltered = new CountDownLatch(1);
 
@@ -143,7 +142,8 @@ class KubernetesApplicationStoreLogsTest {
                         new ApplicationStore.LogLineConsumer() {
 
                             @Override
-                            public ApplicationStore.LogLineResult onPodNotRunning(String state, String reason) {
+                            public ApplicationStore.LogLineResult onPodNotRunning(
+                                    String state, String reason) {
                                 return new ApplicationStore.LogLineResult(true, null);
                             }
 
@@ -153,7 +153,8 @@ class KubernetesApplicationStoreLogsTest {
                             }
 
                             @Override
-                            public ApplicationStore.LogLineResult onLogLine(String content, long timestamp) {
+                            public ApplicationStore.LogLineResult onLogLine(
+                                    String content, long timestamp) {
                                 assertEquals("hello from myapp-agent111-1", content);
                                 doneFiltered.countDown();
                                 return new ApplicationStore.LogLineResult(false, null);
@@ -179,22 +180,16 @@ class KubernetesApplicationStoreLogsTest {
                 .getContainers()
                 .get(0)
                 .setCommand(List.of("sh", "-c"));
-        sts.getSpec().getTemplate()
-                        .getSpec()
-                                .getContainers()
-                                        .get(0)
-                                                .setReadinessProbe(null);
-        sts.getSpec().getTemplate()
-                .getSpec()
-                .getContainers()
-                .get(0)
-                .setLivenessProbe(null);
+        sts.getSpec().getTemplate().getSpec().getContainers().get(0).setReadinessProbe(null);
+        sts.getSpec().getTemplate().getSpec().getContainers().get(0).setLivenessProbe(null);
         sts.getSpec()
                 .getTemplate()
                 .getSpec()
                 .getContainers()
                 .get(0)
-                .setArgs(List.of("while true; do echo \"hello from $(hostname)\"; sleep 1000000; done"));
+                .setArgs(
+                        List.of(
+                                "while true; do echo \"hello from $(hostname)\"; sleep 1000000; done"));
         k3s.getClient().resource(sts).inNamespace("langstream-mytenant").serverSideApply();
     }
 

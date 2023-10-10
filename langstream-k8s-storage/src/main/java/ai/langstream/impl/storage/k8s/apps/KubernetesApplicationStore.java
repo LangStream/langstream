@@ -32,7 +32,6 @@ import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -60,9 +59,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.K;
 
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
@@ -73,13 +70,16 @@ public class KubernetesApplicationStore implements ApplicationStore {
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     protected static final SimpleDateFormat UTC_RFC3339;
     protected static final SimpleDateFormat UTC_K8S_LOGS;
+
     static {
-        UTC_RFC3339  =new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        UTC_RFC3339 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         UTC_RFC3339.setTimeZone(TimeZone.getTimeZone("UTC"));
-        UTC_K8S_LOGS  =new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        UTC_K8S_LOGS = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         UTC_K8S_LOGS.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
-    private static final Pattern K8S_LOGS_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{9}Z) (.*)");
+
+    private static final Pattern K8S_LOGS_PATTERN =
+            Pattern.compile("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{9}Z) (.*)");
     private KubernetesClient client;
     private KubernetesApplicationStoreProperties properties;
 
@@ -364,8 +364,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .collect(Collectors.toList());
     }
 
-
-
     private class StreamPodLogHandler implements PodLogHandler {
         private final String tenant;
         private final String pod;
@@ -423,22 +421,26 @@ public class KubernetesApplicationStore implements ApplicationStore {
             }
         }
 
-        private StreamLogResult streamUntilEOF(LogLineConsumer onLogLine, Long sinceTime) throws IOException {
+        private StreamLogResult streamUntilEOF(LogLineConsumer onLogLine, Long sinceTime)
+                throws IOException {
             final PodResource podResource =
                     client.pods().inNamespace(tenantToNamespace(tenant)).withName(pod);
 
             final Pod pod = podResource.get();
             if (pod == null) {
                 return new StreamLogResult(
-                        onLogLine.onPodNotRunning("NotFound", "Not found, probably the application is still not completely deployed."),
+                        onLogLine.onPodNotRunning(
+                                "NotFound",
+                                "Not found, probably the application is still not completely deployed."),
                         false);
             }
             final Map<String, KubeUtil.PodStatus> status = KubeUtil.getPodsStatuses(List.of(pod));
             final KubeUtil.PodStatus podStatus = status.values().iterator().next();
             if (podStatus.getState() != KubeUtil.PodStatus.State.RUNNING) {
                 return new StreamLogResult(
-                onLogLine.onPodNotRunning(podStatus.getState().toString(), podStatus.getMessage()),
-                    false);
+                        onLogLine.onPodNotRunning(
+                                podStatus.getState().toString(), podStatus.getMessage()),
+                        false);
             }
 
             final String sinceTimeString;
@@ -478,15 +480,13 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             logContent = line;
                         }
 
-                        final LogLineResult logLineResult = onLogLine.onLogLine(logContent, timestamp);
+                        final LogLineResult logLineResult =
+                                onLogLine.onLogLine(logContent, timestamp);
                         if (!logLineResult.continueLogging()) {
-                            return new StreamLogResult(
-                                    logLineResult,true);
+                            return new StreamLogResult(logLineResult, true);
                         }
                         if (closed) {
-                            return new StreamLogResult(
-                                    new LogLineResult(false, null)
-                                    ,true);
+                            return new StreamLogResult(new LogLineResult(false, null), true);
                         }
                     }
                 }

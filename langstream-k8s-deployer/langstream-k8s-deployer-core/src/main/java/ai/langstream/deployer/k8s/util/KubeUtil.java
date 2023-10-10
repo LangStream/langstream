@@ -122,7 +122,7 @@ public class KubeUtil {
     public static Map<String, PodStatus> getPodsStatuses(List<Pod> pods) {
         Map<String, PodStatus> podStatuses = new HashMap<>();
         for (Pod pod : pods) {
-            log.info(
+            log.debug(
                     "pod name={} namespace={} status {}",
                     pod.getMetadata().getName(),
                     pod.getMetadata().getNamespace(),
@@ -167,7 +167,7 @@ public class KubeUtil {
                             + "."
                             + pod.getMetadata().getNamespace()
                             + ".svc.cluster.local:8080";
-            log.info("Pod url: {}", podUrl);
+            log.debug("Pod url: {}", podUrl);
             status = status.withUrl(podUrl);
 
             podStatuses.put(podName, status);

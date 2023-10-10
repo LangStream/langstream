@@ -25,6 +25,8 @@ import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,6 +50,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -298,17 +303,28 @@ public class ApplicationResource {
                 app.getApplicationId(), app.getInstance(), app.getStatus());
     }
 
+    public enum ApplicationLogsFormats {
+        json,
+        text
+    }
+
     @GetMapping(
             value = "/{tenant}/{applicationId}/logs",
-            produces = MediaType.APPLICATION_NDJSON_VALUE)
+            produces = {MediaType.APPLICATION_NDJSON_VALUE ,MediaType.TEXT_PLAIN_VALUE})
     @Operation(summary = "Get application logs by name")
     Flux<String> getApplicationLogs(
             Authentication authentication,
+            HttpServletResponse response,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("applicationId") String applicationId,
-            @RequestParam("filter") Optional<List<String>> filterReplicas) {
+            @RequestParam("filter") Optional<List<String>> filterReplicas,
+            @RequestParam("format") Optional<ApplicationLogsFormats> formatParam) {
         performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
+
+        final ApplicationLogsFormats format = formatParam.orElse(ApplicationLogsFormats.text);
+        response.setContentType(format == ApplicationLogsFormats.json ? MediaType.APPLICATION_NDJSON_VALUE : MediaType.TEXT_PLAIN_VALUE);
+
 
         final List<ApplicationStore.PodLogHandler> podLogs =
                 applicationService.getPodLogs(
@@ -330,7 +346,11 @@ public class ApplicationResource {
                                 try {
                                     if (lastSent.get() + TimeUnit.SECONDS.toMillis(30)
                                             < System.currentTimeMillis()) {
-                                        fluxSink.next("Heartbeat\n");
+                                        if (format == ApplicationLogsFormats.json) {
+                                            fluxSink.next("{\"heartbeat\":true}\n");
+                                        } else {
+                                            fluxSink.next("Heartbeat\n");
+                                        }
                                         lastSent.set(System.currentTimeMillis());
                                     }
                                 } catch (Throwable e) {
@@ -341,26 +361,13 @@ public class ApplicationResource {
                             TimeUnit.SECONDS);
                     for (ApplicationStore.PodLogHandler podLog : podLogs) {
                         fluxSink.next(
-                                "Start receiving log for pod %s\n".formatted(podLog.getPodName()));
+                                "Start receiving log for replica %s.\n".formatted(podLog.getPodName()));
                         logsThreadPool.submit(
                                 () -> {
                                     try {
-                                        final ApplicationStore.LogLineConsumer logLineConsumer =
-                                                new ApplicationStore.LogLineConsumer() {
-                                                    @Override
-                                                    public boolean onLogLine(String line) {
-                                                        fluxSink.next(line);
-                                                        lastSent.set(System.currentTimeMillis());
-                                                        return true;
-                                                    }
-
-                                                    @Override
-                                                    public void onEnd() {
-                                                        lastSent.set(System.currentTimeMillis());
-                                                        fluxSink.complete();
-                                                    }
-                                                };
-                                        podLog.start(logLineConsumer);
+                                        final LogLineConsumer consumer =
+                                                new LogLineConsumer(podLog, value -> lastSent.set(value), fluxSink, format);
+                                        podLog.start(consumer);
                                     } catch (Exception e) {
                                         fluxSink.error(e);
                                     }
@@ -368,6 +375,78 @@ public class ApplicationResource {
                     }
                 };
         return Flux.create(fluxSinkConsumer);
+    }
+
+
+    @AllArgsConstructor
+    static class LogLineConsumer implements ApplicationStore.LogLineConsumer {
+        private static final String[] LOG_COLORS =
+                new String[] {"32", "33", "34", "35", "36", "37", "38"};
+
+        private static final ObjectWriter newlineDelimitedJSONWriter = new ObjectMapper()
+                .writer();
+
+        private final ApplicationStore.PodLogHandler podLog;
+        private final Consumer<Long> lastSent;
+        private final FluxSink<String> fluxSink;
+        private final ApplicationLogsFormats format;
+
+
+        @Override
+        public ApplicationStore.LogLineResult onPodNotRunning(String state, String message) {
+            final String formattedMessage =
+                    "Replica %s is not running, will retry in 10 seconds. State: %s".formatted(podLog.getPodName(),
+                            message == null ? state : state + ", Reason: " + message);
+            fluxSink.next(formatLine(formattedMessage, 0));
+            lastSent.accept(System.currentTimeMillis());
+            return new ApplicationStore.LogLineResult(true, 10L);
+        }
+
+        @Override
+        public ApplicationStore.LogLineResult onLogLine(String content, long timestamp) {
+            String coloredLog = formatLine(content, timestamp);
+            fluxSink.next(coloredLog);
+            lastSent.accept(System.currentTimeMillis());
+            return new ApplicationStore.LogLineResult(true, null);
+        }
+
+        @SneakyThrows
+        private String formatLine(String content, long timestamp) {
+            if (format == ApplicationLogsFormats.text) {
+                final int replicas = extractReplicas(this.podLog.getPodName());
+                final String color = LOG_COLORS[replicas % LOG_COLORS.length];
+                String coloredLog =
+                        "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, this.podLog.getPodName(), content);
+                return coloredLog;
+            } else {
+                Map<String, Object> fields = new HashMap<>();
+                if (timestamp > 0) {
+                    fields.put("timestamp", timestamp);
+                }
+                fields.put("pod", this.podLog.getPodName());
+                fields.put("message", content);
+                return newlineDelimitedJSONWriter.writeValueAsString(fields) + "\n";
+            }
+        }
+
+        @Override
+        public ApplicationStore.LogLineResult onPodLogNotAvailable() {
+            final String message =
+                    "Replica %s logs not available, will retry in 10 seconds".formatted(podLog.getPodName());
+            fluxSink.next(formatLine(message, 0));
+            return new ApplicationStore.LogLineResult(true, 10L);
+        }
+
+        @Override
+        public void onEnd() {
+            lastSent.accept(System.currentTimeMillis());
+            fluxSink.complete();
+        }
+
+        private static int extractReplicas(String pod) {
+            final String[] split = pod.split("-");
+            return Integer.parseInt(split[split.length - 1]);
+        }
     }
 
     @GetMapping(value = "/{tenant}/{applicationId}/code", produces = "application/zip")

@@ -32,8 +32,10 @@ import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -44,25 +46,40 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.K;
 
 @Slf4j
 public class KubernetesApplicationStore implements ApplicationStore {
 
-    private static final String[] LOG_COLORS =
-            new String[] {"32", "33", "34", "35", "36", "37", "38"};
     protected static final String SECRET_KEY = "secrets";
 
     private static final ObjectMapper mapper =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    protected static final SimpleDateFormat UTC_RFC3339;
+    protected static final SimpleDateFormat UTC_K8S_LOGS;
+    static {
+        UTC_RFC3339  =new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        UTC_RFC3339.setTimeZone(TimeZone.getTimeZone("UTC"));
+        UTC_K8S_LOGS  =new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        UTC_K8S_LOGS.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
+    private static final Pattern K8S_LOGS_PATTERN = Pattern.compile("(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{9}Z) (.*)");
     private KubernetesClient client;
     private KubernetesApplicationStoreProperties properties;
 
@@ -347,10 +364,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 .collect(Collectors.toList());
     }
 
-    private int extractReplicas(String pod) {
-        final String[] split = pod.split("-");
-        return Integer.parseInt(split[split.length - 1]);
-    }
+
 
     private class StreamPodLogHandler implements PodLogHandler {
         private final String tenant;
@@ -368,17 +382,28 @@ public class KubernetesApplicationStore implements ApplicationStore {
             return pod;
         }
 
+        private record StreamLogResult(LogLineResult logLineResult, boolean logged) {}
+
         @Override
         @SneakyThrows
         public void start(LogLineConsumer onLogLine) {
+            Long sinceTime = null;
             while (true) {
                 try {
-                    boolean continueLoop = streamUntilEOF(onLogLine);
-                    if (!continueLoop) {
+
+                    final StreamLogResult streamLogResult = streamUntilEOF(onLogLine, sinceTime);
+                    if (streamLogResult.logged()) {
+                        sinceTime = System.currentTimeMillis();
+                    }
+                    final LogLineResult result = streamLogResult.logLineResult();
+                    if (!result.continueLogging()) {
                         return;
                     }
                     if (closed) {
                         return;
+                    }
+                    if (result.delayInSeconds() != null && result.delayInSeconds() > 0) {
+                        Thread.sleep(result.delayInSeconds() * 1000);
                     }
                 } catch (Throwable tt) {
                     if (!closed) {
@@ -398,14 +423,37 @@ public class KubernetesApplicationStore implements ApplicationStore {
             }
         }
 
-        private boolean streamUntilEOF(LogLineConsumer onLogLine) throws IOException {
+        private StreamLogResult streamUntilEOF(LogLineConsumer onLogLine, Long sinceTime) throws IOException {
             final PodResource podResource =
                     client.pods().inNamespace(tenantToNamespace(tenant)).withName(pod);
-            final int replicas = extractReplicas(pod);
-            final String color = LOG_COLORS[replicas % LOG_COLORS.length];
+
+            final Pod pod = podResource.get();
+            if (pod == null) {
+                return new StreamLogResult(
+                        onLogLine.onPodNotRunning("NotFound", "Not found, probably the application is still not completely deployed."),
+                        false);
+            }
+            final Map<String, KubeUtil.PodStatus> status = KubeUtil.getPodsStatuses(List.of(pod));
+            final KubeUtil.PodStatus podStatus = status.values().iterator().next();
+            if (podStatus.getState() != KubeUtil.PodStatus.State.RUNNING) {
+                return new StreamLogResult(
+                onLogLine.onPodNotRunning(podStatus.getState().toString(), podStatus.getMessage()),
+                    false);
+            }
+
+            final String sinceTimeString;
+            if (sinceTime != null) {
+                final Date date = new Date();
+                date.setTime(sinceTime);
+                sinceTimeString = UTC_RFC3339.format(date);
+            } else {
+                sinceTimeString = null;
+            }
             try (final LogWatch watchLog =
                     podResource
                             .inContainer("runtime")
+                            .usingTimestamps()
+                            .sinceTime(sinceTimeString)
                             .withPrettyOutput()
                             .withReadyWaitTimeout(Integer.MAX_VALUE)
                             .watchLog(); ) {
@@ -413,19 +461,37 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
                     String line;
                     while ((line = br.readLine()) != null) {
-                        String coloredLog =
-                                "\u001B[%sm[%s] %s\u001B[0m\n".formatted(color, pod, line);
-                        final boolean shallContinue = onLogLine.onLogLine(coloredLog);
-                        if (!shallContinue) {
-                            return false;
+                        String logContent;
+                        long timestamp;
+
+                        Matcher m = K8S_LOGS_PATTERN.matcher(line);
+                        if (m.find()) {
+                            String timestampString = m.group(1);
+                            try {
+                                timestamp = UTC_K8S_LOGS.parse(timestampString).getTime();
+                            } catch (ParseException e) {
+                                timestamp = 0;
+                            }
+                            logContent = m.group(2);
+                        } else {
+                            timestamp = 0;
+                            logContent = line;
+                        }
+
+                        final LogLineResult logLineResult = onLogLine.onLogLine(logContent, timestamp);
+                        if (!logLineResult.continueLogging()) {
+                            return new StreamLogResult(
+                                    logLineResult,true);
                         }
                         if (closed) {
-                            return false;
+                            return new StreamLogResult(
+                                    new LogLineResult(false, null)
+                                    ,true);
                         }
                     }
                 }
             }
-            return onLogLine.onLogLine("[%s] EOF\n".formatted(pod));
+            return new StreamLogResult(onLogLine.onPodLogNotAvailable(), true);
         }
     }
 }

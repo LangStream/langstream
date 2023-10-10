@@ -216,8 +216,8 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                         (a, b) -> {
                             if (b != null) {
                                 log.error("Error while processing batch", b);
+                                errorForAll(records, b);
                             }
-                            errorForAll(records, b);
                             completionHandle.complete(null);
                         });
     }

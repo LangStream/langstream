@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material';
+import Markdown from 'react-markdown';
 import {
   WsMessage,
 } from '../hooks/useWebSocket';
@@ -11,14 +12,6 @@ const Message = ({ message }: Props): JSX.Element => {
   const fullTimestampMessage = `${
     message.yours ? 'produced on' : 'consumed from'
   } ${message.gateway}`;
-
-  const parsedMessage = (message: string, yours: boolean): string => {
-    try {
-      return JSON.stringify(JSON.parse(message), null, 2);
-    } catch (e) {
-      return message;
-    }
-  };
 
   return (
     <Box
@@ -80,7 +73,7 @@ const Message = ({ message }: Props): JSX.Element => {
             },
           ]}
         >
-          {parsedMessage(message.value, message.yours)}
+          <Markdown>{message.value}</Markdown>
         </Box>
       </Box>
     </Box>

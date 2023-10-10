@@ -48,5 +48,5 @@ public interface Applications {
 
     String getCodeInfo(String application, String codeArchiveId);
 
-    HttpResponse<InputStream> logs(String application, List<String> filter);
+    HttpResponse<InputStream> logs(String application, List<String> filter, String format);
 }

@@ -423,7 +423,7 @@ public class ApplicationResource {
                 if (timestamp > 0) {
                     fields.put("timestamp", timestamp);
                 }
-                fields.put("pod", this.podLog.getPodName());
+                fields.put("replica", this.podLog.getPodName());
                 fields.put("message", content);
                 return newlineDelimitedJSONWriter.writeValueAsString(fields) + "\n";
             }

@@ -35,11 +35,16 @@ public class GetApplicationLogsCmd extends BaseApplicationCmd {
             description = "Filter logs by the worker id")
     private List<String> filter;
 
+    @CommandLine.Option(
+            names = {"-o"},
+            description = "Logs format. Supported values: \"text\" and \"json\". Default: \"text\"")
+    private String format = "text";
+
     @Override
     @SneakyThrows
     public void run() {
         final HttpResponse<InputStream> response =
-                getClient().applications().logs(applicationId, filter);
+                getClient().applications().logs(applicationId, filter, format);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(response.body()));
         String line;

@@ -52,7 +52,7 @@ class ApplicationResourceLogsTest {
         if (format == ApplicationResource.ApplicationLogsFormats.text) {
             assertEquals("\u001B[32m[mypod-0] line logs\u001B[0m\n", output.get());
         } else {
-            assertEquals("{\"pod\":\"mypod-0\",\"message\":\"line logs\",\"timestamp\":1696926662058}\n", output.get());
+            assertEquals("{\"replica\":\"mypod-0\",\"message\":\"line logs\",\"timestamp\":1696926662058}\n", output.get());
         }
 
         result = lineConsumer.onPodNotRunning("Error", "Some long exception");
@@ -62,7 +62,7 @@ class ApplicationResourceLogsTest {
             assertEquals("\u001B[32m[mypod-0] Replica mypod-0 is not running, will retry in 10 seconds. State: Error,"
                          + " Reason: Some long exception\u001B[0m\n", output.get());
         } else {
-            assertEquals("{\"pod\":\"mypod-0\",\"message\":\"Replica mypod-0 is not running, will retry in 10 seconds"
+            assertEquals("{\"replica\":\"mypod-0\",\"message\":\"Replica mypod-0 is not running, will retry in 10 seconds"
                          + ". State: Error, Reason: Some long exception\"}\n", output.get());
         }
 
@@ -72,7 +72,7 @@ class ApplicationResourceLogsTest {
         if (format == ApplicationResource.ApplicationLogsFormats.text) {
             assertEquals("\u001B[32m[mypod-0] Replica mypod-0 logs not available, will retry in 10 seconds\u001B[0m\n", output.get());
         } else {
-            assertEquals("{\"pod\":\"mypod-0\",\"message\":\"Replica mypod-0 logs not available, will retry in 10 "
+            assertEquals("{\"replica\":\"mypod-0\",\"message\":\"Replica mypod-0 logs not available, will retry in 10 "
                          + "seconds\"}\n", output.get());
         }
 

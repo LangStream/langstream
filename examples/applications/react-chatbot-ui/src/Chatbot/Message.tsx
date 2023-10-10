@@ -1,5 +1,8 @@
 import { Box, Typography } from '@mui/material';
 import Markdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex'
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import {
   WsMessage,
 } from '../hooks/useWebSocket';
@@ -74,7 +77,12 @@ const Message = ({ message }: Props): JSX.Element => {
             },
           ]}
         >
-          <Markdown>{message.value}</Markdown>
+          <Markdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+          >
+            {message.value}
+          </Markdown>
         </Box>
       </Box>
     </Box>

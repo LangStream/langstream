@@ -60,7 +60,8 @@ const Message = ({ message }: Props): JSX.Element => {
           sx={[
             {
               borderRadius: '6px',
-              padding: 2,
+              px: 2,
+              py: 1,
               whiteSpace: 'normal',
             },
             message.yours && {

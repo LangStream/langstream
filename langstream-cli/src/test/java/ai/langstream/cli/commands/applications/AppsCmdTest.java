@@ -385,13 +385,30 @@ class AppsCmdTest extends CommandTestBase {
     @Test
     public void testLogs() {
         wireMock.register(
-                WireMock.get(String.format("/api/applications/%s/my-app/logs", TENANT))
-                        .willReturn(WireMock.ok()));
+                WireMock.get(String.format("/api/applications/%s/my-app/logs?format=text", TENANT))
+                        .willReturn(WireMock.ok("some logs")));
 
         CommandResult result = executeCommand("apps", "logs", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-        Assertions.assertEquals("", result.out());
+        Assertions.assertEquals("some logs", result.out());
+
+        wireMock.register(
+                WireMock.get(String.format("/api/applications/%s/my-app/logs?format=json", TENANT))
+                        .willReturn(
+                                WireMock.ok(
+                                        "{\"replica\":\"app-1-0\","
+                                                + "\"message\":\"08:53:44.519 [stats-pipeline-python-processor-1] INFO  a.l.runtime.agent.AgentRunner -- Records: total 5, working 0, Memory stats: used 16 MB, total 38 MB, free 22 MB, max 121 MB Direct memory 4 MB\",\"timestamp\":1697447779798}")));
+
+        result = executeCommand("apps", "logs", "my-app", "-o", "json");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals(
+                "{\"replica\":\"app-1-0\",\"message\":\"08:53:44.519 "
+                        + "[stats-pipeline-python-processor-1] INFO  a.l.runtime.agent.AgentRunner -- "
+                        + "Records: total 5, working 0, Memory stats: used 16 MB, total 38 MB, free 22 MB, "
+                        + "max 121 MB Direct memory 4 MB\",\"timestamp\":1697447779798}",
+                result.out());
     }
 
     @Test

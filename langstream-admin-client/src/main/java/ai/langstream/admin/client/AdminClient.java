@@ -25,10 +25,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -178,6 +182,24 @@ public class AdminClient implements AutoCloseable {
         return String.format("/applications/%s%s", tenant, uri);
     }
 
+    static String formatQueryString(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+        return "?"
+                + params.entrySet().stream()
+                        .filter(e -> e.getValue() != null && !e.getValue().isBlank())
+                        .map(
+                                e ->
+                                        String.format(
+                                                "%s=%s",
+                                                URLEncoder.encode(
+                                                        e.getKey(), StandardCharsets.UTF_8),
+                                                URLEncoder.encode(
+                                                        e.getValue(), StandardCharsets.UTF_8)))
+                        .collect(Collectors.joining("&"));
+    }
+
     public Applications applications() {
         return new ApplicationsImpl();
     }
@@ -271,10 +293,13 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public HttpResponse<InputStream> logs(String application, List<String> filter) {
-            final String filterStr = filter == null ? "" : "?filter=" + String.join(",", filter);
-            final HttpRequest request =
-                    newGet(tenantAppPath("/" + application + "/logs" + filterStr));
+        public HttpResponse<InputStream> logs(
+                String application, List<String> filter, String format) {
+            final String filterStr = filter == null ? "" : String.join(",", filter);
+            final String query =
+                    formatQueryString(
+                            Map.of("filter", filterStr, "format", format == null ? "" : format));
+            final HttpRequest request = newGet(tenantAppPath("/" + application + "/logs" + query));
             return http(request, HttpResponse.BodyHandlers.ofInputStream());
         }
     }

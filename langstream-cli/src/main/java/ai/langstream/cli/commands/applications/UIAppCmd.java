@@ -75,7 +75,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                     @SneakyThrows
                     public void run(Consumer<String> lineConsumer) {
                         final HttpResponse<InputStream> response =
-                                getClient().applications().logs(applicationId, List.of());
+                                getClient().applications().logs(applicationId, List.of(), "text");
                         InputStream inputStream = response.body();
                         InputStreamReader reader =
                                 new InputStreamReader(inputStream, StandardCharsets.UTF_8);

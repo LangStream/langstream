@@ -82,7 +82,7 @@ class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
                                                 """
                                                 .formatted(embeddingFirst))));
         stubFor(
-                post("/openai/deployments/gpt-35-turbo/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gp-3.5-turbo-instruct/completions?api-version=2023-08-01-preview")
                         .willReturn(
                                 okJson(
                                         """
@@ -217,115 +217,118 @@ class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
                                         "sdòflkjsòlfkj"),
                         "module.yaml",
                         """
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "flare-loop-input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "output-topic"
-                                    creation-mode: create-if-not-exists
-                                pipeline:
-                                  # Add the text of the initial task to the list of documents to retrieve
-                                  # and prepare the structure
-                                  - name: "init-structure"
-                                    id: "kickstart-chat"
-                                    type: "document-to-json"
-                                    input: "input-topic"
-                                    configuration:
-                                      text-field: "text"
-                                  - name: "kickstart-document-retrieval"
-                                    type: "compute"
-                                    output: "flare-loop-input-topic"
-                                    configuration:
-                                      fields:
-                                        - name: "value.documents_to_retrieve"
-                                          expression: "fn:listOfStructs(value, 'text')"
-                                        - name: "value.related_documents"
-                                          expression: "fn:emptyList()"
+                               topics:
+                                 - name: "input-topic"
+                                   creation-mode: create-if-not-exists
+                                 - name: "flare-loop-input-topic"
+                                   creation-mode: create-if-not-exists
+                                 - name: "output-topic"
+                                   creation-mode: create-if-not-exists
+                               pipeline:
+                                 # Add the text of the initial task to the list of documents to retrieve
+                                 # and prepare the structure
+                                 - name: "init-structure"
+                                   id: "kickstart-chat"
+                                   type: "document-to-json"
+                                   input: "input-topic"
+                                   configuration:
+                                     text-field: "text"
+                                 - name: "kickstart-document-retrieval"
+                                   type: "compute"
+                                   output: "flare-loop-input-topic"
+                                   configuration:
+                                     fields:
+                                       - name: "value.documents_to_retrieve"
+                                         expression: "fn:listAdd(fn:emptyList(), value.text)"
+                                       - name: "value.related_documents"
+                                         expression: "fn:emptyList()"
 
-                                  ## Flare loop
-                                  # for each document to retrieve we compute the embeddings vector
-                                  # documents_to_retrieve: [ { text: "the text", embeddings: [1,2,3] }, .... ]
-                                  - name: "compute-embeddings"
-                                    id: "flare-loop"
-                                    type: "compute-ai-embeddings"
-                                    input: "flare-loop-input-topic"
-                                    configuration:
-                                      loop-over: "value.documents_to_retrieve"
-                                      model: "text-embeddings-ada"
-                                      embeddings-field: "record.embeddings"
-                                      text: "{{ record.text }}"
-                                      flush-interval: 0
-                                  # for each document we query the vector database
-                                  # the result goes into "value.retrieved_documents"
-                                  - name: "lookup-related-documents"
-                                    type: "query-vector-db"
-                                    configuration:
-                                      datasource: "JdbcDatasource"
-                                      # execute the agent for all the document in documents_to_retrieve
-                                      # you can refer to each document with "record.xxx"
-                                      loop-over: "value.documents_to_retrieve"
-                                      query: |
-                                              SELECT text,embeddings_vector
-                                              FROM documents
-                                              ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20
-                                      fields:
-                                        - "fn:toListOfFloat(record.embeddings)"
-                                      # as we are looping over a list of document, the result of the query
-                                      # is the union of all the results
-                                      output-field: "value.retrieved_documents"
-                                  - name: "add-documents-to-list"
-                                    type: "compute"
-                                    configuration:
-                                        fields:
-                                          # now we add all the retrieved_documents tp the list
-                                          # of documents to pass to the LLM
-                                          - name: "value.related_documents"
-                                            expression: "fn:addAll(value.related_documents, value.retrieved_documents)"
-                                          # reset previous list (not needed, but clearer)
-                                          - name: "value.retrieved_documents"
-                                            expression: "fn:emptyList()"
-                                          - name: "value.documents_to_retrieve"
-                                            expression: "fn:emptyList()"
-                                  - name: "query-the-LLM"
-                                    type: "ai-text-completions"
-                                    configuration:
-                                      model: "gpt-35-turbo"
-                                      completion-field: "value.result"
-                                      logprobs: 5
-                                      logprobs-field: "value.tokens"
-                                      prompt:
-                                          - |
-                                              You have to perform a task that is written below, it starts with StartOfTask and ends with EndOfTask.
-                                              There is a list of documents that you must use to perform the task.
-                                              Each document starts after StartOfDocument and ends before EndOfDocument.
-                                              Do not provide information that is not related to the provided documents.
-                                             \s
-                                              {{# value.related_documents}}
-                                              StartOfDocument
-                                              {{text}}
-                                              EndOfDocument
-                                              {{/ value.related_documents}}
-                                       \s
-                                              StartOfTask
-                                              {{ value.text }}
-                                              EndOfTask
-                                  - name: "ensure-quality-of-result"
-                                    type: "flare-controller"
-                                    configuration:
-                                        tokens-field: "value.tokens.tokens"
-                                        logprobs-field: "value.tokens.logprobs"
-                                        loop-topic: "flare-loop-input-topic"
-                                        retrieve-documents-field: "value.documents_to_retrieve"
-                                  - name: "cleanup-response"
-                                    type: "drop-fields"
-                                    output: "output-topic"
-                                    configuration:
-                                      fields:
-                                        - "retrieved_documents"
-                                        - "documents_to_retrieve"
-                                        - "related_documents"
-                                        - "token-probs"
+                                 ## Flare loop
+                                 # for each document to retrieve we compute the embeddings vector
+                                 # documents_to_retrieve: [ { text: "the text", embeddings: [1,2,3] }, .... ]
+                                 - name: "convert-docs-to-struct"
+                                   id: "flare-loop"
+                                   type: "compute"
+                                   input: "flare-loop-input-topic"
+                                   configuration:
+                                     fields:
+                                       - name: "value.documents_to_retrieve"
+                                         expression: "fn:listToListOfStructs(value.documents_to_retrieve, 'text')"
+                                       - name: "value.related_documents"
+                                         expression: "fn:emptyList()"
+                                 - name: "compute-embeddings"
+                                   type: "compute-ai-embeddings"
+                                   configuration:
+                                     loop-over: "value.documents_to_retrieve"
+                                     model: "text-embeddings-ada"
+                                     embeddings-field: "record.embeddings"
+                                     text: "{{ record.text }}"
+                                     flush-interval: 0
+                                 # for each document we query the vector database
+                                 # the result goes into "value.retrieved_documents"
+                                 - name: "lookup-related-documents"
+                                   type: "query-vector-db"
+                                   configuration:
+                                     datasource: "JdbcDatasource"
+                                     # execute the agent for all the document in documents_to_retrieve
+                                     # you can refer to each document with "record.xxx"
+                                     loop-over: "value.documents_to_retrieve"
+                                     query: |
+                                             SELECT text,embeddings_vector
+                                             FROM documents
+                                             ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 5
+                                     fields:
+                                       - "record.embeddings"
+                                     # as we are looping over a list of document, the result of the query
+                                     # is the union of all the results
+                                     output-field: "value.retrieved_documents"
+                                 - name: "add-documents-to-list"
+                                   type: "compute"
+                                   configuration:
+                                       fields:
+                                         # now we add all the retrieved_documents tp the list
+                                         # of documents to pass to the LLM
+                                         - name: "value.related_documents"
+                                           expression: "fn:addAll(value.related_documents, value.retrieved_documents)"
+                                         # reset previous list (not needed, but clearer)
+                                         - name: "value.retrieved_documents"
+                                           expression: "fn:emptyList()"
+                                         - name: "value.documents_to_retrieve"
+                                           expression: "fn:emptyList()"
+                                 - name: "query-the-LLM"
+                                   type: "ai-text-completions"
+                                   configuration:
+                                     model: "gp-3.5-turbo-instruct"
+                                     completion-field: "value.result"
+                                     logprobs: 5
+                                     logprobs-field: "value.tokens"
+                                     max-tokens: 100
+                                     prompt:
+                                         - |
+                                             There is a list of documents that you must use to perform your task.
+                                             Do not provide information that is not related to the provided documents.
+                                            \s
+                                             {{# value.related_documents}}
+                                             {{text}}
+                                             {{/ value.related_documents}}
+                                      \s
+                                             This is the task:
+                                             {{ value.text }}
+
+                                 - name: "ensure-quality-of-result"
+                                   type: "flare-controller"
+                                   configuration:
+                                       tokens-field: "value.tokens.tokens"
+                                       logprobs-field: "value.tokens.logprobs"
+                                       loop-topic: "flare-loop-input-topic"
+                                       retrieve-documents-field: "value.documents_to_retrieve"
+                                 - name: "cleanup-response"
+                                   type: "compute"
+                                   output: "output-topic"
+                                   configuration:
+                                     fields:
+                                       - name: "value"
+                                         expression: "value.result"
                                 """);
 
         // write some data
@@ -370,7 +373,7 @@ class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"text\":\"this is a question\",\"result\":\"I am an AI language model and I do not have personal experiences or the\",\"tokens\":{\"tokens\":[\"I\",\" am\",\" an\",\" AI\",\" language\",\" model\",\" and\",\" I\",\" do\",\" not\",\" have\",\" personal\",\" experiences\",\" or\",\" the\"],\"logprobs\":[-0.50947005,-0.81064594,-0.0639758,-0.007819127,-4.2176867,-9.771052E-5,-0.38906613,-1.1028589,-0.18535662,-9.115311E-5,-0.0122308275,-0.9290634,-0.2772571,-0.06607247,-2.1178281]}}"));
+                                "I am an AI language model and I do not have personal experiences or the"));
             }
         }
     }

@@ -61,7 +61,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ApplicationArguments;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -253,19 +252,35 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 final String value = userParameters.get(requiredParameter);
                 if (!StringUtils.hasText(value)) {
                     throw new IllegalArgumentException(
-                            formatErrorMessage(tenant, applicationId, gateway,"missing required parameter " + requiredParameter + ". Required parameters: " + requiredParameters));
+                            formatErrorMessage(
+                                    tenant,
+                                    applicationId,
+                                    gateway,
+                                    "missing required parameter "
+                                            + requiredParameter
+                                            + ". Required parameters: "
+                                            + requiredParameters));
                 }
                 allUserParameterKeys.remove(requiredParameter);
             }
         }
         if (!allUserParameterKeys.isEmpty()) {
-            throw new IllegalArgumentException(formatErrorMessage(tenant, applicationId, gateway, "unknown parameters: " + allUserParameterKeys));
+            throw new IllegalArgumentException(
+                    formatErrorMessage(
+                            tenant,
+                            applicationId,
+                            gateway,
+                            "unknown parameters: " + allUserParameterKeys));
         }
         validateOptions(options);
 
         if (credentials != null && testCredentials != null) {
             throw new IllegalArgumentException(
-                    formatErrorMessage(tenant, applicationId, gateway, "credentials and test-credentials cannot be used together"));
+                    formatErrorMessage(
+                            tenant,
+                            applicationId,
+                            gateway,
+                            "credentials and test-credentials cannot be used together"));
         }
         return GatewayRequestContextImpl.builder()
                 .tenant(tenant)
@@ -280,8 +295,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 .build();
     }
 
-    private static String formatErrorMessage(String tenant, String applicationId, Gateway gateway, String error) {
-        return "Error for gateway %s (tenant: %s, appId: %s): %s".formatted(gateway.getId(), tenant, applicationId, error);
+    private static String formatErrorMessage(
+            String tenant, String applicationId, Gateway gateway, String error) {
+        return "Error for gateway %s (tenant: %s, appId: %s): %s"
+                .formatted(gateway.getId(), tenant, applicationId, error);
     }
 
     protected abstract List<String> getAllRequiredParameters(Gateway gateway);

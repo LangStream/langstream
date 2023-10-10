@@ -20,7 +20,6 @@ import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.runtime.ExecutionPlan;
-import java.sql.Time;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;

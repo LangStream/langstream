@@ -297,7 +297,7 @@ public class AdminClient implements AutoCloseable {
                     Map.of(
                             "filter", filterStr,
                             "format", format == null ? "" : format
-            );
+            ));
             final HttpRequest request =
                     newGet(tenantAppPath("/" + application + "/logs" + query));
             return http(request, HttpResponse.BodyHandlers.ofInputStream());

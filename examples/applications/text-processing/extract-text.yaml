@@ -22,11 +22,11 @@ pipeline:
   - name: "Read from S3"
     type: "s3-source"
     configuration:
-      bucketName: "${secrets.s3-credentials.bucket-name}"
-      endpoint: "${secrets.s3-credentials.endpoint}"
-      access-key: "${secrets.s3-credentials.access-key}"
-      secret-key: "${secrets.s3-credentials.secret}"
-      region: "${secrets.s3-credentials.region}"
+      bucketName: "${secrets.s3.bucket-name}"
+      endpoint: "${secrets.s3.endpoint}"
+      access-key: "${secrets.s3.access-key}"
+      secret-key: "${secrets.s3.secret}"
+      region: "${secrets.s3.region}"
       idle-time: 5
   - name: "Extract text"
     type: "text-extractor"

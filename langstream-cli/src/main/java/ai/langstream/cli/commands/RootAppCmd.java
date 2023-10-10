@@ -21,6 +21,7 @@ import ai.langstream.cli.commands.applications.DownloadApplicationCodeCmd;
 import ai.langstream.cli.commands.applications.GetApplicationCmd;
 import ai.langstream.cli.commands.applications.GetApplicationLogsCmd;
 import ai.langstream.cli.commands.applications.ListApplicationCmd;
+import ai.langstream.cli.commands.applications.UIAppCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
@@ -34,7 +35,8 @@ import picocli.CommandLine;
             DeleteApplicationCmd.class,
             GetApplicationCmd.class,
             GetApplicationLogsCmd.class,
-            DownloadApplicationCodeCmd.class
+            DownloadApplicationCodeCmd.class,
+            UIAppCmd.class
         })
 @Getter
 public class RootAppCmd {

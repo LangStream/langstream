@@ -15,14 +15,25 @@
  */
 package ai.langstream.runtime.tester;
 
+import ai.langstream.api.model.Application;
+import ai.langstream.api.storage.GlobalMetadataStore;
+import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
+import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.apigateway.LangStreamApiGateway;
+import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.impl.storage.GlobalMetadataStoreManager;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,6 +51,9 @@ public class Main {
                             System.getenv()
                                     .getOrDefault("LANSGSTREAM_TESTER_STARTWEBSERVICES", "true"));
 
+            boolean dryRunMode =
+                    Boolean.parseBoolean(
+                            System.getenv().getOrDefault("LANSGSTREAM_TESTER_DRYRUN", "false"));
             String applicationPath = "/code/application";
             String instanceFile = "/code/instance.yaml";
             String secretsFile = "/code/secrets.yaml";
@@ -59,6 +73,19 @@ public class Main {
             ModelBuilder.ApplicationWithPackageInfo applicationWithPackageInfo =
                     ModelBuilder.buildApplicationInstance(
                             applicationDirectories, instance, secrets);
+
+            if (dryRunMode) {
+                log.info("Dry run mode");
+                final Application resolved =
+                        ApplicationPlaceholderResolver.resolvePlaceholders(
+                                applicationWithPackageInfo.getApplication());
+                final ApplicationDescription.ApplicationDefinition def =
+                        new ApplicationDescription.ApplicationDefinition(resolved);
+
+                final String asString = yamlPrinter().writeValueAsString(def);
+                log.info("Application:\n{}", asString);
+                return;
+            }
 
             List<String> expectedAgents = new ArrayList<>();
             List<String> allAgentIds = new ArrayList<>();
@@ -121,6 +148,12 @@ public class Main {
                             "--spring.config.location=classpath:gateway.application.properties");
                 }
 
+                final GlobalMetadataStore globalMetadataStore =
+                        GlobalMetadataStoreRegistry.loadStore("local", Map.of());
+                final GlobalMetadataStoreManager globalMetadataStoreManager =
+                        new GlobalMetadataStoreManager(
+                                globalMetadataStore, new InMemoryApplicationStore());
+                globalMetadataStoreManager.putTenant(tenant, TenantConfiguration.builder().build());
                 runner.start();
                 try (LocalApplicationRunner.ApplicationRuntime applicationRuntime =
                         runner.deployApplicationWithSecrets(
@@ -144,5 +177,11 @@ public class Main {
         } catch (Throwable error) {
             error.printStackTrace();
         }
+    }
+
+    private static ObjectMapper yamlPrinter() {
+        return new ObjectMapper(new YAMLFactory())
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     }
 }

@@ -85,7 +85,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                                        create-statements:
                                           - "CREATE KEYSPACE vsearch WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
                                        delete-statements:
-                                          - "DROP KEYSPACE vsearch;"
+                                          - "DROP KEYSPACE IF EXISTS vsearch;"
                                   - name: "documents-table"
                                     asset-type: "cassandra-table"
                                     creation-mode: create-if-not-exists

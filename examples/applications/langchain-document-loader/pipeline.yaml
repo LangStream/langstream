@@ -1,0 +1,35 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "LangChain document loader"
+topics:
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Load documents with LangChain"
+    type: "python-source"
+    configuration:
+      className: langchain_agents.LangChainDocumentLoaderSource
+      load-interval-seconds: 3600
+      loader-class: WebBaseLoader
+      loader-args:
+        web-path: ["https://langstream.ai/"]
+  - name: "Chunk documents with LangChain"
+    type: "python-processor"
+    output: "output-topic"
+    configuration:
+      className: langchain_agents.LangChainTextSplitterProcessor
+      splitter-class: RecursiveCharacterTextSplitter

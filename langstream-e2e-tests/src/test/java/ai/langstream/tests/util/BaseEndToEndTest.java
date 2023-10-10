@@ -93,8 +93,6 @@ public class BaseEndToEndTest implements TestWatcher {
 
     public static final String TOPICS_PREFIX = "ls-test-";
 
-    public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
-
     private static final boolean LANGSTREAM_RECYCLE_ENV =
             Boolean.parseBoolean(System.getProperty("langstream.tests.recycleenv", "false"));
 
@@ -153,6 +151,10 @@ public class BaseEndToEndTest implements TestWatcher {
         dumpTest(prefix);
     }
 
+    public static KubernetesClient getClient() {
+        return client;
+    }
+
     private static void dumpTest(String prefix) {
         dumpAllPodsLogs(prefix);
         dumpEvents(prefix);
@@ -178,9 +180,14 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected static void copyFileToClientContainer(File file, String toPath) {
+    public static void copyFileToClientContainer(File file, String toPath) {
         final String podName =
                 getFirstPodFromDeployment("langstream-client").getMetadata().getName();
+        copyFileToPod(podName, namespace, file, toPath);
+    }
+
+    @SneakyThrows
+    public static void copyFileToPod(String podName, String namespace, File file, String toPath) {
         if (file.isFile()) {
             runProcess(
                     "kubectl cp %s %s:%s -n %s"
@@ -208,7 +215,7 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     @SneakyThrows
-    protected static String executeCommandOnClient(String... args) {
+    public static String executeCommandOnClient(String... args) {
         return executeCommandOnClient(2, TimeUnit.MINUTES, args);
     }
 
@@ -501,7 +508,7 @@ public class BaseEndToEndTest implements TestWatcher {
     private static CodeStorageProvider getCodeStorageProvider() {
         switch (LANGSTREAM_CODESTORAGE) {
             case "local-minio":
-                return new LocalMinioCodeStorageProvider(client);
+                return new LocalMinioCodeStorageProvider();
             case "remote":
                 return new RemoteCodeStorageProvider();
             default:
@@ -1106,11 +1113,13 @@ public class BaseEndToEndTest implements TestWatcher {
             beforeCmd =
                     env.entrySet().stream()
                             .map(
-                                    e ->
-                                            "export '%s'='%s'"
-                                                    .formatted(
-                                                            e.getKey(),
-                                                            e.getValue().replace("'", "''")))
+                                    e -> {
+                                        final String safeValue =
+                                                e.getValue() == null ? "" : e.getValue();
+                                        return "export '%s'='%s'"
+                                                .formatted(
+                                                        e.getKey(), safeValue.replace("'", "''"));
+                                    })
                             .collect(Collectors.joining(" && "));
             beforeCmd += " && ";
         }

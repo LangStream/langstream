@@ -135,61 +135,35 @@ class KafkaConnectAgentsProviderTest {
         final Map<String, AgentConfigurationModel> model =
                 new PluginsRegistry()
                         .lookupAgentImplementation(
-                                "s3-source",
-                                new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
+                                "sink", new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
                         .generateSupportedTypesDocumentation();
 
         Assertions.assertEquals(
                 """
-                {
-                  "s3-source" : {
-                    "name" : "S3 Source",
-                    "description" : "Reads data from S3 bucket",
-                    "properties" : {
-                      "access-key" : {
-                        "description" : "Access key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      },
-                      "bucketName" : {
-                        "description" : "The name of the bucket to read from.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "langstream-source"
-                      },
-                      "endpoint" : {
-                        "description" : "The endpoint of the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "http://minio-endpoint.-not-set:9090"
-                      },
-                      "file-extensions" : {
-                        "description" : "Comma separated list of file extensions to filter by.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "pdf,docx,html,htm,md,txt"
-                      },
-                      "idle-time" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "integer",
-                        "defaultValue" : "5"
-                      },
-                      "region" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "string"
-                      },
-                      "secret-key" : {
-                        "description" : "Secret key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      }
-                    }
-                  }
-                }""",
+                        {
+                          "sink" : {
+                            "name" : "Kafka Connect Sink agent",
+                            "description" : "Run any Kafka Connect Sink.\\n    All the configuration properties are passed to the Kafka Connect Sink.",
+                            "properties" : {
+                              "connector.class" : {
+                                "description" : "Java main class for the Kafka Sink connector.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "source" : {
+                            "name" : "Kafka Connect Source agent",
+                            "description" : "Run any Kafka Connect Source.\\n    All the configuration properties are passed to the Kafka Connect Source.",
+                            "properties" : {
+                              "connector.class" : {
+                                "description" : "Java main class for the Kafka Source connector.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          }
+                        }""",
                 SerializationUtil.prettyPrintJson(model));
     }
 }

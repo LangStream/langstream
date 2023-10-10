@@ -112,8 +112,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         return getCurrentProfile().getApiGatewayUrl();
     }
 
-    private Map<String, String> applicationDescriptions = new HashMap<>();
-
     @SneakyThrows
     protected void validateGateway(
             String application,
@@ -185,11 +183,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         }
     }
 
-    private String getAppDescriptionOrLoad(String application) {
-        return applicationDescriptions.computeIfAbsent(
-                application, app -> getClient().applications().get(application, false));
-    }
-
     protected Map<String, String> generatedParamsForChatGateway(
             String application, String gatewayId) {
         final String description = getAppDescriptionOrLoad(application);
@@ -226,7 +219,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
         for (Map<String, Object> header : headers) {
             if (header.containsKey("valueFromParameters")) {
-                final Object key = header.getOrDefault("key", header.get("valueFromParameters"));
+                final Object key = header.get("valueFromParameters");
                 result.put(key.toString(), UUID.randomUUID().toString());
             }
         }

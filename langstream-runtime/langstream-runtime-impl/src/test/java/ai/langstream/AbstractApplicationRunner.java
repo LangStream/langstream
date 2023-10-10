@@ -108,6 +108,7 @@ public abstract class AbstractApplicationRunner {
         }
 
         public void close() {
+            applicationDeployer.cleanup(tenant, implementation);
             applicationDeployer.delete(tenant, implementation, null);
             Awaitility.await()
                     .until(
@@ -115,12 +116,6 @@ public abstract class AbstractApplicationRunner {
                                 log.info("Waiting for secrets to be deleted. {}", secrets);
                                 return secrets.isEmpty();
                             });
-            // this is a workaround, we want to clean up the env
-            topicConnectionsRuntimeRegistry
-                    .getTopicConnectionsRuntime(
-                            implementation.getApplication().getInstance().streamingCluster())
-                    .asTopicConnectionsRuntime()
-                    .delete(implementation);
         }
     }
 
@@ -265,7 +260,7 @@ public abstract class AbstractApplicationRunner {
                                     assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
                                 } else {
                                     log.info("expected: {}", expectedValue);
-                                    log.info("got:      {}", actualValue);
+                                    log.info("got: {}", actualValue);
                                     assertEquals(expectedValue, actualValue);
                                 }
                             }

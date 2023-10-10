@@ -115,61 +115,73 @@ class QueryVectorDBAgentProviderTest {
         final Map<String, AgentConfigurationModel> model =
                 new PluginsRegistry()
                         .lookupAgentImplementation(
-                                "s3-source",
+                                "vector-db-sink",
                                 new NoOpComputeClusterRuntimeProvider.NoOpClusterRuntime())
                         .generateSupportedTypesDocumentation();
 
         Assertions.assertEquals(
                 """
-                {
-                  "s3-source" : {
-                    "name" : "S3 Source",
-                    "description" : "Reads data from S3 bucket",
-                    "properties" : {
-                      "access-key" : {
-                        "description" : "Access key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      },
-                      "bucketName" : {
-                        "description" : "The name of the bucket to read from.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "langstream-source"
-                      },
-                      "endpoint" : {
-                        "description" : "The endpoint of the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "http://minio-endpoint.-not-set:9090"
-                      },
-                      "file-extensions" : {
-                        "description" : "Comma separated list of file extensions to filter by.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "pdf,docx,html,htm,md,txt"
-                      },
-                      "idle-time" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "integer",
-                        "defaultValue" : "5"
-                      },
-                      "region" : {
-                        "description" : "Region for the S3 server.",
-                        "required" : false,
-                        "type" : "string"
-                      },
-                      "secret-key" : {
-                        "description" : "Secret key for the S3 server.",
-                        "required" : false,
-                        "type" : "string",
-                        "defaultValue" : "minioadmin"
-                      }
-                    }
-                  }
-                }""",
+                        {
+                          "query-vector-db" : {
+                            "name" : "Query a vector database",
+                            "description" : "Query a vector database using Vector Search capabilities.",
+                            "properties" : {
+                              "composable" : {
+                                "description" : "Whether this step can be composed with other steps.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "datasource" : {
+                                "description" : "Reference to a datasource id configured in the application.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Fields of the record to use as input parameters for the query.",
+                                "required" : false,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Fields of the record to use as input parameters for the query.",
+                                  "required" : false,
+                                  "type" : "string"
+                                }
+                              },
+                              "only-first" : {
+                                "description" : "If true, only the first result of the query is stored in the output field.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "false"
+                              },
+                              "output-field" : {
+                                "description" : "The name of the field to use to store the query result.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "query" : {
+                                "description" : "The query to use to extract the data.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "when" : {
+                                "description" : "Execute the step only when the condition is met.\\nYou can use the expression language to reference the message.\\nExample: when: \\"value.first == 'f1' && value.last.toUpperCase() == 'L1'\\"",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink" : {
+                            "name" : "Vector database sink",
+                            "description" : "Store vectors in a vector database.\\nConfiguration properties depends on the vector database implementation, specified by the \\"datasource\\" property.",
+                            "properties" : {
+                              "datasource" : {
+                                "description" : "The defined datasource ID to use to store the vectors.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          }
+                        }""",
                 SerializationUtil.prettyPrintJson(model));
     }
 }

@@ -19,6 +19,7 @@ import static ai.langstream.tests.TextCompletionsIT.getAppEnvForAIServiceProvide
 
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.ConsumeGatewayMessage;
+import ai.langstream.tests.util.TestSuites;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
-@Tag(BaseEndToEndTest.CATEGORY_NEEDS_CREDENTIALS)
+@Tag(TestSuites.CATEGORY_NEEDS_CREDENTIALS)
 public class WebCrawlerToVectorIT extends BaseEndToEndTest {
 
     static Map<String, String> appEnv;

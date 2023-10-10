@@ -41,8 +41,9 @@ RUN chmod -R g+w /kafka \
        && chown 10000:0 -R /herddb
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
-ADD maven/lib /app/tester/lib
-RUN rm -f /app/tester/lib/*netty*
+RUN rm -rf /app/lib
+ADD maven/lib /app/lib
+RUN rm -f /app/lib/*netty*
 ADD maven/entrypoint.sh /app/entrypoint.sh
 ADD maven/logback.xml /app/logback.xml
 

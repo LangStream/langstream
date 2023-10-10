@@ -1,0 +1,72 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "Extract and manipulate text"
+topics:
+  - name: "ls-test-chunks-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Read from S3"
+    type: "s3-source"
+    configuration:
+      bucketName: "${secrets.s3.bucket-name}"
+      endpoint: "${secrets.s3.endpoint}"
+      access-key: "${secrets.s3.access-key}"
+      secret-key: "${secrets.s3.secret-key}"
+      idle-time: 5
+  - name: "Extract text"
+    type: "text-extractor"
+  - name: "Normalise text"
+    type: "text-normaliser"
+    configuration:
+      make-lowercase: true
+      trim-spaces: true
+  - name: "Detect language"
+    type: "language-detector"
+    configuration:
+       allowedLanguages: ["en"]
+       property: "language"
+  - name: "Split into chunks"
+    type: "text-splitter"
+    configuration:
+      splitter_type: "RecursiveCharacterTextSplitter"
+      chunk_size: 400
+      separators: ["\n\n", "\n", " ", ""]
+      keep_separator: false
+      chunk_overlap: 100
+      length_function: "cl100k_base"
+  - name: "Convert to structured data"
+    type: "document-to-json"
+    configuration:
+        text-field: text
+        copy-properties: true
+  - name: "prepare-structure"
+    type: "compute"
+    output: "ls-test-chunks-topic"
+    configuration:
+      fields:
+         - name: "value.filename"
+           expression: "properties.name"
+           type: STRING
+         - name: "value.chunk_id"
+           expression: "properties.chunk_id"
+           type: STRING
+         - name: "value.language"
+           expression: "properties.language"
+           type: STRING
+         - name: "value.chunk_num_tokens"
+           expression: "properties.chunk_num_tokens"
+           type: STRING

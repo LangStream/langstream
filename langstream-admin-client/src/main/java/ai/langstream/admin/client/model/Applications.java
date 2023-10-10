@@ -16,10 +16,15 @@
 package ai.langstream.admin.client.model;
 
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
+import java.io.InputStream;
 import java.net.http.HttpResponse;
+import java.util.List;
 
 public interface Applications {
-    void deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
+    String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
+
+    String deploy(
+            String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun);
 
     void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 
@@ -42,4 +47,6 @@ public interface Applications {
             HttpResponse.BodyHandler<T> responseBodyHandler);
 
     String getCodeInfo(String application, String codeArchiveId);
+
+    HttpResponse<InputStream> logs(String application, List<String> filter, String format);
 }

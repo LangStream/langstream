@@ -71,10 +71,17 @@ public interface ApplicationStore extends GenericStore {
     }
 
     interface LogLineConsumer {
-        boolean onLogLine(String line);
+
+        LogLineResult onPodNotRunning(String state, String reason);
+
+        LogLineResult onLogLine(String content, long timestamp);
+
+        LogLineResult onPodLogNotAvailable();
 
         void onEnd();
     }
+
+    record LogLineResult(boolean continueLogging, Long delayInSeconds) {}
 
     List<PodLogHandler> logs(String tenant, String applicationId, LogOptions logOptions);
 }

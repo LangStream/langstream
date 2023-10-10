@@ -23,6 +23,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -125,10 +126,41 @@ public class AppTestHelper {
             String secretsContent,
             boolean checkOk)
             throws Exception {
+        return updateApp(
+                mockMvc,
+                patch,
+                tenant,
+                applicationId,
+                appFileContent,
+                instanceContent,
+                secretsContent,
+                checkOk,
+                null);
+    }
+
+    public static ResultActions updateApp(
+            MockMvc mockMvc,
+            boolean patch,
+            String tenant,
+            String applicationId,
+            String appFileContent,
+            String instanceContent,
+            String secretsContent,
+            boolean checkOk,
+            Map<String, String> queryString)
+            throws Exception {
+        final String queryStringStr =
+                queryString == null
+                        ? ""
+                        : queryString.entrySet().stream()
+                                .map(e -> e.getKey() + "=" + e.getValue())
+                                .reduce((a, b) -> a + "&" + b)
+                                .orElse("");
         final MockMultipartHttpServletRequestBuilder multipart =
                 multipart(
                         patch ? HttpMethod.PATCH : HttpMethod.POST,
-                        "/api/applications/%s/%s".formatted(tenant, applicationId));
+                        "/api/applications/%s/%s?%s"
+                                .formatted(tenant, applicationId, queryStringStr));
         if (appFileContent != null) {
             multipart.file(getMultipartFile(appFileContent));
         }

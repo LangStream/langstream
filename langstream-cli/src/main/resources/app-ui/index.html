@@ -1,0 +1,506 @@
+<!--
+
+    Copyright DataStax, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="langstream.png" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <title>LangStream</title>
+</head>
+<body class="bg-gray-100 flex justify-center">
+<div class="w-full flex flex-col h-full p-8 max-w-screen-2xl">
+    <div class="flex w-full h-32 bg-white shadow-lg rounded-lg mb-8">
+        <div class="p-4 rounded-lg ">
+            <a href="https://docs.langstream.ai/">
+                <img src="langstream.png" alt="Langstream" class="mx-auto max-w-full h-20">
+            </a>
+        </div>
+        <div class="flex flex-column max-w-4xl w-full p-6 rounded-lg" id="app-info-box"></div>
+    </div>
+
+    <div class="flex w-full h-full justify-center max-h-full">
+        <!--    Logs-->
+        <div class="flex flex-col min-w-3xl max-w-3xl w-full bg-white shadow-lg rounded-lg mr-4"
+             style="height: 38rem; max-height: 38rem">
+
+
+            <div class="p-4 w-full overflow-scroll h-full bg-black scroll-smooth" id="logs-box">
+                <div class="text-white w-full text-xs mb-2 h-full" id="logs">
+                </div>
+            </div>
+            <div class="flex w-full">
+                <label class="block text-gray-700 text-xs p-3">
+                    Auto scroll
+                </label>
+                <input type="checkbox"
+                       checked
+                       class="border rounded-l-lg p-3 "
+                       id="auto-scroll-logs"/>
+
+                <label class="block text-gray-700 text-xs p-3">
+                    Stop tailing
+                </label>
+                <input type="checkbox"
+                       class="border rounded-l-lg p-3 "
+                       id="stop-tailing"
+                       onchange="onChangeStopTailing()"
+                />
+            </div>
+        </div>
+        <!--Gateway-->
+        <div class="flex flex-col min-w-3xl max-w-4xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem">
+            <div class="flex-1 p-6 mb-8" id="setup-box" style="display: none">
+                <label class="block text-gray-700 text-l mb-2" id="setup-no-gateways" style="display: none">
+                    <strong>No gateways found</strong>, define gateways in the <code>gateways.yaml</code> file to start testing your application.
+                </label>
+                <div class="mb-4" id="produce-gateway-box">
+                    <label class="block text-gray-700 text-xs mb-2" for="select1">
+                        Produce messages to
+                    </label>
+                    <select id="produce-gateway"
+                            class="w-full px-4 py-2 text-sm  border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                            id="select1">
+                    </select>
+                </div>
+                <div class="mb-4" id="consume-gateway-box">
+                    <label class="block text-gray-700 text-xs mb-2" for="select2">
+                        Consume messages from
+                    </label>
+                    <select id="consume-gateway"
+                            class="w-full px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+                            id="select2">
+                    </select>
+                </div>
+                <div class="flex justify-center">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg" onclick="setup()" id="setup-connect-button">Connect</button>
+                </div>
+            </div>
+
+
+            <div class="p-6 flex-initial rounded-lg  w-full flex flex-row" id="info-box" style="display: none"></div>
+            <div class="w-full flex-1 mx-auto p-6 flex flex-col min-h-0" id="chat-box" style="display: none">
+                <div class="border p-4 rounded-lg grow overflow-y-auto mb-4 flex flex-col scroll-smooth" id="messages"
+                     style="flex-grow: 1"></div>
+                <div class="flex">
+                    <input type="text"
+                           class="flex-1 border rounded-l-lg p-2 focus:outline-none focus:ring focus:border-blue-300"
+                           placeholder="Type your message here"
+                           id="chat-input">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const handler = {
+        applicationConfig: null,
+        producer: null,
+        consumer: null,
+        producerReady: false,
+        consumerReady: false,
+        gatewayInfo: {},
+        info: {}
+    }
+
+    function updateProducerInfo(status) {
+        updateGatewayInfo("Producer status", status)
+    }
+
+    function updateConsumerInfo(status) {
+        updateGatewayInfo("Consumer status", status)
+    }
+
+    function updateGatewayInfo(label, value) {
+        handler.gatewayInfo[label] = value
+        let html = ""
+        for (const k in handler.gatewayInfo) {
+            html += `
+            <div class="mb-4">
+            <label class="block text-gray-400 text-xs mb-2">${k}</label>
+            <label class="block text-gray-600 text-sm mb-2 text-clip" >${handler.gatewayInfo[k]}</label>
+        </div>`;
+        }
+        document.getElementById("info-box").innerHTML = html
+    }
+
+    function updateAppInfo(label, value) {
+        handler.info[label] = value
+        let html = ""
+        for (const k in handler.info) {
+            html += `
+            <div class="flex-initial w-72 mb-4">
+            <label class="block text-gray-400 text-xs mb-2">${k}</label>
+            <label class="block text-gray-600 text-sm mb-2 text-clip" >${handler.info[k]}</label>
+        </div>`;
+        }
+        document.getElementById("app-info-box").innerHTML = html
+    }
+
+
+    function randomString() {
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < 16) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            counter += 1;
+        }
+        return result;
+    }
+
+
+    function getGatewayParameters(gatewayId) {
+        const gw = handler.applicationConfig.gateways.find(g => g.id === gatewayId)
+        if (gw.parameters && gw.parameters.length) {
+            return gw.parameters
+        }
+        if (gw["chatOptions"] && gw["chatOptions"]["headers"]) {
+            const result = []
+            const headers = gw["chatOptions"]["headers"] || []
+            for (let h of headers) {
+                if (h["valueFromParameters"]) {
+                    result.push(h["valueFromParameters"])
+                }
+            }
+            return result
+        }
+        return []
+    }
+
+    function setup() {
+
+        const produceGateway = document.getElementById("produce-gateway").value
+        const consumeGateway = document.getElementById("consume-gateway").value
+        const genParams = {}
+        if (produceGateway) {
+            const produceParams = getGatewayParameters(produceGateway).map(p => {
+                    if (!genParams[p]) {
+                        genParams[p] = randomString()
+                    }
+                    return {key: p, value: genParams[p]}
+                })
+            startProducer(produceGateway, produceParams)
+        }
+        if (consumeGateway) {
+            const consumeParams = getGatewayParameters(consumeGateway).map(p => {
+                    if (!genParams[p]) {
+                        genParams[p] = randomString()
+                    }
+                    return {key: p, value: genParams[p]}
+                })
+            startConsumer(consumeGateway, consumeParams)
+        }
+
+        document.getElementById("info-box").style.display = "block"
+        document.getElementById("setup-box").style.display = "none"
+        document.getElementById("chat-box").style.display = "flex"
+
+    }
+
+
+    function addMessageToUI(from, message, boxId) {
+        if (!message) {
+            return
+        }
+        if (boxId) {
+            const current = document.getElementById(`langstream-stream-${boxId}`)
+            if (current) {
+                current.innerHTML += `${message}`
+                return
+            }
+        }
+        const clazz = from === "You" ? "bg-blue-500 text-white" : "bg-gray-300"
+        const clazzContainer = from === "You" ? "self-end" : "self-start"
+        document.getElementById("messages").innerHTML += `
+        <div class="mb-2 ${clazzContainer}">
+            <div id='langstream-stream-${boxId}' class="${clazz} rounded-lg p-2 inline-block max-w-xs text-xs">
+                ${message}
+            </div>
+        </div>`
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+    }
+
+    function onUserSent() {
+        if (!document.getElementById("chat-input").value) {
+            return;
+        }
+        const message = document.getElementById("chat-input").value;
+        document.getElementById("chat-input").value = "";
+        addMessageToUI("You", message)
+
+        handler.producer.send(JSON.stringify({value: message}))
+    }
+
+
+    //runs the keypress() function when a key is pressed
+    document.onkeypress = keyPress;
+
+    //if the key pressed is 'enter' runs the function newEntry()
+    function keyPress(e) {
+        var x = e || window.event;
+        var key = (x.keyCode || x.which);
+        if (key == 13 || key == 3) {
+            //runs this function when enter is pressed
+            onUserSent();
+        }
+    }
+
+    function showChatInput() {
+        document.getElementById("chat-input").style.display = 'flex';
+        document.getElementById("chat-input").focus()
+    }
+
+    function generateConnectionUrl(gatewayId, parameters) {
+        const applicationConfig = handler.applicationConfig
+        const gateway = applicationConfig.gateways.find(g => g.id === gatewayId)
+        const baseUrl = `${applicationConfig.baseUrl}/v1/${gateway.type}/${applicationConfig.tenant}/${applicationConfig.applicationId}/${gatewayId}`
+        let queryString = "?"
+        for (const param of parameters) {
+            queryString += `param:${param.key}=${encodeURIComponent(param.value)}&`
+        }
+        return baseUrl + queryString
+    }
+
+    function startProducer(gateway, parameters = []) {
+        const applicationConfig = handler.applicationConfig
+        const finalUrl = generateConnectionUrl(gateway, parameters);
+        try {
+            handler.producer = new WebSocket(finalUrl);
+            updateProducerInfo("Connecting to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
+            handler.producer.onopen = () => {
+                console.log("Connected to websocket producer");
+                updateProducerInfo("Connected to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
+                handler.producerReady = true
+                if (handler.consumerReady) {
+                    showChatInput();
+                }
+            }
+            handler.producer.onmessage = (event) => {
+                console.log("producer received: ", event.data);
+            };
+            handler.producer.onerror = (event) => {
+                console.log("producer got error: ", event);
+                updateProducerInfo("Failed")
+
+            };
+            handler.producer.onclose = (event) => {
+                console.log("producer got close: ", event);
+                if (handler.producerReady) {
+                    handler.producer = new WebSocket(finalUrl);
+                }
+                handler.producerReady = false
+            };
+        } catch (e) {
+            console.error(e)
+            updateProducerInfo("Error " + e.message)
+        }
+    }
+
+
+    function startConsumer(gateway, parameters = {}) {
+        const applicationConfig = handler.applicationConfig
+
+        const finalUrl = generateConnectionUrl(gateway, parameters);
+        try {
+            updateConsumerInfo("Connecting to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
+            handler.consumer = new WebSocket(finalUrl);
+            handler.consumer.onopen = () => {
+                console.log("Connected to websocket consumer");
+                updateConsumerInfo("Connected to " + finalUrl.replace(applicationConfig.baseUrl, applicationConfig.remoteBaseUrl))
+                handler.consumerReady = true
+                if (handler.producerReady) {
+                    showChatInput()
+                }
+            }
+            handler.consumer.onmessage = (event) => {
+                console.log("consumer received: ", event.data);
+                const message = JSON.parse(event.data)
+                const streamId = message.record.headers["stream-id"]
+                addMessageToUI("Server", message.record.value, streamId)
+            };
+            handler.consumer.onerror = (event) => {
+                console.log("consumer got error: ", event);
+                updateConsumerInfo("Failed")
+
+            };
+            handler.consumer.onclose = (event) => {
+                console.log("consumer got onclose: ", event);
+                if (handler.consumerReady) {
+                    handler.consumerReady = false
+                    console.log("Reconnecting to consumer")
+                    handler.consumer = new WebSocket(finalUrl);
+                }
+
+            };
+        } catch (e) {
+            console.error(e)
+            updateConsumerInfo("Error " + e.message)
+        }
+    }
+
+    function onSetup(applicationConfig) {
+        handler.applicationConfig = applicationConfig
+
+        console.log("Application config: ", handler.applicationConfig)
+
+        updateAppInfo("Tenant", handler.applicationConfig.tenant)
+        updateAppInfo("Application", handler.applicationConfig.applicationId)
+
+        let foundConsumeGateway = false
+        let foundProduceGateway = false
+
+        handler.applicationConfig.gateways.filter(g => g.type === "produce" || g.type === "chat")
+            .forEach(g => {
+                foundProduceGateway = true
+                const newOption = document.createElement("option");
+                newOption.text = g.id + " (type: " + g.type + ")"
+                newOption.setAttribute("value", g.id);
+                document.getElementById("produce-gateway").add(newOption)
+            })
+
+        handler.applicationConfig.gateways.filter(g => g.type === "consume" || g.type === "chat")
+            .forEach(g => {
+                foundConsumeGateway = true
+                const newOption = document.createElement("option");
+                newOption.text = g.id + " (type: " + g.type + ")"
+                newOption.setAttribute("value", g.id);
+                document.getElementById("consume-gateway").add(newOption)
+            })
+        if (!foundProduceGateway && !foundConsumeGateway) {
+            document.getElementById('setup-no-gateways').style.display = "block"
+            document.getElementById('produce-gateway-box').style.display = "none"
+            document.getElementById('consume-gateway-box').style.display = "none"
+            document.getElementById('setup-connect-button').style.display = "none"
+        }
+        if (!foundConsumeGateway) {
+            document.getElementById('consume-gateway-box').style.display = "none"
+        }
+        if (!foundProduceGateway) {
+            document.getElementById('produce-gateway-box').style.display = "none"
+        }
+        document.getElementById('setup-box').style.display = "block"
+    }
+
+    function onLoad() {
+        fetch("/api/application")
+            .then((response) => response.json())
+            .then((json) => onSetup(json))
+        startReadingLogs()
+    }
+
+    window.onload = async () => {
+        onLoad();
+         //mockOnload()
+    }
+
+    function mockOnload() {
+        onSetup({
+            baseUrl: "ws://localhost:8091",
+            remoteBaseUrl: "ws://localhost:8091",
+            tenant: "default-my-tenant-o6-ch",
+            applicationId: "test-000001-web",
+            gateways: [
+                {
+                    id: "consume-output",
+                    type: "consume",
+                    parameters: ["sessionId"]
+                },
+                {
+                    id: "produce-input",
+            //        type: "produce",
+                    parameters: ["sessionId"],
+                },
+                {
+                    id: "chat-no-auth",
+                    type: "chat",
+                    "chatOptions": {
+                        "headers": [{
+                            "valueFromParameters": "session-id"
+                        }]
+                    }
+                }
+            ]
+        })
+        mockLogs()
+        for (let i = 0; i < 100; i++) {
+            addMessageToUI("You", "This is a test message with a lot of stuff in there.")
+            addMessageToUI("Server", "test")
+        }
+    }
+
+    async function mockLogs() {
+        const interval = setInterval(() => {
+            onLineRead("test")
+            if (document.getElementById("stop-tailing").checked) {
+                interval.cancel()
+            }
+        }, 50)
+    }
+
+    function onChangeStopTailing() {
+        const stop = document.getElementById("stop-tailing").checked
+        if (!stop) {
+            startReadingLogs()
+        }
+
+    }
+
+    function onLineRead(text) {
+        const p = document.createElement("p")
+        p.classList = ["font-mono", "text-xs"]
+        p.innerText = text.replace(/\[\d+m|\[0m/g, '') + "\n"
+        document.getElementById('logs').appendChild(p)
+        if (document.getElementById("auto-scroll-logs").checked) {
+            document.getElementById('logs-box').scrollTop = document.getElementById('logs-box').scrollHeight;
+        }
+    }
+
+    async function readLine(reader) {
+        reader.read().then((result) => {
+            const {done, value} = result
+            if (done) {
+                return
+            }
+            const text = new TextDecoder().decode(value);
+            onLineRead(text)
+            if (!document.getElementById("stop-tailing").checked) {
+                return setTimeout(() => readLine(reader), 1)
+            }
+        });
+
+
+    }
+    async function startReadingLogs() {
+        try {
+            document.getElementById('logs').innerText = ""
+            const response = await fetch("api/logs");
+            const reader = response.body.getReader();
+            await readLine(reader)
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "convert-to-json"
+    type: "document-to-json"
+    input: "input-topic"
+    configuration:
+      text-field: "city"
+  - name: "Get timezone info from geocoding API"
+    type: "http-request"
+    configuration:
+        url: "https://geocoding-api.open-meteo.com/v1/search"
+        query-string:
+          name: "{{{ value.city }}}"
+          count: "1"
+          format: "json"
+        output-field: "value.response"
+        method: "GET"
+
+  - name: "Extract timezone"
+    type: "compute"
+    configuration:
+      fields:
+        - name: "value.timezone"
+          expression: "value.response.results[0].timezone"
+          type: STRING
+
+  - name: "Extract timezone"
+    type: "drop-fields"
+    output: "output-topic"
+    configuration:
+      fields:
+        - response

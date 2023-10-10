@@ -15,6 +15,7 @@
  */
 package ai.langstream.tests.util;
 
+import java.io.IOException;
 import java.util.Map;
 
 public interface CodeStorageProvider {
@@ -26,4 +27,10 @@ public interface CodeStorageProvider {
     void cleanup();
 
     void stop();
+
+    void createBucket(String bucketName) throws IOException;
+
+    void uploadFromFile(String path, String bucketName, String objectName) throws IOException;
+
+    boolean objectExists(String bucketName, String objectName) throws IOException;
 }

@@ -66,8 +66,7 @@
     <minio.version>8.5.4</minio.version>
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
-    <wiremock.version>3.0.0-beta-10</wiremock.version>
-    <jandex-maven-plugin.version>1.2.3</jandex-maven-plugin.version>
+    <wiremock.version>3.0.0-beta-10</wiremock.version> 
     <burningwave.version>0.25.5</burningwave.version>
     <jjwt.version>0.11.5</jjwt.version>
     <commons-codec.version>1.16.0</commons-codec.version>
@@ -680,6 +679,7 @@
                 <exclude>**/.ruff_cache/**</exclude>
                 <exclude>**/__pycache__/**</exclude>
                 <exclude>**/python/lib/**</exclude>
+                <exclude>examples/applications/langchain-document-loader/python/tests/lorem.txt</exclude>
               </excludes>
             </licenseSet>
           </licenseSets>

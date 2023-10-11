@@ -20,7 +20,6 @@ import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -61,19 +60,17 @@ public class SolrAssetsProvider extends AbstractAssetProvider {
         @ConfigProperty(
                 description =
                         """
-                       Name of the collection.
-                       """,
-                required = true)
-        @JsonProperty("collection-name")
-        private String collectionName;
-
-        @ConfigProperty(
-                description =
-                        """
                        List of the statement to execute to create the collection. They will be executed every time the application is deployed or upgraded.
                        """,
                 required = true)
         @JsonProperty("create-statements")
-        private List<Map<String, Object>> createStatements;
+        private List<Statement> createStatements;
+    }
+
+    @Data
+    public static class Statement {
+        String api;
+        String method;
+        String body;
     }
 }

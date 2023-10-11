@@ -347,6 +347,11 @@ class AppsCmdTest extends CommandTestBase {
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
         Assertions.assertEquals(expectedYaml.strip(), result.out());
+
+        result = executeCommand("apps", "get", "my-app", "-o", "mermaid");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertNotEquals("", result.out());
     }
 
     @Test

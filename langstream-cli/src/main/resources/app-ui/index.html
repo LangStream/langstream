@@ -209,9 +209,9 @@
         if (gw.parameters && gw.parameters.length) {
             return gw.parameters
         }
-        if (gw["chatOptions"] && gw["chatOptions"]["headers"]) {
+        if (gw["chat-options"] && gw["chat-options"]["headers"]) {
             const result = []
-            const headers = gw["chatOptions"]["headers"] || []
+            const headers = gw["chat-options"]["headers"] || []
             for (let h of headers) {
                 if (h["valueFromParameters"]) {
                     result.push(h["valueFromParameters"])
@@ -489,7 +489,7 @@
                 {
                     id: "chat-no-auth",
                     type: "chat",
-                    "chatOptions": {
+                    "chat-options": {
                         "headers": [{
                             "valueFromParameters": "session-id"
                         }]

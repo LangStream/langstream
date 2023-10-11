@@ -30,12 +30,13 @@ public class ListProfileCmd extends BaseProfileCmd {
 
     @CommandLine.Option(
             names = {"-o"},
-            description = "Output format")
+            description = "Output format. Formats are: yaml, json, raw. Default value is raw.")
     private Formats format = Formats.raw;
 
     @Override
     @SneakyThrows
     public void run() {
+        ensureFormatIn(format, Formats.raw, Formats.json, Formats.yaml);
         checkGlobalFlags();
         final LangStreamCLIConfig config = getConfig();
         final Object object = format == Formats.raw ? listAllProfiles() : config;

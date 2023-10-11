@@ -24,10 +24,17 @@ public class GetApplicationCmd extends BaseApplicationCmd {
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
 
+    public enum GetAppFormats {
+        raw,
+        json,
+        yaml,
+        mermaid
+    }
+
     @CommandLine.Option(
             names = {"-o"},
-            description = "Output format")
-    private Formats format = Formats.raw;
+            description = "Output format. Formats are: yaml, json, raw, mermaid. Default value is raw.")
+    private GetAppFormats format = GetAppFormats.raw;
 
     @CommandLine.Option(
             names = {"-s", "--stats"},
@@ -38,8 +45,12 @@ public class GetApplicationCmd extends BaseApplicationCmd {
     @SneakyThrows
     public void run() {
         final String body = getClient().applications().get(applicationId, stats);
+        if (format == GetAppFormats.mermaid) {
+            log(MermaidAppDiagramGenerator.generate(body));
+            return;
+        }
         print(
-                format,
+                Formats.valueOf(format.name()),
                 body,
                 ListApplicationCmd.COLUMNS_FOR_RAW,
                 ListApplicationCmd.getRawFormatValuesSupplier());

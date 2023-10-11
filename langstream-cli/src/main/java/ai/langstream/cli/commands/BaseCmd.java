@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,8 @@ public abstract class BaseCmd implements Runnable {
     public enum Formats {
         raw,
         json,
-        yaml
+        yaml,
+        mermaid
     }
 
     protected static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
@@ -571,5 +573,15 @@ public abstract class BaseCmd implements Runnable {
     protected String getAppDescriptionOrLoad(String application) {
         return applicationDescriptions.computeIfAbsent(
                 application, app -> getClient().applications().get(application, false));
+    }
+
+    protected void ensureFormatIn(Formats value, Formats... allowed) {
+        final List<Formats> asList = Arrays.stream(allowed).collect(Collectors.toList());
+        if (!asList.contains(value)) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "Format %s is not allowed. Allowed formats are: %s",
+                            value, asList.stream().map(Enum::name).collect(Collectors.joining(","))));
+        }
     }
 }

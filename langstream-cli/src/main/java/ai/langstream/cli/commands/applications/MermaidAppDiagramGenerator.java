@@ -17,8 +17,11 @@ package ai.langstream.cli.commands.applications;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
@@ -37,81 +40,155 @@ public class MermaidAppDiagramGenerator {
 
         applyPipelines(model, application);
 
-        StringBuilder mermaid = new StringBuilder("flowchart TB\n");
+        StringBuilder mermaid = new StringBuilder("flowchart LR\n");
         mermaid.append("\n");
 
-        mermaid.append("subgraph resources[\"<b>Resources</b>\"]\n");
+        // first declare all resources without connections
+        if (!model.getGateways().isEmpty()) {
+            mermaid.append("external-client((Client))\n\n");
+        }
+
+        for (External externalSink : model.getExternalSinks()) {
+            mermaid.append(externalSink.getId()).append("([\"").append(externalSink.getLabel()).append("\"])").append("\n\n");
+        }
+        for (External source : model.getExternalSources()) {
+            mermaid.append(source.getId()).append("([\"").append(source.getLabel()).append("\"])").append("\n\n");
+        }
+
+
+        mermaid.append("subgraph resources[\"Resources\"]\n");
         model.getResources()
                 .forEach(
                         r -> {
                             final String label =
                                     r.getType().equals("datasource")
                                             ? "[(\"" + r.getLabel() + "\")]"
-                                            : "[\"Service: " + r.getLabel() + "\"]";
-                            mermaid.append(r.getId().replace(" ", "")).append(label).append("\n");
+                                            : "(\"" + r.getLabel() + "\")";
+                            mermaid.append(escapeId(IDType.RESOURCE, r.getId())).append(label).append("\n");
                         });
         mermaid.append("end\n");
         mermaid.append("\n");
 
-        mermaid.append("subgraph streaming-cluster[\"<b>Streaming</b>\"]\n");
-        model.getTopics().forEach(t -> mermaid.append(t).append("\n"));
-        model.getPipelines()
-                .forEach(
-                        p -> {
-                            p.getAgents()
-                                    .forEach(
-                                            a -> {
-                                                if (a.getInputTopic() != null) {
-                                                    mermaid.append(a.getInputTopic())
-                                                            .append(" --> ")
-                                                            .append(a.getId())
-                                                            .append("\n");
-                                                }
-                                            });
-                        });
+        mermaid.append("subgraph streaming-cluster[\"Topics\"]\n");
+        model.getTopics().forEach(
+                t -> mermaid.append(t.getId()).append("([\"").append(t.getLabel()).append("\"])").append("\n"));
         mermaid.append("end\n");
         mermaid.append("\n");
 
-        mermaid.append("subgraph gateways[\"<b>Gateways</b>\"]\n");
-        model.getGateways()
-                .forEach(
-                        g -> {
-                            for (String topic : g.getTopics()) {
-                                mermaid.append(g.getId())
-                                        .append(" --> ")
-                                        .append(topic)
-                                        .append("\n");
-                            }
-                        });
+        mermaid.append("subgraph gateways[\"Gateways\"]\n");
+        model.getGateways().forEach(
+                t -> mermaid.append(t.getId()).append("[/\"").append(t.getLabel()).append("\"\\]").append("\n"));
         mermaid.append("end\n");
         mermaid.append("\n");
 
         model.getPipelines()
                 .forEach(
                         p -> {
-                            mermaid.append("subgraph ")
+                            mermaid.append("subgraph pipeline-")
                                     .append(p.getId())
-                                    .append("[\"<b>")
+                                    .append("[\"Pipeline: <b>")
                                     .append(p.getId())
                                     .append("</b>\"]\n");
                             p.getAgents()
                                     .forEach(
                                             a -> {
-                                                if (a.getOutput() != null) {
-                                                    for (String output : a.getOutput()) {
-                                                        mermaid.append(a.getId())
-                                                                .append("(\"")
-                                                                .append(a.getLabel())
-                                                                .append("\")")
-                                                                .append(" --> ")
-                                                                .append(output)
-                                                                .append("\n");
-                                                    }
-                                                }
+                                                mermaid.append(a.getId())
+                                                        .append("(\"")
+                                                        .append(a.getLabel())
+                                                        .append("\")")
+                                                        .append("\n");
                                             });
                             mermaid.append("end\n\n");
                         });
+
+        // now declare all the connections
+        AtomicInteger countConnection = new AtomicInteger();
+        model.getPipelines()
+                .forEach(
+                        p -> {
+                            p.getAgents()
+                                    .forEach(
+                                            a -> {
+                                                if (a.getInput() != null) {
+                                                    addConnection(mermaid, countConnection, a.getId(), a.getInput(), true, "stroke:#82E0AA");
+                                                }
+                                            });
+                        });
+
+        model.getGateways()
+                .forEach(
+                        g -> {
+                            for (String topic : g.getConsumeFromTopics()) {
+                                addConnection(mermaid, countConnection, g.getId(), topic, true, null);
+                            }
+
+                            for (String topic : g.getProduceToTopics()) {
+                                addConnection(mermaid, countConnection, g.getId(), topic, false, null);
+                            }
+
+                        });
+
+        addConnection(mermaid, countConnection, "external-client", "gateways", false, null);
+
+        model.getPipelines()
+                .forEach(
+                        p -> {
+                            p.getAgents()
+                                    .forEach(
+                                            a -> {
+
+
+                                                if (a.getOutput() != null) {
+                                                    List<String> endOutputs = new ArrayList<>();
+                                                    for (String output : a.getOutput()) {
+                                                        if (output.startsWith("topic-") || output.startsWith("external-sink-")) {
+                                                            endOutputs.add(output);
+                                                        }
+                                                    }
+
+                                                    for (String output : a.getOutput()) {
+                                                        if (endOutputs.contains(output) || (endOutputs.isEmpty() && output.startsWith("resource-"))) {
+                                                            addConnection(mermaid, countConnection, a.getId(), output, false, "stroke:#F4D03F");
+                                                        } else {
+                                                            if (output.startsWith("resource-")) {
+                                                                addConnection(mermaid, countConnection, a.getId(),
+                                                                        output, true, "stroke:#5DADE2");
+                                                            } else {
+                                                                addConnection(mermaid, countConnection, a.getId(),
+                                                                        output, false, "stroke:#5DADE2");
+                                                            }
+                                                        }
+                                                    }
+
+                                                }
+                                            });
+                        });
         return mermaid.toString();
+    }
+
+    private static void addConnection(StringBuilder mermaid, AtomicInteger counter, String from, String to, boolean dotted, String linkStyle) {
+        final int count = counter.getAndIncrement();
+        final String link = dotted ? "-.->" : "-->";
+        mermaid.append(from)
+                .append(link)
+                .append(to)
+                .append("\n");
+        if (linkStyle != null) {
+            mermaid.append("linkStyle ").append(count).append(" ").append(linkStyle).append("\n");
+        }
+
+    }
+
+
+    enum IDType {
+        TOPIC,
+        GATEWAY,
+        AGENT,
+        RESOURCE
+    }
+
+    private static String escapeId(IDType idType, String string) {
+        return idType.name().toLowerCase() + "-" + string.replace(" ", "___").toLowerCase();
     }
 
     private static void applyResources(ApplicationModel model, Map<String, Object> application) {
@@ -151,105 +228,119 @@ public class MermaidAppDiagramGenerator {
                                                 for (Object ag : asList(pipeline.get("agents"))) {
 
                                                     final Map agentMap = asMap(ag);
-                                                    final Agent agent = new Agent();
-                                                    agent.setId((String) agentMap.get("id"));
-                                                    final String agentType =
-                                                            (String) agentMap.get("type");
-                                                    agent.setType(agentType);
-                                                    agent.setLabel((String) agentMap.get("name"));
-                                                    final Map input = asMap(agentMap.get("input"));
-                                                    if (input != null) {
-                                                        if (input.get("connectionType")
-                                                                .equals("TOPIC")) {
-                                                            agent.setInputTopic(
-                                                                    (String)
-                                                                            input.get(
-                                                                                    "definition"));
-                                                        }
-                                                    } else {
-                                                        agent.setExternalInput(
-                                                                model.getSourceExternal());
-                                                    }
-
-                                                    final Map output =
-                                                            asMap(agentMap.get("output"));
-
-                                                    List<String> outputs = new ArrayList<>();
-                                                    if (output != null) {
-                                                        outputs.add(
-                                                                (String) output.get("definition"));
-                                                    }
-                                                    final Map agentConfig =
-                                                            asMap(agentMap.get("configuration"));
-                                                    final Object datasource =
-                                                            agentConfig.get("datasource");
-                                                    if (datasource != null
-                                                            && datasource instanceof String) {
-                                                        outputs.add((String) datasource);
-                                                    }
-
-                                                    final Object streamToTopic =
-                                                            agentConfig.get("stream-to-topic");
-                                                    if (streamToTopic != null
-                                                            && streamToTopic instanceof String) {
-                                                        outputs.add((String) streamToTopic);
-                                                    }
-                                                    switch (agentType) {
-                                                        case "ai-text-completions":
-                                                        case "ai-chat-completions":
-                                                        case "compute-ai-embeddings":
-                                                            if (agentConfig.containsKey(
-                                                                    "ai-service")) {
-                                                                outputs.add(
-                                                                        (String)
-                                                                                agentConfig.get(
-                                                                                        "ai-service"));
-                                                            } else {
-                                                                final Resource resource =
-                                                                        model
-                                                                                .getResources()
-                                                                                .stream()
-                                                                                .filter(
-                                                                                        r ->
-                                                                                                r.getOriginalType()
-                                                                                                                .equals(
-                                                                                                                        "vertex-configuration")
-                                                                                                        || r.getOriginalType()
-                                                                                                                .equals(
-                                                                                                                        "open-ai-configuration")
-                                                                                                        || r.getOriginalType()
-                                                                                                                .equals(
-                                                                                                                        "hugging-face-configuration"))
-                                                                                .findFirst()
-                                                                                .orElse(null);
-                                                                if (resource != null) {
-                                                                    outputs.add(
-                                                                            resource.getId()
-                                                                                    .replace(
-                                                                                            " ",
-                                                                                            ""));
-                                                                }
-                                                            }
-                                                            break;
-                                                        default:
-                                                            break;
-                                                    }
-
-                                                    agent.setOutput(outputs);
+                                                    final Agent agent = parseAgent(model, agentMap);
                                                     agents.add(agent);
                                                 }
+                                                final String id = (String) pipeline.get("id");
                                                 model.getPipelines()
                                                         .add(
                                                                 new Pipeline(
-                                                                        (String) pipeline.get("id"),
+                                                                        id,
+                                                                        id,
                                                                         agents));
                                             });
                         });
     }
 
+    private static Agent parseAgent(ApplicationModel model, Map agentMap) {
+        final Agent agent = new Agent();
+        agent.setId(escapeId(IDType.AGENT, (String) agentMap.get("id")));
+        final String agentType =
+                (String) agentMap.get("type");
+        agent.setType(agentType);
+        agent.setLabel((String) agentMap.get("name"));
+        final Map input = asMap(agentMap.get("input"));
+        if (input != null) {
+            if (input.get("connectionType")
+                    .equals("TOPIC")) {
+                agent.setInput(
+                        escapeId(
+                                IDType.TOPIC,
+                                (String)
+                                        input.get(
+                                                "definition")));
+            }
+        } else {
+            agent.setInput(model.getExternalSourceForAgent(agent.getId()).getId());
+        }
+
+        final Map output =
+                asMap(agentMap.get("output"));
+
+        List<String> outputs = new ArrayList<>();
+        if (output != null) {
+            final String definition = (String) output.get("definition");
+            if (output.get("connectionType")
+                    .equals("TOPIC")) {
+                outputs.add(escapeId(IDType.TOPIC, definition));
+            } else {
+                outputs.add(escapeId(IDType.AGENT, definition));
+            }
+        } else {
+            outputs.add(model.getExternalSinkForAgent(agent.getId()).getId());
+        }
+        final Map agentConfig =
+                asMap(agentMap.get("configuration"));
+        final Object datasource =
+                agentConfig.get("datasource");
+        if (datasource != null
+            && datasource instanceof String) {
+            outputs.add(escapeId(IDType.RESOURCE, (String) datasource));
+        }
+
+        final Object streamToTopic =
+                agentConfig.get("stream-to-topic");
+        if (streamToTopic != null
+            && streamToTopic instanceof String) {
+            outputs.add(escapeId(IDType.TOPIC, (String) streamToTopic));
+        }
+        switch (agentType) {
+            case "ai-text-completions":
+            case "ai-chat-completions":
+            case "compute-ai-embeddings":
+                if (agentConfig.containsKey(
+                        "ai-service")) {
+                    outputs.add(
+                            escapeId(IDType.RESOURCE,
+                                    (String) agentConfig.get("ai-service"))
+                    );
+                } else {
+                    final Resource resource =
+                            model
+                                    .getResources()
+                                    .stream()
+                                    .filter(
+                                            r ->
+                                                    r.getOriginalType()
+                                                            .equals(
+                                                                    "vertex-configuration")
+                                                    || r.getOriginalType()
+                                                            .equals(
+                                                                    "open-ai-configuration")
+                                                    || r.getOriginalType()
+                                                            .equals(
+                                                                    "hugging-face-configuration"))
+                                    .findFirst()
+                                    .orElse(null);
+                    if (resource != null) {
+                        outputs.add(escapeId(IDType.RESOURCE, resource.getId()));
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+
+        agent.setOutput(outputs);
+        return agent;
+    }
+
     private static void applyTopics(ApplicationModel model, Map<String, Object> module) {
         asList(module.get("topics"))
-                .forEach(t -> model.getTopics().add((String) asMap(t).get("name")));
+                .forEach(t -> {
+                    final String topicName = (String) asMap(t).get("name");
+                    model.getTopics().add(new Topic(escapeId(IDType.TOPIC, topicName), topicName));
+                });
     }
 
     private static void applyGateway(ApplicationModel model, Map<String, Object> application) {
@@ -258,12 +349,33 @@ public class MermaidAppDiagramGenerator {
             gateways.forEach(
                     e -> {
                         final Map gw = asMap(e);
-                        // TODO: handle chat
-                        model.getGateways()
-                                .add(
-                                        new Gateway(
-                                                (String) gw.get("id"),
-                                                List.of((String) gw.get("topic"))));
+                        List<String> produceToTopics = new ArrayList<>();
+                        List<String> consumeFromTopics = new ArrayList<>();
+                        final Map chatOptions = asMap(gw.get("chat-options"));
+
+                        if (chatOptions != null) {
+
+                            final String questionsTopic = (String) chatOptions.get("questions-topic");
+                            if (questionsTopic != null) {
+                                produceToTopics.add(escapeId(IDType.TOPIC, questionsTopic));
+                            }
+                            final String answersTopic = (String) chatOptions.get("answers-topic");
+                            if (answersTopic != null) {
+                                consumeFromTopics.add(escapeId(IDType.TOPIC, answersTopic));
+                            }
+                        } else {
+                            final String topic = (String) gw.get("topic");
+                            if (topic != null) {
+                                if (gw.get("type").equals("produce")) {
+                                    produceToTopics.add(escapeId(IDType.TOPIC, topic));
+                                } else {
+                                    consumeFromTopics.add(escapeId(IDType.TOPIC, topic));
+                                }
+                            }
+
+                        }
+                        final String id = (String) gw.get("id");
+                        model.getGateways().add(new Gateway(escapeId(IDType.GATEWAY, id), id, produceToTopics, consumeFromTopics));
                     });
         }
     }
@@ -280,7 +392,9 @@ public class MermaidAppDiagramGenerator {
     @AllArgsConstructor
     private static class Gateway {
         String id;
-        List<String> topics;
+        String label;
+        List<String> produceToTopics;
+        List<String> consumeFromTopics;
     }
 
     @Data
@@ -297,8 +411,7 @@ public class MermaidAppDiagramGenerator {
         String id;
         String type;
         String label;
-        String inputTopic;
-        String externalInput;
+        String input;
         List<String> output;
     }
 
@@ -306,22 +419,42 @@ public class MermaidAppDiagramGenerator {
     @AllArgsConstructor
     private static class Pipeline {
         String id;
+        String label;
         List<Agent> agents;
     }
 
     @Data
-    private static class ApplicationModel {
-        List<String> topics = new ArrayList<>();
-        List<Gateway> gateways = new ArrayList<>();
-        List<Pipeline> pipelines = new ArrayList<>();
-        List<Resource> resources = new ArrayList<>();
-        List<String> globals = new ArrayList<>();
+    @AllArgsConstructor
+    private static class Topic {
+        String id;
+        String label;
+    }
 
-        String getSourceExternal() {
-            if (!globals.contains("external-source")) {
-                globals.add("external-source");
-            }
-            return "external-source";
+    @Data
+    @AllArgsConstructor
+    private static class External {
+        String id;
+        String label;
+    }
+
+    @Data
+    private static class ApplicationModel {
+        List<Topic> topics = new ArrayList<>();
+        List<Gateway> gateways = new ArrayList<>();
+        List<MermaidAppDiagramGenerator.Pipeline> pipelines = new ArrayList<>();
+        List<Resource> resources = new ArrayList<>();
+        Set<External> externalSources = new HashSet<>();
+        Set<External> externalSinks = new HashSet<>();
+
+        External getExternalSourceForAgent(String agentId) {
+            final External source = new External("external-source-" + agentId, "External system");
+            externalSources.add(source);
+            return source;
+        }
+        External getExternalSinkForAgent(String agentId) {
+            final External sink = new External("external-sink-" + agentId, "External system");
+            externalSinks.add(sink);
+            return sink;
         }
     }
 }

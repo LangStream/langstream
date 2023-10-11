@@ -63,8 +63,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         @CommandLine.Option(
                 names = {"-o"},
-                description = "Output format for dry-run mode.")
-        private Formats format = Formats.raw;
+                description = "Output format for dry-run mode. Formats are: yaml, json. Default value is yaml.")
+        private Formats format = Formats.yaml;
 
         @Override
         String applicationId() {
@@ -98,6 +98,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         @Override
         Formats format() {
+            ensureFormatIn(format, Formats.json, Formats.yaml);
             return format;
         }
     }

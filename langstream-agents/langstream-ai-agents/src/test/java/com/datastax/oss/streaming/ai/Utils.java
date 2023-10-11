@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
+import com.datastax.oss.pulsar.functions.transforms.JsonNodeSchema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;

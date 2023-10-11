@@ -15,6 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.jstl;
 
+import ai.langstream.ai.agents.commons.jstl.converter.BytesConverter;
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
 import jakarta.el.TypeConverter;
@@ -36,7 +37,6 @@ import java.util.Map;
 import org.apache.avro.util.Utf8;
 import org.apache.el.lang.ELSupport;
 import org.apache.el.util.MessageFactory;
-import org.apache.pulsar.client.api.Schema;
 
 /**
  * Overrides the default TypeConverter coerce to support null values and non-EL coercions (e.g.
@@ -47,7 +47,7 @@ public class JstlTypeConverter extends TypeConverter {
 
     protected Boolean coerceToBoolean(Object value) {
         if (value instanceof byte[]) {
-            return Schema.BOOL.decode((byte[]) value);
+            return BytesConverter.BOOL.decode((byte[]) value);
         }
         return ELSupport.coerceToBoolean(null, value, false);
     }
@@ -67,7 +67,7 @@ public class JstlTypeConverter extends TypeConverter {
             return (double) (((Date) value).getTime());
         }
         if (value instanceof byte[]) {
-            return Schema.DOUBLE.decode((byte[]) value);
+            return BytesConverter.DOUBLE.decode((byte[]) value);
         }
         if (value instanceof LocalDate) {
             return (double) (((LocalDate) value).toEpochDay());
@@ -82,7 +82,7 @@ public class JstlTypeConverter extends TypeConverter {
 
     protected Float coerceToFloat(Object value) {
         if (value instanceof byte[]) {
-            return Schema.FLOAT.decode((byte[]) value);
+            return BytesConverter.FLOAT.decode((byte[]) value);
         }
         if (value instanceof LocalDate) {
             return (float) (((LocalDate) value).toEpochDay());
@@ -101,7 +101,7 @@ public class JstlTypeConverter extends TypeConverter {
             return ((Date) value).getTime();
         }
         if (value instanceof byte[]) {
-            return Schema.INT64.decode((byte[]) value);
+            return BytesConverter.INT64.decode((byte[]) value);
         }
         if (value instanceof LocalDate) {
             return ((LocalDate) value).toEpochDay();
@@ -120,7 +120,7 @@ public class JstlTypeConverter extends TypeConverter {
             return (int) (((Time) value).toLocalTime().toNanoOfDay() / 1_000_000);
         }
         if (value instanceof byte[]) {
-            return Schema.INT32.decode((byte[]) value);
+            return BytesConverter.INT32.decode((byte[]) value);
         }
         if (value instanceof LocalDate) {
             return Math.toIntExact(((LocalDate) value).toEpochDay());
@@ -130,14 +130,14 @@ public class JstlTypeConverter extends TypeConverter {
 
     protected Short coerceToShort(Object value) {
         if (value instanceof byte[]) {
-            return Schema.INT16.decode((byte[]) value);
+            return BytesConverter.INT16.decode((byte[]) value);
         }
         return ELSupport.coerceToNumber(null, value, Double.class).shortValue();
     }
 
     protected Byte coerceToByte(Object value) {
         if (value instanceof byte[]) {
-            return Schema.INT8.decode((byte[]) value);
+            return BytesConverter.INT8.decode((byte[]) value);
         }
         return ELSupport.coerceToType(null, value, Byte.class);
     }
@@ -150,7 +150,7 @@ public class JstlTypeConverter extends TypeConverter {
             return DateTimeFormatter.ISO_INSTANT.format(((Date) value).toInstant());
         }
         if (value instanceof byte[]) {
-            return Schema.STRING.decode((byte[]) value);
+            return BytesConverter.STRING.decode((byte[]) value);
         }
         return ELSupport.coerceToString(null, value);
     }
@@ -222,23 +222,23 @@ public class JstlTypeConverter extends TypeConverter {
         return null;
     }
 
-    private static final Map<Class<?>, Schema<?>> SCHEMAS =
+    private static final Map<Class<?>, BytesConverter<?>> BYTES_CONVERTERS =
             Map.ofEntries(
-                    Map.entry(String.class, Schema.STRING),
-                    Map.entry(Boolean.class, Schema.BOOL),
-                    Map.entry(Byte.class, Schema.INT8),
-                    Map.entry(Short.class, Schema.INT16),
-                    Map.entry(Integer.class, Schema.INT32),
-                    Map.entry(Long.class, Schema.INT64),
-                    Map.entry(Float.class, Schema.FLOAT),
-                    Map.entry(Double.class, Schema.DOUBLE),
-                    Map.entry(Date.class, Schema.DATE),
-                    Map.entry(Timestamp.class, Schema.TIMESTAMP),
-                    Map.entry(Time.class, Schema.TIME),
-                    Map.entry(LocalDate.class, Schema.LOCAL_DATE),
-                    Map.entry(LocalTime.class, Schema.LOCAL_TIME),
-                    Map.entry(LocalDateTime.class, Schema.LOCAL_DATE_TIME),
-                    Map.entry(Instant.class, Schema.INSTANT));
+                    Map.entry(String.class, BytesConverter.STRING),
+                    Map.entry(Boolean.class, BytesConverter.BOOL),
+                    Map.entry(Byte.class, BytesConverter.INT8),
+                    Map.entry(Short.class, BytesConverter.INT16),
+                    Map.entry(Integer.class, BytesConverter.INT32),
+                    Map.entry(Long.class, BytesConverter.INT64),
+                    Map.entry(Float.class, BytesConverter.FLOAT),
+                    Map.entry(Double.class, BytesConverter.DOUBLE),
+                    Map.entry(Date.class, BytesConverter.DATE),
+                    Map.entry(Timestamp.class, BytesConverter.TIMESTAMP),
+                    Map.entry(Time.class, BytesConverter.TIME),
+                    Map.entry(LocalDate.class, BytesConverter.LOCAL_DATE),
+                    Map.entry(LocalTime.class, BytesConverter.LOCAL_TIME),
+                    Map.entry(LocalDateTime.class, BytesConverter.LOCAL_DATE_TIME),
+                    Map.entry(Instant.class, BytesConverter.INSTANT));
 
     protected byte[] coerceToBytes(Object value) {
         if (value == null) {
@@ -250,8 +250,8 @@ public class JstlTypeConverter extends TypeConverter {
         if (value instanceof OffsetDateTime) {
             return coerceToBytes(((OffsetDateTime) value).toInstant());
         }
-        if (SCHEMAS.containsKey(value.getClass())) {
-            return ((Schema<Object>) SCHEMAS.get(value.getClass())).encode(value);
+        if (BYTES_CONVERTERS.containsKey(value.getClass())) {
+            return ((BytesConverter<Object>) BYTES_CONVERTERS.get(value.getClass())).encode(value);
         }
         throw new IllegalArgumentException(
                 "Cannot convert type " + value.getClass().getName() + " to byte[]");
@@ -271,7 +271,7 @@ public class JstlTypeConverter extends TypeConverter {
             return new Date(((Number) value).longValue());
         }
         if (value instanceof byte[]) {
-            return Schema.DATE.decode((byte[]) value);
+            return BytesConverter.DATE.decode((byte[]) value);
         }
         if (value instanceof TemporalAccessor || value instanceof CharSequence) {
             return Date.from(coerceToInstant(value));
@@ -294,7 +294,7 @@ public class JstlTypeConverter extends TypeConverter {
             return new Timestamp(((Number) value).longValue());
         }
         if (value instanceof byte[]) {
-            return Schema.TIMESTAMP.decode((byte[]) value);
+            return BytesConverter.TIMESTAMP.decode((byte[]) value);
         }
         if (value instanceof TemporalAccessor || value instanceof CharSequence) {
             return Timestamp.from(coerceToInstant(value));
@@ -317,7 +317,7 @@ public class JstlTypeConverter extends TypeConverter {
             return Time.valueOf((LocalTime) value);
         }
         if (value instanceof byte[]) {
-            return Schema.TIME.decode((byte[]) value);
+            return BytesConverter.TIME.decode((byte[]) value);
         }
         if (value instanceof CharSequence) {
             return Time.valueOf(LocalTime.parse((CharSequence) value));
@@ -340,7 +340,7 @@ public class JstlTypeConverter extends TypeConverter {
             return ((Time) value).toLocalTime();
         }
         if (value instanceof byte[]) {
-            return Schema.LOCAL_TIME.decode((byte[]) value);
+            return BytesConverter.LOCAL_TIME.decode((byte[]) value);
         }
         if (value instanceof CharSequence) {
             return LocalTime.parse((CharSequence) value);
@@ -363,7 +363,7 @@ public class JstlTypeConverter extends TypeConverter {
             return ((LocalDateTime) value).toLocalDate();
         }
         if (value instanceof byte[]) {
-            return Schema.LOCAL_DATE.decode((byte[]) value);
+            return BytesConverter.LOCAL_DATE.decode((byte[]) value);
         }
         if (value instanceof CharSequence) {
             return LocalDate.parse((CharSequence) value);
@@ -389,7 +389,7 @@ public class JstlTypeConverter extends TypeConverter {
             return ((LocalDate) value).atStartOfDay();
         }
         if (value instanceof byte[]) {
-            return Schema.LOCAL_DATE_TIME.decode((byte[]) value);
+            return BytesConverter.LOCAL_DATE_TIME.decode((byte[]) value);
         }
         if (value instanceof CharSequence) {
             return LocalDateTime.parse((CharSequence) value);
@@ -420,7 +420,7 @@ public class JstlTypeConverter extends TypeConverter {
             return Instant.ofEpochSecond(seconds, nanos);
         }
         if (value instanceof byte[]) {
-            return Schema.INSTANT.decode((byte[]) value);
+            return BytesConverter.INSTANT.decode((byte[]) value);
         }
         if (value instanceof TemporalAccessor || value instanceof CharSequence) {
             return coerceToOffsetDateTime(value).toInstant();

@@ -1,57 +1,36 @@
-# Indexing a WebSite
+# Indexing a WebSite using Apache Solr as Vector Database
 
-This sample application shows how to use the WebCrawler Source Connector and use Milvus.io as a Vector Database.
+This sample application shows how to use the WebCrawler Source Connector and use [Apache Solr](https://solr.apache.org) as a Vector Database.
 
 ## Prerequisites
 
-Create a S3 bucket, it will contain only a metadata file for the WebCrawler.
-
-Start a Milvus.io instance, you can use the following Helm chart:
-
-The LangStream application will create for you a collection named "documents" in "default" database.
+Launch Apache Solr locally in docker
 
 ```
-documents (  
-  filename string,
-  chunk_id int,
-  num_tokens int,
-  language string,  
-  text string 
-)
+docker run --rm  -p 8983:8983 --rm solr:9.3.0 -c
 ```
 
+You can now open your browser at http://localhost:8983/ and you will see the Solr admin page.
+
+The '-c' parameter launches Solr in "Cloud" mode, that allows you to dynamically create collections.
+
+
+The LangStream application will create for you a collection named "documents".
+
+It create a new data type "vector" following this guide:
+https://solr.apache.org/guide/solr/latest/query-guide/dense-vector-search.html
 
 ## Configure access to the Vector Database
 
-Export some ENV variables in order to configure access to the database:
+In order to allow LangStream that runs in docker to connect to the Solr instance running in your host, you need to configure the SOLR_HOST environment variable.
 
 ```bash
-export MILVUS_HOST=...
-export MILVUS_PORT=...
-export MILVUS_USERNAME=...
-export MILVUS_PASSWORD=...
+SOLR_HOST=host.docker.internal
 ```
 
 
-The examples/secrets/secrets.yaml resolves those environment variables for you.
+The examples/secrets/secrets.yaml resolves environment variables for you.
 When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
-
-## Configure an S3 bucket to store the status of the Crawler
-
-The Web Crawling Source Connector requires an S3 bucket to store the status of the crawler.
-It doesn't copy the contents of the web pages, it only stores some metadata.
-
-If you are using AWS S3, you can use the following environment variables:
-
-```
-export S3_BUCKET_NAME...  
-export S3_ENDPOINT=https://s3.amazonaws.com      
-export S3_ACCESS_KEY=...
-export S3_SECRET=...
-```
-
-The default configuration uses the internal MinIO service deployed in the local Kubernetes cluster,
-this is useful for testing purposes only and it works only when you deployed LangStream locally.
 
 
 ## Configure the pipeline
@@ -61,11 +40,15 @@ Configure the list of seed URLs, for instance with your home page.
 
 The default configuration in this example will crawl the LangStream website.
 
-## Deploy the LangStream application
+## Run the LangStream application locally on docker
 
 ```
-./bin/langstream apps deploy test -app examples/applications/query_milvus -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/query_solr  -s examples/secrets/secrets.yaml
 ```
+
+## Talk with the Chat bot using the UI
+
+By default the langstream CLI opens a UI in your browser. You can use that to chat with the bot.
 
 ## Talk with the Chat bot using the CLI
 Since the application opens a gateway, we can use the gateway API to send and consume messages.
@@ -74,10 +57,4 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ./bin/langstream gateway chat test -cg bot-output -pg user-input -p sessionId=$(uuidgen)
 ```
 
-Responses are streamed to the output-topic. If you want to inspect the history of the raw answers you can
-consume from the log-topic using the llm-debug gateway:
-
-```
-./bin/langstream gateway consume test llm-debug
-```
 

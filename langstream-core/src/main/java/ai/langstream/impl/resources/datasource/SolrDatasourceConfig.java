@@ -54,15 +54,8 @@ public class SolrDatasourceConfig extends BaseDatasourceConfig {
                     """
                             Username parameter for connecting to Solr.
                                     """,
-            defaultValue = "default")
+            defaultValue = "")
     private String user;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Host parameter for connecting to Solr.
-                                    """)
-    private String host;
 
     @ConfigProperty(
             description =
@@ -70,6 +63,13 @@ public class SolrDatasourceConfig extends BaseDatasourceConfig {
                             Password parameter for connecting to Solr.
                                     """)
     private String password;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Host parameter for connecting to Solr.
+                                    """)
+    private String host;
 
     @ConfigProperty(
             description =

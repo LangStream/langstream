@@ -38,7 +38,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class SolrWriterTest {
 
-    static final int DIMENSIONS = 5;
+    static final int DIMENSIONS = 1356;
 
     @Container
     private GenericContainer solrCloudContainer =
@@ -170,8 +170,6 @@ public class SolrWriterTest {
                 assetDefinition.setAssetType("solr-collection");
                 assetDefinition.setConfig(
                         Map.of(
-                                "collection-name",
-                                collectoinName,
                                 "datasource",
                                 Map.of("configuration", config),
                                 "create-statements",
@@ -194,7 +192,7 @@ public class SolrWriterTest {
                                         "name",
                                         "id",
                                         "expression",
-                                        "fn:concat(key.name, '-', fn:toString(key.chunk_id))",
+                                        "fn:concat3(key.name, '-', fn:toString(key.chunk_id))",
                                         "primary-key",
                                         true),
                                 Map.of("name", "name", "expression", "key.name"),

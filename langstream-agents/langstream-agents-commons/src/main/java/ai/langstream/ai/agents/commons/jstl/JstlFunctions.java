@@ -284,7 +284,7 @@ public class JstlFunctions {
         return toString(first) + toString(second);
     }
 
-    public static String concat(Object first, Object second, Object third) {
+    public static String concat3(Object first, Object second, Object third) {
         return toString(first) + toString(second) + toString(third);
     }
 

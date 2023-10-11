@@ -23,11 +23,13 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.Http2SolrClient;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -69,6 +71,11 @@ public class SolrWriter implements VectorDatabaseWriterProvider {
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
             commitWithin = ConfigurationUtils.getInt("commit-within", 1000, agentConfiguration);
+            log.info("Commit within {}", commitWithin);
+            if (commitWithin <= 0) {
+                log.warn(
+                        "Commit within is set to 0, this may cause performance issues, as each record will be committed separately");
+            }
 
             List<Map<String, Object>> fields =
                     (List<Map<String, Object>>)
@@ -106,18 +113,15 @@ public class SolrWriter implements VectorDatabaseWriterProvider {
 
                 if (record.value() != null) {
                     UpdateResponse response = client.add(document, commitWithin);
-                    log.info("Result {}", response);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Result {}", response);
+                    }
                     if (response.getException() != null) {
                         handle.completeExceptionally(response.getException());
                     } else {
+                        commitIfNeeded();
                         handle.complete(null);
                     }
-
-                    if (commitWithin <= 0) {
-                        log.info("Force commit");
-                        client.commit();
-                    }
-
                 } else {
                     SolrInputField id = document.get("id");
                     if (id == null) {
@@ -126,22 +130,29 @@ public class SolrWriter implements VectorDatabaseWriterProvider {
                     }
                     UpdateResponse response =
                             client.deleteById((String) id.getValue(), commitWithin);
-                    log.info("Result {}", response);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Result {}", response);
+                    }
                     if (response.getException() != null) {
                         handle.completeExceptionally(response.getException());
                     } else {
+                        commitIfNeeded();
                         handle.complete(null);
-                    }
-
-                    if (commitWithin <= 0) {
-                        log.info("Force commit");
-                        client.commit();
                     }
                 }
             } catch (Exception e) {
                 handle.completeExceptionally(e);
             }
             return handle;
+        }
+
+        private void commitIfNeeded() throws SolrServerException, IOException {
+            if (commitWithin <= 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Force commit");
+                }
+                client.commit();
+            }
         }
     }
 

@@ -73,7 +73,6 @@ class SolrAssetQueryWriteIT extends AbstractApplicationRunner {
                                     asset-type: "solr-collection"
                                     creation-mode: create-if-not-exists
                                     config:
-                                       collection-name: "%s"
                                        datasource: "SolrDatasource"
                                        create-statements:
                                           - api: "/api/collections"
@@ -138,7 +137,6 @@ class SolrAssetQueryWriteIT extends AbstractApplicationRunner {
                                     input: "input-topic"
                                     configuration:
                                       datasource: "SolrDatasource"
-                                      collection-name: "documents"
                                       fields:
                                         - name: id
                                           expression: "fn:toString(value.documentId)"

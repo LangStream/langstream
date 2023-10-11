@@ -69,8 +69,7 @@ public class SolrAssetsManagerProvider implements AssetManagerProvider {
         }
 
         private String getCollectionName() {
-            return ConfigurationUtils.getString(
-                    "collection-name", null, assetDefinition.getConfig());
+            return datasource.getClientConfig().getCollectionName();
         }
 
         @Override

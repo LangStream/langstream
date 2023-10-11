@@ -95,9 +95,9 @@ public class JstlEvaluator<T> {
                 .getFunctionMapper()
                 .mapFunction(
                         "fn",
-                        "concat",
+                        "concat3",
                         JstlFunctions.class.getMethod(
-                                "concat", Object.class, Object.class, Object.class));
+                                "concat3", Object.class, Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(

@@ -28,7 +28,9 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.impl.Http2SolrClient;
+import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 
 @Slf4j
@@ -106,7 +108,19 @@ public class SolrDataSource implements DataSourceProvider {
                 }
                 SolrQuery solrQuery = new SolrQuery();
                 queryMap.forEach((k, v) -> solrQuery.set(k, v.toString()));
-                QueryResponse response = client.query(solrQuery);
+                // this is a workaround to handle the fact that the embeddings are
+                // an huge array of floats and putting them in the GET query string
+                // makes the requests fail on the server side (request header too large)
+                QueryResponse response =
+                        new QueryRequest(solrQuery, SolrRequest.METHOD.POST).process(client, null);
+                if (log.isDebugEnabled()) {
+                    log.debug("response: numFound {}", response.getResults().getNumFound());
+                    log.debug(
+                            "response: numFoundExact {}", response.getResults().getNumFoundExact());
+                    log.debug("response: maxScore {}", response.getResults().getMaxScore());
+                    log.debug("response: explainMap {}", response.getExplainMap());
+                    log.debug("response: size {}", response.getResults().size());
+                }
 
                 return response.getResults().stream()
                         .map(
@@ -117,6 +131,9 @@ public class SolrDataSource implements DataSourceProvider {
                                                     name ->
                                                             result.put(
                                                                     name, doc.getFieldValue(name)));
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Result row: {}", result);
+                                    }
                                     return result;
                                 })
                         .toList();

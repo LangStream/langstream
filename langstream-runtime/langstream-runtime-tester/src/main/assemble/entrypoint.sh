@@ -33,4 +33,4 @@ if [ "$START_HERDDB" = "true" ]; then
   /herddb/herddb/bin/service server start
 fi
 
-exec java ${JAVA_OPTS} -D -Dlogback.configurationFile=/app/logback.xml -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*" "ai.langstream.runtime.tester.Main"
+exec java ${JAVA_OPTS} -Dlogging.config=/app/logback.xml -Dlogback.configurationFile=/app/logback.xml -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*" "ai.langstream.runtime.tester.Main"

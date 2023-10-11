@@ -45,7 +45,7 @@ pipeline:
           "q": "{!knn f=embeddings topK=10}?"
         }
       fields:
-        - "value.question_embeddings"
+        - "fn:toListOfFloat(value.question_embeddings)"
       output-field: "value.related_documents"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"

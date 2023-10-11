@@ -41,7 +41,7 @@ assets:
              "add-field-type" : {
                    "name": "knn_vector",
                    "class": "solr.DenseVectorField",
-                   "vectorDimension": "5",
+                   "vectorDimension": "1536",
                    "similarityFunction": "cosine"
               }
              }

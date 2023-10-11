@@ -21,19 +21,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="langstream.png" />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com/3.3.3"></script>
     <title>LangStream.ai</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body class="bg-gray-100 flex justify-center">
-<nav class="bg-white dark:bg-gray-900 fixed w-full z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600">
+<nav class="bg-white fixed w-full z-20 top-0 left-0 border-b border-gray-200 ">
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
         <a href="https://langstream.ai/" class="flex items-center">
             <img src="langstream.png" class="h-8 mr-3" alt="LangStream.ai">
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LangStream.ai</span>
+            <span class="self-center text-2xl font-semibold whitespace-nowrap">LangStream.ai</span>
         </a>
         <div class="items-center justify-center hidden w-full md:flex md:w-auto md:order-1" id="navbar-sticky">
-            <ul class="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-2 md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
+            <ul class="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-2 md:mt-0 md:border-0 md:bg-white ">
                 <li>
                     <span id="tab-button-home" onclick="onClickTab('home')" class="cursor-pointer block py-2 pl-3 pr-4 rounded bg-transparent hover:text-blue-700" >App</span>
                 </li>
@@ -48,10 +49,10 @@
 </nav>
 <div class="w-full flex flex-col p-8 mt-16 max-w-screen-2xl">
     <div class="flex w-full justify-center max-h-full" style="display: none" id="tab-home">
-        <div class="flex flex-col min-w-2xl max-w-4xl w-96 mx-auto bg-white shadow-lg rounded-lg" style="height: 42rem; max-height: 42rem; overflow: auto; resize: horizontal;">
+        <div class="flex flex-col min-w-2xl max-w-4xl w-96 mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem; overflow: auto; resize: horizontal;">
             <pre class="p-4 w-full overflow-scroll text-xs h-full scroll-smooth text-mono" id="app-code-box"></pre>
         </div>
-        <div class="flex flex-col flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 42rem; max-height: 42rem;">
+        <div class="flex flex-col flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem;">
             <pre id="app-mermaid-box" class="mermaid p-4 w-full overflow-scroll text-xs h-full scroll-smooth text-mono" ></pre>
         </div>
 
@@ -60,7 +61,7 @@
     <div class="flex w-full justify-center max-h-full" style="display: none" id="tab-connect">
         <!--    Logs-->
         <div class="flex flex-col min-w-2xl max-w-4xl bg-white shadow-lg rounded-lg mr-4"
-             style="height: 42rem; max-height: 42rem; overflow: auto; resize: horizontal;  width: 32rem;">
+             style="height: 38rem; max-height: 38rem; overflow: auto; resize: horizontal;  width: 32rem;">
 
 
             <div class="p-4 w-full overflow-scroll h-full bg-black scroll-smooth" id="logs-box">
@@ -72,7 +73,6 @@
                     Auto scroll
                 </label>
                 <input type="checkbox"
-                       checked
                        class="border rounded-l-lg p-3 "
                        id="auto-scroll-logs"/>
 
@@ -87,7 +87,7 @@
             </div>
         </div>
         <!--Gateway-->
-        <div class="flex flex-col  flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 42rem; max-height: 42rem;">
+        <div class="flex flex-col  flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem;">
             <div class="flex-1 p-6 mb-8" id="setup-box" style="display: none">
                 <label class="block text-gray-700 text-l mb-2" id="setup-no-gateways" style="display: none">
                     <strong>No gateways found</strong>, define gateways in the <code>gateways.yaml</code> file to start testing your application.
@@ -117,14 +117,22 @@
 
 
             <div class="p-6 flex-initial rounded-lg  w-full flex flex-row" id="info-box" style="display: none"></div>
-            <div class="w-full flex-1 mx-auto p-6 flex flex-col min-h-0" id="chat-box" style="display: none">
-                <div class="border p-4 rounded-lg grow overflow-y-auto mb-4 flex flex-col scroll-smooth" id="messages"
+            <div class="w-full flex-1 mx-auto px-6 flex flex-col min-h-0 " id="chat-box" style="display: none">
+                <div class="border p-4 rounded-lg grow overflow-y-auto mb-2 flex flex-col scroll-smooth bg-slate-50" id="messages"
                      style="flex-grow: 1"></div>
                 <div class="flex">
                     <input type="text"
-                           class="flex-1 border rounded-l-lg p-2 focus:outline-none focus:ring focus:border-blue-300"
+                           class="flex-1 border rounded p-2 focus:ring focus:outline-none focus:border-blue-300"
                            placeholder="Type your message here"
                            id="chat-input">
+                </div>
+                <div class="flex w-full">
+                    <label class="block text-gray-700 text-xs p-3">
+                        Render Markdown
+                    </label>
+                    <input type="checkbox"
+                           class="border rounded-l-lg p-3 "
+                           id="render-markdown" />
                 </div>
             </div>
         </div>
@@ -134,12 +142,7 @@
 
 <script>
 
-    window.mermaid.initialize({
-        securityLevel: 'loose',
-        theme: 'default',
-        fontSize: 24,
-        startOnLoad: false
-    });
+
     const handler = {
         applicationConfig: null,
         producer: null,
@@ -154,6 +157,7 @@
     function onClickTab(which) {
         const selectedClass = "text-blue-700"
         if (which === "home") {
+            document.getElementById("logs").innerHTML = ""
             document.getElementById("tab-connect").style.display = "none"
             document.getElementById("tab-home").style.display = "flex"
             document.getElementById("tab-button-home").classList.add(selectedClass)
@@ -182,9 +186,9 @@
         let html = ""
         for (const k in handler.gatewayInfo) {
             html += `
-            <div class="mb-4">
-            <label class="block text-gray-400 text-xs mb-2">${k}</label>
-            <label class="block text-gray-600 text-sm mb-2 text-clip" >${handler.gatewayInfo[k]}</label>
+            <div class="mb-2">
+            <label class="block text-gray-400 text-xs mr-4">${k}</label>
+            <label class="block text-gray-600 text-xs text-clip" >${handler.gatewayInfo[k]}</label>
         </div>`;
         }
         document.getElementById("info-box").innerHTML = html
@@ -253,24 +257,43 @@
     }
 
 
-    function addMessageToUI(from, message, boxId) {
-        if (!message) {
+    function renderTextMessage(renderMarkdown, rawMessage) {
+        if (renderMarkdown) {
+            return window.marked.parse(rawMessage);
+        } else {
+            return `<span>${rawMessage.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace("\n", "<\/br>")}</span>`
+        }
+    }
+
+    function addMessageToUI(from, rawMessage, boxId) {
+        if (!rawMessage) {
             return
         }
-        message = message.replace(/\n/g, '<br/>');
+        const renderMarkdown = document.getElementById("render-markdown").checked
         if (boxId) {
             const current = document.getElementById(`langstream-stream-${boxId}`)
             if (current) {
-                current.innerHTML += `${message}`
+                const currentRawMessage = current.getAttribute("data-message")
+                let message = renderTextMessage(renderMarkdown, currentRawMessage + rawMessage)
+                current.innerHTML = `${message}`
+                current.setAttribute("data-message", currentRawMessage + rawMessage)
                 document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
                 return
             }
         }
-        const clazz = from === "You" ? "bg-blue-500 text-white" : "bg-gray-300"
+        let message
+        const paddingClazz = renderMarkdown ? "pr-2 pl-2" : "p-2"
+        message = renderTextMessage(renderMarkdown, rawMessage);
+        const clazz = from === "You" ? "bg-blue-600 text-white" : "bg-gray-700 text-white"
         const clazzContainer = from === "You" ? "self-end" : "self-start"
         document.getElementById("messages").innerHTML += `
         <div class="mb-2 ${clazzContainer}">
-            <div id='langstream-stream-${boxId}' class="${clazz} rounded-lg p-2 inline-block max-w-xs text-xs">
+            <div id='langstream-stream-${boxId}' data-message="${rawMessage}" class="${clazz} break-words rounded-lg ${paddingClazz} inline-block max-w-lg text-xs [&>*]:p-2 [&>pre]:m-2  [&>h1]:text-5xl [&>h2]:text-4xl [&>h3]:text-3xl [&>h4]:text-2xl [&>h5]:text-xl [&>ul]:list-disc [&>ul]:list-inside [&>ol]:list-disc [&>ol]:list-inside [&>pre]:bg-slate-600 [&>pre]:rounded [&>pre>code]:break-words">
                 ${message}
             </div>
         </div>`
@@ -397,6 +420,12 @@
     }
 
     function onSetup(applicationConfig) {
+        window.mermaid.initialize({
+            securityLevel: 'loose',
+            theme: 'default',
+            fontSize: 24,
+            startOnLoad: false
+        });
         handler.applicationConfig = applicationConfig
 
         console.log("Application config: ", handler.applicationConfig)
@@ -451,7 +480,6 @@
         document.getElementById("app-mermaid-box").textContent = applicationConfig.mermaidDefinition
         onClickTab("connect")
 
-
     }
 
     function onLoad() {
@@ -499,9 +527,9 @@
             ]
         })
         mockLogs()
-        for (let i = 0; i < 100; i++) {
-            addMessageToUI("You", "This is a test message with a lot of stuff in there.")
-            addMessageToUI("Server", "test")
+        for (let i = 0; i < 2; i++) {
+            addMessageToUI("You", "This is a test message with a lot of stuff in there.\n## Title\n\nContent\n\n```yaml\nconfiguration: test\n```")
+            addMessageToUI("Server", "This is a test message with &lt;script&gt;alert('test')&lt;/script&gt; lot of stuff in there.\n## Title\n\nContent\n\n```yaml\nconfiguration: test\n```")
         }
     }
 
@@ -523,6 +551,10 @@
     }
 
     function onLineRead(text) {
+        const logsEl = document.getElementById('logs');
+        if (logsEl.style.display === "none") {
+            return
+        }
         const p = document.createElement("p")
         p.classList = ["font-mono", "text-xs"]
         p.innerText = text.replace(/\[\d+m|\[0m/g, '') + "\n"

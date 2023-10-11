@@ -1,3 +1,4 @@
 ai.langstream.agents.vector.cassandra.CassandraAssetsManagerProvider
 ai.langstream.agents.vector.milvus.MilvusAssetsManagerProvider
 ai.langstream.agents.vector.jdbc.JdbcAssetsManagerProvider
+ai.langstream.agents.vector.solr.SolrAssetsManagerProvider

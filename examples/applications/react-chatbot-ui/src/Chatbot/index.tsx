@@ -1,4 +1,20 @@
-import { useEffect, useState } from "react";
+///
+/// Copyright DataStax, Inc.
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+/// http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+///
+
+import { useEffect, useRef, useState } from "react";
 import useWebSockets, { ConnectionType } from "../hooks/useWebSocket";
 import {
   WEBSOCKET_URL,
@@ -13,7 +29,7 @@ import SendIcon from '@mui/icons-material/Send';
 import Message from "./Message";
 
 const Chatbot = (): JSX.Element => {
-
+  const messagesEl = useRef<HTMLDivElement>(null);
   const { connect, isConnected, messages, sendMessage } = useWebSockets();
   const [userInput, setUserInput] = useState<string>('');
   const sessionId = crypto.randomUUID();
@@ -47,6 +63,14 @@ const Chatbot = (): JSX.Element => {
     }
   }, [isConnected]);
 
+  // If we have new messages, make sure that the messages div is
+  // showing the latest messages by scrolling to the bottom.
+  useEffect(() => {
+    if (messagesEl.current) {
+      messagesEl.current.scrollTop = messagesEl.current.scrollHeight;
+    }
+  }, [messages]);
+
   const handleSendMessage = () => {
     sendMessage(userInput);
     setUserInput('');
@@ -64,7 +88,7 @@ const Chatbot = (): JSX.Element => {
       overflow: 'auto',
       pb: 2,
     }}>
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+      <Box ref={messagesEl} sx={{ flexGrow: 1, overflow: 'auto' }}>
         {messages.map((message, index) => (
           <Message key={index} message={message} />
         ))}

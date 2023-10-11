@@ -23,7 +23,7 @@ on:
 jobs:
   tests:
     name: Unit tests (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    runs-on: LangStream-4-cores
     timeout-minutes: 60
     strategy:
       fail-fast: false

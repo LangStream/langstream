@@ -62,6 +62,8 @@ public class UIAppCmd extends BaseApplicationCmd {
                 Gateways.readFromApplicationDescription(applicationContent);
 
         final AppModel appModel = new AppModel();
+        appModel.setApplicationDefinition(applicationContent);
+        appModel.setMermaidDefinition(MermaidAppDiagramGenerator.generate(applicationContent));
         appModel.setApplicationId(applicationId);
         appModel.setGateways(gateways);
         final NamedProfile currentProfile = getCurrentProfile();
@@ -174,6 +176,8 @@ public class UIAppCmd extends BaseApplicationCmd {
         private String tenant;
         private String applicationId;
         private List<Gateways.Gateway> gateways;
+        private String applicationDefinition;
+        private String mermaidDefinition;
     }
 
     public interface LogSupplier {

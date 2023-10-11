@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.api.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,8 @@ public class Gateways {
         String type;
         List<String> parameters;
         Map<String, Object> authentication;
+
+        @JsonProperty("chat-options")
         Map<String, Object> chatOptions;
     }
 }

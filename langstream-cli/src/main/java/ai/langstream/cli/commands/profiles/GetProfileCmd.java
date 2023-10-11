@@ -29,12 +29,13 @@ public class GetProfileCmd extends BaseProfileCmd {
 
     @CommandLine.Option(
             names = {"-o"},
-            description = "Output format")
+            description = "Output format. Formats are: yaml, json, raw. Default value is raw.")
     private Formats format = Formats.raw;
 
     @Override
     @SneakyThrows
     public void run() {
+        ensureFormatIn(format, Formats.yaml, Formats.json, Formats.raw);
         checkGlobalFlags();
         final NamedProfile profile = getProfileOrThrow(name);
         final LangStreamCLIConfig config = getConfig();

@@ -31,12 +31,13 @@ public class ListApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Option(
             names = {"-o"},
-            description = "Output format")
+            description = "Output format. Formats are: yaml, json, raw. Default value is raw.")
     private Formats format = Formats.raw;
 
     @Override
     @SneakyThrows
     public void run() {
+        ensureFormatIn(format, Formats.raw, Formats.json, Formats.yaml);
         final String body = getClient().applications().list();
         print(format, body, COLUMNS_FOR_RAW, getRawFormatValuesSupplier());
     }

@@ -8,7 +8,7 @@ on:
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: LangStream-4-cores
     permissions: write-all
     steps:
       - name: 'Login to GitHub Container Registry'
@@ -39,7 +39,7 @@ jobs:
           chmod +x mvnw
           ./docker/build.sh
 
-      - name: Push to ECR
+      - name: Deploy docker images
         run: |
           repo=ghcr.io/langstream
           docker_tag=${GITHUB_REF/refs\/tags\/v/}

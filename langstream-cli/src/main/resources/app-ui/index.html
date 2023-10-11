@@ -30,7 +30,7 @@
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
         <a href="https://langstream.ai/" class="flex items-center">
             <img src="langstream.png" class="h-8 mr-3" alt="LangStream.ai">
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LangStream</span>
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LangStream.ai</span>
         </a>
         <div class="items-center justify-center hidden w-full md:flex md:w-auto md:order-1" id="navbar-sticky">
             <ul class="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-2 md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
@@ -52,55 +52,7 @@
             <pre class="p-4 w-full overflow-scroll text-xs h-full scroll-smooth text-mono" id="app-code-box"></pre>
         </div>
         <div class="flex flex-col flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 42rem; max-height: 42rem;">
-            <pre id="app-mermaid-box" class="mermaid p-4 w-full overflow-scroll text-xs h-full scroll-smooth text-mono" >
-                flowchart TB
-
-subgraph resources["<b>Resources</b>"]
-JdbcDatasource[("JdbcDatasource")]
-OpenAIAzureconfiguration["Service: OpenAI Azure configuration"]
-end
-
-subgraph streaming-cluster["<b>Streaming</b>"]
-log-topic
-chunks-topic
-answers-topic
-questions-topic
-questions-topic --> chatbot-document-to-json-1
-chunks-topic --> crawler-vector-db-sink-8
-end
-
-subgraph gateways["<b>Gateways</b>"]
-user-input --> questions-topic
-bot-output --> answers-topic
-llm-debug --> log-topic
-end
-
-subgraph chatbot["<b>chatbot</b>"]
-chatbot-document-to-json-1("convert-to-structure") --> chatbot-compute-ai-embeddings-2
-chatbot-compute-ai-embeddings-2("compute-embeddings") --> chatbot-query-vector-db-3
-chatbot-compute-ai-embeddings-2("compute-embeddings") --> OpenAIAzureconfiguration
-chatbot-query-vector-db-3("lookup-related-documents") --> chatbot-re-rank-4
-chatbot-query-vector-db-3("lookup-related-documents") --> JdbcDatasource
-chatbot-re-rank-4("re-rank documents with MMR") --> chatbot-ai-chat-completions-5
-chatbot-ai-chat-completions-5("ai-chat-completions") --> chatbot-drop-fields-6
-chatbot-ai-chat-completions-5("ai-chat-completions") --> answers-topic
-chatbot-ai-chat-completions-5("ai-chat-completions") --> OpenAIAzureconfiguration
-chatbot-drop-fields-6("cleanup-response") --> log-topic
-end
-
-subgraph crawler["<b>crawler</b>"]
-crawler-webcrawler-source-1("Crawl the WebSite") --> crawler-text-extractor-2
-crawler-text-extractor-2("Extract text") --> crawler-text-normaliser-3
-crawler-text-normaliser-3("Normalise text") --> crawler-language-detector-4
-crawler-language-detector-4("Detect language") --> crawler-text-splitter-5
-crawler-text-splitter-5("Split into chunks") --> crawler-document-to-json-6
-crawler-document-to-json-6("Convert to structured data") --> crawler-compute-7
-crawler-compute-7("prepare-structure") --> step1
-step1("compute-embeddings") --> chunks-topic
-step1("compute-embeddings") --> OpenAIAzureconfiguration
-crawler-vector-db-sink-8("Write") --> JdbcDatasource
-end
-            </pre>
+            <pre id="app-mermaid-box" class="mermaid p-4 w-full overflow-scroll text-xs h-full scroll-smooth text-mono" ></pre>
         </div>
 
 

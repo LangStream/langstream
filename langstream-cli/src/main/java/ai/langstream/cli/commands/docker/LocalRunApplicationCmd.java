@@ -344,7 +344,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         Executors.newSingleThreadExecutor().execute(() -> tailLogSysOut(outputLog));
 
         if (startUI) {
-            Executors.newSingleThreadExecutor().execute(() -> startUI(tenant, applicationId, outputLog, process));
+            Executors.newSingleThreadExecutor()
+                    .execute(() -> startUI(tenant, applicationId, outputLog, process));
         }
         process.waitFor();
     }

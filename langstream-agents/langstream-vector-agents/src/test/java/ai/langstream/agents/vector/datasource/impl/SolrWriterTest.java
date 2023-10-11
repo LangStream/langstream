@@ -38,6 +38,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class SolrWriterTest {
 
+    static final int DIMENSIONS = 5;
+
     @Container
     private GenericContainer solrCloudContainer =
             new GenericContainer("solr:9.3.0")
@@ -66,11 +68,12 @@ public class SolrWriterTest {
                     "add-field-type" : {
                          "name": "knn_vector",
                          "class": "solr.DenseVectorField",
-                         "vectorDimension": "32",
+                         "vectorDimension": "%s",
                          "similarityFunction": "cosine"
                          }
-                    """);
-    static final Map<String, Object> ADD_FIELD =
+                    """
+                            .formatted(DIMENSIONS));
+    static final Map<String, Object> ADD_FIELD_EMBEDDINGS =
             Map.of(
                     "api",
                     "/schema",
@@ -81,6 +84,51 @@ public class SolrWriterTest {
                          "type":"knn_vector",
                          "stored":true,
                          "indexed":true
+                         }
+                    """);
+
+    static final Map<String, Object> ADD_FIELD_NAME =
+            Map.of(
+                    "api",
+                    "/schema",
+                    "body",
+                    """
+                    "add-field":{
+                         "name":"name",
+                         "type":"string",
+                         "stored":true,
+                         "indexed":false,
+                         "multiValued": false
+                         }
+                    """);
+
+    static final Map<String, Object> ADD_FIELD_CHUNK_ID =
+            Map.of(
+                    "api",
+                    "/schema",
+                    "body",
+                    """
+                    "add-field":{
+                         "name":"chunk_id",
+                         "type":"string",
+                         "stored":true,
+                         "indexed":false,
+                         "multiValued": false
+                         }
+                    """);
+
+    static final Map<String, Object> ADD_FIELD_TEXT =
+            Map.of(
+                    "api",
+                    "/schema",
+                    "body",
+                    """
+                    "add-field":{
+                         "name":"text",
+                         "type":"string",
+                         "stored":true,
+                         "indexed":false,
+                         "multiValued": false
                          }
                     """);
 
@@ -99,12 +147,12 @@ public class SolrWriterTest {
         SolrDataSource dataSourceProvider = new SolrDataSource();
 
         String collectoinName = "documents";
-        int dimension = 32;
+
         List<Float> vector = new ArrayList<>();
         List<Float> vector2 = new ArrayList<>();
-        for (int i = 0; i < dimension; i++) {
-            vector.add(i * 1f / dimension);
-            vector2.add((i + 1) * 1f / dimension);
+        for (int i = 0; i < DIMENSIONS; i++) {
+            vector.add(i * 1f / DIMENSIONS);
+            vector2.add((i + 1) * 1f / DIMENSIONS);
         }
         String vectorAsString = vector.toString();
         String vector2AsString = vector2.toString();
@@ -127,7 +175,13 @@ public class SolrWriterTest {
                                 "datasource",
                                 Map.of("configuration", config),
                                 "create-statements",
-                                List.of(CREATE_COLLECTION, ADD_FIELD_TYPE, ADD_FIELD)));
+                                List.of(
+                                        CREATE_COLLECTION,
+                                        ADD_FIELD_TYPE,
+                                        ADD_FIELD_EMBEDDINGS,
+                                        ADD_FIELD_NAME,
+                                        ADD_FIELD_TEXT,
+                                        ADD_FIELD_CHUNK_ID)));
                 tableManager.initialize(assetDefinition);
                 tableManager.deleteAssetIfExists();
 
@@ -138,21 +192,16 @@ public class SolrWriterTest {
                         List.of(
                                 Map.of(
                                         "name",
-                                        "name",
+                                        "id",
                                         "expression",
-                                        "key.name",
+                                        "fn:concat(key.name, '-', fn:toString(key.chunk_id))",
                                         "primary-key",
                                         true),
+                                Map.of("name", "name", "expression", "key.name"),
+                                Map.of("name", "chunk_id", "expression", "key.chunk_id"),
                                 Map.of(
                                         "name",
-                                        "chunk_id",
-                                        "expression",
-                                        "key.chunk_id",
-                                        "primary-key",
-                                        true),
-                                Map.of(
-                                        "name",
-                                        "vector",
+                                        "embeddings",
                                         "expression",
                                         "fn:toListOfFloat(value.vector)"),
                                 Map.of("name", "text", "expression", "value.text"));
@@ -206,6 +255,7 @@ public class SolrWriterTest {
                 assertEquals(1, results2.size());
                 assertEquals("do'c1", results2.get(0).get("name"));
                 assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
+                assertEquals("1", results2.get(0).get("chunk_id"));
 
                 SimpleRecord recordDelete =
                         SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);

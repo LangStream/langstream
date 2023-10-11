@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.solr.client.solrj.impl.Http2SolrClient;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.SolrInputField;
 
 @Slf4j
 public class SolrWriter implements VectorDatabaseWriterProvider {
@@ -118,8 +119,24 @@ public class SolrWriter implements VectorDatabaseWriterProvider {
                     }
 
                 } else {
-                    handle.completeExceptionally(
-                            new IllegalStateException("Delete is not supported yet"));
+                    SolrInputField id = document.get("id");
+                    if (id == null) {
+                        throw new IllegalStateException(
+                                "In order to perform DELETE (value=nul) you must provide id field");
+                    }
+                    UpdateResponse response =
+                            client.deleteById((String) id.getValue(), commitWithin);
+                    log.info("Result {}", response);
+                    if (response.getException() != null) {
+                        handle.completeExceptionally(response.getException());
+                    } else {
+                        handle.complete(null);
+                    }
+
+                    if (commitWithin <= 0) {
+                        log.info("Force commit");
+                        client.commit();
+                    }
                 }
             } catch (Exception e) {
                 handle.completeExceptionally(e);

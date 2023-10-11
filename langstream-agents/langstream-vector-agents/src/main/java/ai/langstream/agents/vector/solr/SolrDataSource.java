@@ -101,6 +101,7 @@ public class SolrDataSource implements DataSourceProvider {
             try {
                 Map<String, Object> queryMap =
                         InterpolationUtils.buildObjectFromJson(query, Map.class, params);
+                log.info("Executing query {}", queryMap);
                 SolrQuery solrQuery = new SolrQuery();
                 queryMap.forEach((k, v) -> solrQuery.set(k, v.toString()));
                 QueryResponse response = client.query(solrQuery);

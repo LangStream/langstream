@@ -95,11 +95,22 @@ public class JstlEvaluator<T> {
                 .getFunctionMapper()
                 .mapFunction(
                         "fn",
+                        "concat",
+                        JstlFunctions.class.getMethod(
+                                "concat", Object.class, Object.class, Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
                         "coalesce",
                         JstlFunctions.class.getMethod("coalesce", Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "str", JstlFunctions.class.getMethod("toString", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn", "toString", JstlFunctions.class.getMethod("toString", Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(

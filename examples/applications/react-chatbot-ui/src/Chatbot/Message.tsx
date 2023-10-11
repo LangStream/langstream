@@ -6,6 +6,7 @@ import remarkMath from 'remark-math';
 import {
   WsMessage,
 } from '../hooks/useWebSocket';
+import CodeBlock from '../Components/CodeBlock';
 
 interface Props {
   message: WsMessage;
@@ -80,6 +81,27 @@ const Message = ({ message }: Props): JSX.Element => {
           <Markdown
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeKatex]}
+            components={{
+              code({ node, children, ...props }) {
+              
+                const className = node?.properties?.className as string[];
+                const language = className?.[0] ? className[0].split('-')[1] : '';
+
+                console.log(node?.properties)
+                console.log(language)
+
+                return language ? (
+                 <CodeBlock
+                    language={language}
+                    value={String(children).replace(/\n$/, '') ?? ''}
+                  />
+                 ) : (
+                  <code {...props}>
+                     {children}
+                 </code>
+                 )
+              }
+            }}
           >
             {message.value}
           </Markdown>

@@ -45,8 +45,8 @@ public class SolrDataSource implements DataSourceProvider {
     @Data
     public static final class SolrConfig {
 
-        @JsonProperty(value = "username")
-        private String username;
+        @JsonProperty(value = "user")
+        private String user;
 
         @JsonProperty(value = "password")
         private String password;
@@ -89,8 +89,8 @@ public class SolrDataSource implements DataSourceProvider {
             baseUrl = clientConfig.protocol + "://" + clientConfig.host + ":" + clientConfig.port;
             collectionUrl = baseUrl + "/solr/" + clientConfig.collectionName;
             Http2SolrClient.Builder builder = new Http2SolrClient.Builder(collectionUrl);
-            if (clientConfig.username != null && !clientConfig.username.isEmpty()) {
-                builder.withBasicAuthCredentials(clientConfig.username, clientConfig.password);
+            if (clientConfig.user != null && !clientConfig.user.isEmpty()) {
+                builder.withBasicAuthCredentials(clientConfig.user, clientConfig.password);
             }
             client = builder.build();
             log.info("Connecting to Solr at {}", collectionUrl);

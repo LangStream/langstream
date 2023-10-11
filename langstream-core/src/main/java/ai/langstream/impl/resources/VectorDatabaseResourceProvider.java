@@ -19,6 +19,7 @@ import ai.langstream.impl.resources.datasource.AstraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.CassandraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.MilvusDatasourceConfig;
 import ai.langstream.impl.resources.datasource.PineconeDatasourceConfig;
+import ai.langstream.impl.resources.datasource.SolrDatasourceConfig;
 import java.util.Map;
 
 public class VectorDatabaseResourceProvider extends BaseDataSourceResourceProvider {
@@ -30,6 +31,7 @@ public class VectorDatabaseResourceProvider extends BaseDataSourceResourceProvid
                         "astra", AstraDatasourceConfig.CONFIG,
                         "cassandra", CassandraDatasourceConfig.CONFIG,
                         "pinecone", PineconeDatasourceConfig.CONFIG,
-                        "milvus", MilvusDatasourceConfig.CONFIG));
+                        "milvus", MilvusDatasourceConfig.CONFIG,
+                        "solr", SolrDatasourceConfig.CONFIG));
     }
 }

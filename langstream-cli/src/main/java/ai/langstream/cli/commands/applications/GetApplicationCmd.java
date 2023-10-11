@@ -33,7 +33,8 @@ public class GetApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Option(
             names = {"-o"},
-            description = "Output format. Formats are: yaml, json, raw, mermaid. Default value is raw.")
+            description =
+                    "Output format. Formats are: yaml, json, raw, mermaid. Default value is raw.")
     private GetAppFormats format = GetAppFormats.raw;
 
     @CommandLine.Option(

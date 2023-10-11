@@ -68,6 +68,7 @@ public class Gateways {
         String type;
         List<String> parameters;
         Map<String, Object> authentication;
+
         @JsonProperty("chat-options")
         Map<String, Object> chatOptions;
     }

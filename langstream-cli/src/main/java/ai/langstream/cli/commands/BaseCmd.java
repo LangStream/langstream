@@ -581,7 +581,8 @@ public abstract class BaseCmd implements Runnable {
             throw new IllegalArgumentException(
                     String.format(
                             "Format %s is not allowed. Allowed formats are: %s",
-                            value, asList.stream().map(Enum::name).collect(Collectors.joining(","))));
+                            value,
+                            asList.stream().map(Enum::name).collect(Collectors.joining(","))));
         }
     }
 }

@@ -16,14 +16,14 @@
 
 name: "Write to AstraDB vector database"
 topics:
-  - name: "{{ globals.chunksTopic }}"
+  - name: "${globals.chunksTopic}"
     creation-mode: create-if-not-exists
     deletion-mode: delete
 pipeline:
   - name: "Write to AstraDB"
     type: "vector-db-sink"
-    input: "{{ globals.chunksTopic }}"
+    input: "${globals.chunksTopic}"
     configuration:
       datasource: "AstraVector"
-      table: "{{ globals.vectorKeyspace}}.{{ globals.vectorTable}}"
+      table: "${globals.vectorKeyspace}.${globals.vectorTable}"
       mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"

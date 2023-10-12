@@ -16,38 +16,26 @@
 
 name: "Crawl a website"
 topics:
-  - name: "{{ globals.chunksTopic }}"
+  - name: "${globals.chunksTopic}"
     creation-mode: create-if-not-exists
     deletion-mode: delete
 pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"
-    configuration:
-      seed-urls: 
-        - "{{{ globals.seedUrl1 }}}"
-        - "{{{ globals.seedUrl2 }}}"
-      allowed-domains:
-        - "{{{ globals.allowedUrl1 }}}"
-        - "{{{ globals.allowedUrl2 }}}"
-      # forbidden-paths:
-      #   - "{{{ globals.forbiddenUrl1 }}}"
-      #   - "{{{ globals.forbiddenUrl2 }}}"
-      #   - "{{{ globals.forbiddenUrl3 }}}"
-      #   - "{{{ globals.forbiddenUrl4 }}}"
-      #   - "{{{ globals.forbiddenUrl5 }}}"
-      #   - "{{{ globals.forbiddenUrl6 }}}"
-      #   - "{{{ globals.forbiddenUrl7 }}}"
+    configuration: 
+      seed-urls: "${globals.seedUrls}"
+      allowed-domains: "${globals.allowedUrls}"
+      forbidden-paths: "${globals.forbiddenPaths}"
       min-time-between-requests: 500
       max-unflushed-pages: 100
       max-depth: 50
       max-urls: 5000
       user-agent: "langstream.ai-webcrawler/1.0"
-      bucketName: "{{{secrets.s3-credentials.bucket-name}}}"
-      endpoint: "{{{secrets.s3-credentials.endpoint}}}"
-      access-key: "{{{secrets.s3-credentials.access-key}}}"
-      secret-key: "{{{secrets.s3-credentials.secret}}}"
-      region: "{{{secrets.s3-credentials.region}}}"
-      idle-time: 5
+      bucketName: "${secrets.s3-credentials.bucket-name}"
+      endpoint: "${secrets.s3-credentials.endpoint}"
+      access-key: "${secrets.s3-credentials.access-key}"
+      secret-key: "${secrets.s3-credentials.secret}"
+      region: "${secrets.s3-credentials.region}"
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -93,7 +81,7 @@ pipeline:
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "{{ globals.chunksTopic }}"
+    output: "${globals.chunksTopic}"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings_vector"

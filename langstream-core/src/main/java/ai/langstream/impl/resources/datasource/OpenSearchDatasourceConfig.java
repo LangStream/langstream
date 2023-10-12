@@ -18,15 +18,14 @@ package ai.langstream.impl.resources.datasource;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.model.Resource;
-import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import javax.sound.sampled.Port;
 import lombok.Data;
 
 @Data
-@ResourceConfig(name = "OpenSearch", description = "Connect to OpenSearch service or AWS OpenSearch Service/Serverless.")
+@ResourceConfig(
+        name = "OpenSearch",
+        description = "Connect to OpenSearch service or AWS OpenSearch Service/Serverless.")
 public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
@@ -54,6 +53,7 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     """,
             defaultValue = "true")
     private boolean https = true;
+
     @ConfigProperty(
             description =
                     """
@@ -62,6 +62,7 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     """,
             required = true)
     private String host;
+
     @ConfigProperty(
             description =
                     """
@@ -69,6 +70,7 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     """,
             defaultValue = "9200")
     private int port;
+
     @ConfigProperty(
             description =
                     """
@@ -83,6 +85,7 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     In case of AWS OpenSearch Service/Serverless, this is the access key.
                     """)
     private String username;
+
     @ConfigProperty(
             description =
                     """
@@ -90,5 +93,4 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     In case of AWS OpenSearch Service/Serverless, this is the secret key.
                     """)
     private String password;
-
 }

@@ -16,6 +16,7 @@
 package ai.langstream.agents.vector.opensearch;
 
 import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
@@ -23,7 +24,6 @@ import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
-import com.datastax.oss.streaming.ai.ComputeAIEmbeddingsStep;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,26 +36,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiConsumer;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.Http2SolrClient;
-import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.SolrInputField;
-import org.jetbrains.annotations.Nullable;
 import org.opensearch.client.opensearch._types.Refresh;
-import org.opensearch.client.opensearch._types.Result;
 import org.opensearch.client.opensearch._types.Time;
 import org.opensearch.client.opensearch._types.WaitForActiveShardOptions;
 import org.opensearch.client.opensearch._types.WaitForActiveShards;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
-import org.opensearch.client.opensearch.core.IndexRequest;
-import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.core.bulk.IndexOperation;
@@ -69,19 +58,20 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
     }
 
     @Override
-    public OpenSearchVectorDatabaseWriter createImplementation(Map<String, Object> datasourceConfig) {
+    public OpenSearchVectorDatabaseWriter createImplementation(
+            Map<String, Object> datasourceConfig) {
         return new OpenSearchVectorDatabaseWriter(datasourceConfig);
     }
 
+    public static class OpenSearchVectorDatabaseWriter
+            implements VectorDatabaseWriter, AutoCloseable {
 
-    public static class OpenSearchVectorDatabaseWriter implements VectorDatabaseWriter, AutoCloseable {
+        protected static final ObjectMapper OBJECT_MAPPER =
+                new ObjectMapper()
+                        .configure(SerializationFeature.INDENT_OUTPUT, false)
+                        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-                .configure(SerializationFeature.INDENT_OUTPUT, false)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        @Getter
-        private final OpenSearchDataSource.OpenSearchQueryStepDataSource dataSource;
+        @Getter private final OpenSearchDataSource.OpenSearchQueryStepDataSource dataSource;
 
         private OrderedAsyncBatchExecutor<OpenSearchRecord> batchExecutor;
         private ScheduledExecutorService executorService;
@@ -106,14 +96,16 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
             String pipeline;
 
             String refresh;
+
             @JsonProperty("require_alias")
             Boolean requireAlias;
+
             String routing;
             String timeout;
+
             @JsonProperty("wait_for_active_shards")
             String waitForActiveShards;
         }
-
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
@@ -129,99 +121,143 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                 buildEvaluator(field, "expression", Object.class));
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
-            bulkParameters = OBJECT_MAPPER.convertValue(
-                    ConfigurationUtils.getMap("bulk-parameters", Map.of(), agentConfiguration), BulkParameters.class);
+            bulkParameters =
+                    OBJECT_MAPPER.convertValue(
+                            ConfigurationUtils.getMap(
+                                    "bulk-parameters", Map.of(), agentConfiguration),
+                            BulkParameters.class);
 
-
-            final int flushInterval = ConfigurationUtils.getInt("flush-interval",1000, agentConfiguration);
+            final int flushInterval =
+                    ConfigurationUtils.getInt("flush-interval", 1000, agentConfiguration);
             final int batchSize = ConfigurationUtils.getInt("batch-size", 10, agentConfiguration);
             this.executorService =
                     flushInterval > 0 ? Executors.newSingleThreadScheduledExecutor() : null;
 
-            this.batchExecutor = new OrderedAsyncBatchExecutor<>(batchSize,
-                    (records, completableFuture) -> {
-                        try {
+            this.batchExecutor =
+                    new OrderedAsyncBatchExecutor<>(
+                            batchSize,
+                            (records, completableFuture) -> {
+                                try {
 
-                            List<BulkOperation> bulkOps = new ArrayList<>();
+                                    List<BulkOperation> bulkOps = new ArrayList<>();
 
-                            for (OpenSearchRecord record : records) {
-                                log.info("indexing document {} with id {} on index {}", record.document(), record.id(),
-                                        indexName);
-                                final IndexOperation<Object> request = new IndexOperation.Builder<>()
-                                        .index(indexName)
-                                        .document(record.document())
-                                        .id(record.id())
-                                        .build();
-                                final BulkOperation bulkOp = new BulkOperation.Builder()
-                                        .index(request)
-                                        .build();
-                                bulkOps.add(bulkOp);
-                            }
+                                    for (OpenSearchRecord record : records) {
+                                        log.info(
+                                                "indexing document {} with id {} on index {}",
+                                                record.document(),
+                                                record.id(),
+                                                indexName);
+                                        final IndexOperation<Object> request =
+                                                new IndexOperation.Builder<>()
+                                                        .index(indexName)
+                                                        .document(record.document())
+                                                        .id(record.id())
+                                                        .build();
+                                        final BulkOperation bulkOp =
+                                                new BulkOperation.Builder().index(request).build();
+                                        bulkOps.add(bulkOp);
+                                    }
 
-                            final BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
-                            bulkBuilder.pipeline(bulkParameters.getPipeline());
-                            bulkBuilder.refresh(getRefreshValue());
-                            bulkBuilder.requireAlias(bulkParameters.getRequireAlias());
-                            bulkBuilder.routing(bulkParameters.getRouting());
-                            if (bulkParameters.getTimeout() != null) {
-                                bulkBuilder.timeout(new Time.Builder().time(bulkParameters.getTimeout()).build());
-                            }
-                            if (bulkParameters.getWaitForActiveShards() != null) {
-                                final WaitForActiveShards value;
-                                if (bulkParameters.getWaitForActiveShards().equals("all")) {
-                                    value = new WaitForActiveShards.Builder().option(
-                                            WaitForActiveShardOptions.All).build();
-                                } else {
-                                    value = new WaitForActiveShards.Builder().count(
-                                            Integer.parseInt(bulkParameters.getWaitForActiveShards())).build();
+                                    final BulkRequest.Builder bulkBuilder =
+                                            new BulkRequest.Builder();
+                                    bulkBuilder.pipeline(bulkParameters.getPipeline());
+                                    bulkBuilder.refresh(getRefreshValue());
+                                    bulkBuilder.requireAlias(bulkParameters.getRequireAlias());
+                                    bulkBuilder.routing(bulkParameters.getRouting());
+                                    if (bulkParameters.getTimeout() != null) {
+                                        bulkBuilder.timeout(
+                                                new Time.Builder()
+                                                        .time(bulkParameters.getTimeout())
+                                                        .build());
+                                    }
+                                    if (bulkParameters.getWaitForActiveShards() != null) {
+                                        final WaitForActiveShards value;
+                                        if (bulkParameters.getWaitForActiveShards().equals("all")) {
+                                            value =
+                                                    new WaitForActiveShards.Builder()
+                                                            .option(WaitForActiveShardOptions.All)
+                                                            .build();
+                                        } else {
+                                            value =
+                                                    new WaitForActiveShards.Builder()
+                                                            .count(
+                                                                    Integer.parseInt(
+                                                                            bulkParameters
+                                                                                    .getWaitForActiveShards()))
+                                                            .build();
+                                        }
+                                        bulkBuilder.waitForActiveShards(value);
+                                    }
+
+                                    final BulkRequest bulkRequest =
+                                            bulkBuilder
+                                                    .index(indexName)
+                                                    .operations(bulkOps)
+                                                    .build();
+                                    final BulkResponse response;
+                                    try {
+                                        response = dataSource.getClient().bulk(bulkRequest);
+                                    } catch (IOException e) {
+                                        log.error(
+                                                "Error indexing documents on index {}: {}",
+                                                indexName,
+                                                e.getMessage(),
+                                                e);
+                                        for (OpenSearchRecord record : records) {
+                                            record.completableFuture().completeExceptionally(e);
+                                        }
+                                        completableFuture.completeExceptionally(e);
+                                        return;
+                                    }
+                                    int itemIndex = 0;
+                                    boolean failures = false;
+                                    for (BulkResponseItem item : response.items()) {
+                                        if (item.error() != null) {
+                                            log.error(
+                                                    "Error indexing document {} on index {}: {}",
+                                                    item.id(),
+                                                    indexName,
+                                                    item.error());
+                                            failures = true;
+                                            records.get(itemIndex++)
+                                                    .completableFuture()
+                                                    .completeExceptionally(
+                                                            new RuntimeException(
+                                                                    "Error indexing document: "
+                                                                            + item.error()
+                                                                                    .toString()));
+                                        } else {
+                                            records.get(itemIndex++)
+                                                    .completableFuture()
+                                                    .complete(null);
+                                        }
+                                    }
+                                    if (!failures) {
+                                        log.info(
+                                                "Indexed {} documents on index {}",
+                                                records.size(),
+                                                indexName);
+                                        completableFuture.complete(null);
+                                    } else {
+                                        completableFuture.completeExceptionally(
+                                                new RuntimeException("Error indexing documents"));
+                                    }
+                                } catch (Throwable e) {
+                                    log.error(
+                                            "Error indexing documents on index {}: {}",
+                                            indexName,
+                                            e.getMessage(),
+                                            e);
+                                    for (OpenSearchRecord record : records) {
+                                        record.completableFuture().completeExceptionally(e);
+                                    }
+                                    completableFuture.completeExceptionally(e);
                                 }
-                                bulkBuilder.waitForActiveShards(value);
-                            }
-
-                            final BulkRequest bulkRequest = bulkBuilder
-                                    .index(indexName)
-                                    .operations(bulkOps)
-                                    .build();
-                            final BulkResponse response;
-                            try {
-                                response = dataSource.getClient().bulk(bulkRequest);
-                            } catch (IOException e) {
-                                log.error("Error indexing documents on index {}: {}", indexName, e.getMessage(), e);
-                                for (OpenSearchRecord record : records) {
-                                    record.completableFuture().completeExceptionally(e);
-                                }
-                                completableFuture.completeExceptionally(e);
-                                return;
-                            }
-                            int itemIndex = 0;
-                            boolean failures = false;
-                            for (BulkResponseItem item : response.items()) {
-                                if (item.error() != null) {
-                                    log.error("Error indexing document {} on index {}: {}", item.id(), indexName,
-                                            item.error());
-                                    failures = true;
-                                    records.get(itemIndex++).completableFuture().completeExceptionally(
-                                            new RuntimeException(
-                                                    "Error indexing document: " + item.error().toString()));
-                                } else {
-                                    records.get(itemIndex++).completableFuture().complete(null);
-                                }
-                            }
-                            if (!failures) {
-                                log.info("Indexed {} documents on index {}", records.size(), indexName);
-                                completableFuture.complete(null);
-                            } else {
-                                completableFuture.completeExceptionally(
-                                        new RuntimeException("Error indexing documents"));
-                            }
-                        } catch (Throwable e) {
-                            log.error("Error indexing documents on index {}: {}", indexName, e.getMessage(), e);
-                            for (OpenSearchRecord record : records) {
-                                record.completableFuture().completeExceptionally(e);
-                            }
-                            completableFuture.completeExceptionally(e);
-                        }
-                    }, flushInterval, 1, (__) -> 0, executorService);
+                            },
+                            flushInterval,
+                            1,
+                            (__) -> 0,
+                            executorService);
             batchExecutor.start();
         }
 
@@ -234,7 +270,8 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                     return value;
                 }
             }
-            throw new IllegalArgumentException("Invalid refresh value: " + bulkParameters.getRefresh());
+            throw new IllegalArgumentException(
+                    "Invalid refresh value: " + bulkParameters.getRefresh());
         }
 
         @Override
@@ -271,12 +308,9 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
             return handle;
         }
 
-        record OpenSearchRecord(String id, Map<String, Object> document, CompletableFuture<?> completableFuture) {
-        }
-
+        record OpenSearchRecord(
+                String id, Map<String, Object> document, CompletableFuture<?> completableFuture) {}
         ;
-
-
     }
 
     private static JstlEvaluator buildEvaluator(

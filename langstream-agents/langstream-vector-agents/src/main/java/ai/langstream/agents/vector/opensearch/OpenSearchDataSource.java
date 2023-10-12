@@ -16,18 +16,14 @@
 package ai.langstream.agents.vector.opensearch;
 
 import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
-import ai.langstream.agents.vector.milvus.MilvusModel;
+
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.milvus.param.highlevel.dml.SearchSimpleParam;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,11 +38,9 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.core5.http.HttpHost;
 import org.opensearch.client.json.JsonData;
 import org.opensearch.client.json.JsonpDeserializer;
-import org.opensearch.client.json.jackson.JacksonJsonpGenerator;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.OpenSearchException;
-import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
@@ -80,24 +74,22 @@ public class OpenSearchDataSource implements DataSourceProvider {
         // BASIC AUTH
         private String username;
         private String password;
-
     }
 
     @Override
     public OpenSearchQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
-        OpenSearchConfig clientConfig = MAPPER.convertValue(dataSourceConfig, OpenSearchConfig.class);
+        OpenSearchConfig clientConfig =
+                MAPPER.convertValue(dataSourceConfig, OpenSearchConfig.class);
 
         return new OpenSearchQueryStepDataSource(clientConfig);
     }
 
     public static class OpenSearchQueryStepDataSource implements QueryStepDataSource {
 
-        @Getter
-        private final OpenSearchConfig clientConfig;
-        @Getter
-        private OpenSearchClient client;
+        @Getter private final OpenSearchConfig clientConfig;
+        @Getter private OpenSearchClient client;
 
         public OpenSearchQueryStepDataSource(OpenSearchConfig clientConfig) {
             this.clientConfig = clientConfig;
@@ -108,7 +100,6 @@ public class OpenSearchDataSource implements DataSourceProvider {
         public void initialize(Map<String, Object> config) {
             SdkHttpClient httpClient = new DefaultSdkHttpClientBuilder().build();
 
-
             final String host = clientConfig.getHost();
             if (host == null) {
                 throw new IllegalArgumentException("Missing host");
@@ -118,30 +109,38 @@ public class OpenSearchDataSource implements DataSourceProvider {
 
             if (useAwsSdk) {
                 final AwsBasicCredentials credentials =
-                        AwsBasicCredentials.create(clientConfig.getUsername(), clientConfig.getPassword());
-                transport = new AwsSdk2Transport(
-                        httpClient,
-                        host,
-                        "aoss",
-                        Region.of(clientConfig.getRegion()),
-                        AwsSdk2TransportOptions.builder()
-                                .setCredentials(StaticCredentialsProvider.create(credentials))
-                                .build()
-                );
+                        AwsBasicCredentials.create(
+                                clientConfig.getUsername(), clientConfig.getPassword());
+                transport =
+                        new AwsSdk2Transport(
+                                httpClient,
+                                host,
+                                "aoss",
+                                Region.of(clientConfig.getRegion()),
+                                AwsSdk2TransportOptions.builder()
+                                        .setCredentials(
+                                                StaticCredentialsProvider.create(credentials))
+                                        .build());
             } else {
                 final HttpHost httpHost =
-                        new HttpHost(clientConfig.isHttps() ? "https" : "http", host, clientConfig.getPort());
+                        new HttpHost(
+                                clientConfig.isHttps() ? "https" : "http",
+                                host,
+                                clientConfig.getPort());
                 final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                credentialsProvider.setCredentials(new AuthScope(httpHost), new UsernamePasswordCredentials(
-                        clientConfig.getUsername(), clientConfig.getPassword().toCharArray()));
-                transport = ApacheHttpClient5TransportBuilder.builder(httpHost)
-                        .setHttpClientConfigCallback(
-                                httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(
-                                        credentialsProvider)
-                        )
-                        .build();
+                credentialsProvider.setCredentials(
+                        new AuthScope(httpHost),
+                        new UsernamePasswordCredentials(
+                                clientConfig.getUsername(),
+                                clientConfig.getPassword().toCharArray()));
+                transport =
+                        ApacheHttpClient5TransportBuilder.builder(httpHost)
+                                .setHttpClientConfigCallback(
+                                        httpClientBuilder ->
+                                                httpClientBuilder.setDefaultCredentialsProvider(
+                                                        credentialsProvider))
+                                .build();
             }
-
 
             this.client = new OpenSearchClient(transport);
             log.info("Connecting to OpenSearch at {}", host);
@@ -150,39 +149,48 @@ public class OpenSearchDataSource implements DataSourceProvider {
         @Override
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
-                final Map asMap = buildObjectFromJson(
-                        query,
-                        Map.class,
-                        params,
-                        OBJECT_MAPPER);
-                final SearchRequest searchRequest = OpenSearchDataSource.parseOpenSearchRequestBodyJson(asMap, SearchRequest._DESERIALIZER);
-
+                final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
+                final SearchRequest searchRequest =
+                        OpenSearchDataSource.parseOpenSearchRequestBodyJson(
+                                asMap, SearchRequest._DESERIALIZER);
 
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
                 return result.hits().hits().stream()
-                        .map(h -> {
-                            Map<String, Object> object = new HashMap<>();
-                            object.put("id", h.id());
-                            object.put("document", h.source());
-                            object.put("score", h.score());
-                            object.put("index", h.index());
-                            return object;
-                        })
+                        .map(
+                                h -> {
+                                    Map<String, Object> object = new HashMap<>();
+                                    object.put("id", h.id());
+                                    object.put("document", h.source());
+                                    object.put("score", h.score());
+                                    object.put("index", h.index());
+                                    return object;
+                                })
                         .collect(Collectors.toList());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (OpenSearchException e) {
-                final String causes = e.error().rootCause().stream()
-                        .map(cause -> "type: " + cause.type() + " reason: " + cause.reason())
-                        .collect(Collectors.joining("\n"));
-                String errMessage = "Error executing OpenSearch query: " + e.getMessage() + "\nRoot causes:\n" + causes + "\nQuery: " + query;
+                final String causes =
+                        e.error().rootCause().stream()
+                                .map(
+                                        cause ->
+                                                "type: "
+                                                        + cause.type()
+                                                        + " reason: "
+                                                        + cause.reason())
+                                .collect(Collectors.joining("\n"));
+                String errMessage =
+                        "Error executing OpenSearch query: "
+                                + e.getMessage()
+                                + "\nRoot causes:\n"
+                                + causes
+                                + "\nQuery: "
+                                + query;
                 log.error(errMessage, e);
                 throw new RuntimeException(errMessage, e);
             }
         }
 
         @Override
-
         public void close() {
             if (client != null) {
                 try {
@@ -194,20 +202,21 @@ public class OpenSearchDataSource implements DataSourceProvider {
         }
     }
 
+    protected static final ObjectMapper OBJECT_MAPPER =
+            new ObjectMapper()
+                    .configure(SerializationFeature.INDENT_OUTPUT, false)
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    protected static final JacksonJsonpMapper JACKSON_JSONP_MAPPER =
+            new JacksonJsonpMapper(OBJECT_MAPPER);
 
-    protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .configure(SerializationFeature.INDENT_OUTPUT, false)
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    protected static final JacksonJsonpMapper JACKSON_JSONP_MAPPER = new JacksonJsonpMapper(OBJECT_MAPPER);
-
-
-    public static <T> T parseOpenSearchRequestBodyJson(String json, JsonpDeserializer<T> deserializer) throws IOException {
-        return parseOpenSearchRequestBodyJson(OBJECT_MAPPER.readValue(json, Map.class), deserializer);
+    public static <T> T parseOpenSearchRequestBodyJson(
+            String json, JsonpDeserializer<T> deserializer) throws IOException {
+        return parseOpenSearchRequestBodyJson(
+                OBJECT_MAPPER.readValue(json, Map.class), deserializer);
     }
 
-    public static <T> T parseOpenSearchRequestBodyJson(Map asMap, JsonpDeserializer<T> deserializer) {
-        return JsonData.of(asMap,
-                        JACKSON_JSONP_MAPPER)
-                .deserialize(deserializer);
+    public static <T> T parseOpenSearchRequestBodyJson(
+            Map asMap, JsonpDeserializer<T> deserializer) {
+        return JsonData.of(asMap, JACKSON_JSONP_MAPPER).deserialize(deserializer);
     }
 }

@@ -15,12 +15,7 @@
  */
 package ai.langstream.kafka;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import ai.langstream.AbstractApplicationRunner;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -146,19 +141,22 @@ class OpenSearchVectorIT extends AbstractApplicationRunner {
                     KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
-                    sendMessage("insert-topic", "key" + i, "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999,"+ i + "]}", List.of(), producer);
+                    sendMessage(
+                            "insert-topic",
+                            "key" + i,
+                            "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
+                            List.of(),
+                            producer);
                 }
                 sendMessage("input-topic", "{\"embeddings\":[999,999,5]}", producer);
-
-
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
                         List.of(
                                 "{\"embeddings\":[999,999,5],\"query-result\":[{\"score\":1.0,"
-                                + "\"document\":{\"embeddings\":[999,999,5],\"content\":\"hello5\"},"
-                                + "\"index\":\"my-index-1\",\"id\":\"key5\"}]}"));
+                                        + "\"document\":{\"embeddings\":[999,999,5],\"content\":\"hello5\"},"
+                                        + "\"index\":\"my-index-1\",\"id\":\"key5\"}]}"));
             }
         }
     }

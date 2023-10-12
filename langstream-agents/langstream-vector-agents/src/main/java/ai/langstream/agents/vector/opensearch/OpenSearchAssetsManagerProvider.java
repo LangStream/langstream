@@ -19,16 +19,8 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
 import ai.langstream.api.util.ConfigurationUtils;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.solr.common.cloud.Aliases;
-import org.opensearch.client.json.JsonData;
-import org.opensearch.client.json.jackson.JacksonJsonpGenerator;
-import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
@@ -41,7 +33,6 @@ import org.opensearch.client.util.MissingRequiredPropertyException;
 
 @Slf4j
 public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
-
 
     @Override
     public boolean supports(String assetType) {
@@ -61,7 +52,6 @@ public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
 
     private static class OpenSearchIndexAssetManager implements AssetManager {
 
-
         OpenSearchDataSource.OpenSearchQueryStepDataSource datasource;
 
         AssetDefinition assetDefinition;
@@ -75,10 +65,10 @@ public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
         @Override
         public boolean assetExists() throws Exception {
             String indexName = getIndexName();
-            return datasource.getClient().indices()
-                    .exists(new ExistsRequest.Builder()
-                            .index(indexName)
-                            .build())
+            return datasource
+                    .getClient()
+                    .indices()
+                    .exists(new ExistsRequest.Builder().index(indexName).build())
                     .value();
         }
 
@@ -92,57 +82,64 @@ public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
         public void deployAsset() throws Exception {
             final String index = getIndexName();
 
-            final CreateIndexRequest.Builder builder = new CreateIndexRequest.Builder()
-                    .index(index);
+            final CreateIndexRequest.Builder builder =
+                    new CreateIndexRequest.Builder().index(index);
             String settingsJson =
                     ConfigurationUtils.getString("settings", null, assetDefinition.getConfig());
             String mappingsJson =
                     ConfigurationUtils.getString("mappings", null, assetDefinition.getConfig());
-            log.info("Creating index {} with settings {} and mappings {}", index, settingsJson, mappingsJson);
+            log.info(
+                    "Creating index {} with settings {} and mappings {}",
+                    index,
+                    settingsJson,
+                    mappingsJson);
             if (settingsJson != null && !settingsJson.isBlank()) {
                 try {
                     final IndexSettings indexSettings =
-                            OpenSearchDataSource.parseOpenSearchRequestBodyJson(settingsJson,
-                                    IndexSettings._DESERIALIZER);
+                            OpenSearchDataSource.parseOpenSearchRequestBodyJson(
+                                    settingsJson, IndexSettings._DESERIALIZER);
                     builder.settings(indexSettings);
                 } catch (MissingRequiredPropertyException exception) {
-                    throw new IllegalArgumentException("Invalid settings json value " + settingsJson, exception);
+                    throw new IllegalArgumentException(
+                            "Invalid settings json value " + settingsJson, exception);
                 }
-
             }
-
 
             if (mappingsJson != null && !mappingsJson.isBlank()) {
                 try {
-                    final TypeMapping typeMapping = OpenSearchDataSource.parseOpenSearchRequestBodyJson(mappingsJson,
-                            TypeMapping._DESERIALIZER);
+                    final TypeMapping typeMapping =
+                            OpenSearchDataSource.parseOpenSearchRequestBodyJson(
+                                    mappingsJson, TypeMapping._DESERIALIZER);
                     builder.mappings(typeMapping);
                 } catch (MissingRequiredPropertyException exception) {
-                    throw new IllegalArgumentException("Invalid mappings json value :" + mappingsJson, exception);
+                    throw new IllegalArgumentException(
+                            "Invalid mappings json value :" + mappingsJson, exception);
                 }
             }
             final CreateIndexRequest request = builder.build();
             log.info("Creating index {} ", index);
 
-            final CreateIndexResponse response = datasource.getClient()
-                    .indices()
-                    .create(request);
+            final CreateIndexResponse response = datasource.getClient().indices().create(request);
             if (response.acknowledged() != null && response.acknowledged()) {
                 log.info("Created index {}", index);
             } else {
                 log.error("Failed to create index {}", index);
-                throw new RuntimeException("Failed to create index " + index + " ack="
-                                           + response.acknowledged());
+                throw new RuntimeException(
+                        "Failed to create index " + index + " ack=" + response.acknowledged());
             }
         }
 
         @Override
         public boolean deleteAssetIfExists() throws Exception {
             try {
-                final DeleteIndexResponse delete = datasource.getClient().indices()
-                        .delete(new DeleteIndexRequest.Builder()
-                                .index(getIndexName())
-                                .build());
+                final DeleteIndexResponse delete =
+                        datasource
+                                .getClient()
+                                .indices()
+                                .delete(
+                                        new DeleteIndexRequest.Builder()
+                                                .index(getIndexName())
+                                                .build());
                 if (delete.acknowledged()) {
                     log.info("Deleted index {}", getIndexName());
                     return true;
@@ -168,8 +165,7 @@ public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
 
     private static OpenSearchDataSource.OpenSearchQueryStepDataSource buildDataSource(
             AssetDefinition assetDefinition) {
-        OpenSearchDataSource
-                dataSource = new OpenSearchDataSource();
+        OpenSearchDataSource dataSource = new OpenSearchDataSource();
         Map<String, Object> datasourceDefinition =
                 ConfigurationUtils.getMap("datasource", Map.of(), assetDefinition.getConfig());
         Map<String, Object> configuration =

@@ -145,6 +145,7 @@
       <!-- Transform Function -->
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-original</artifactId>
+      <scope>test</scope>
       <exclusions>
         <exclusion>
           <groupId>io.netty</groupId>

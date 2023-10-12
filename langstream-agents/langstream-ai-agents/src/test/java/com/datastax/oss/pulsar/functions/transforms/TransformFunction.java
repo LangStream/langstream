@@ -21,7 +21,6 @@ import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.buildStep
 import ai.langstream.ai.agents.commons.TransformContext;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
-import com.datastax.oss.streaming.ai.JsonNodeSchema;
 import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;

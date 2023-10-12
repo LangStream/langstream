@@ -17,7 +17,9 @@ to improve the quality of the response.
 Create a S3 bucket, it will contain only a metadata file for the WebCrawler.
 
 Create a database in Astra DB. The required tables (one for the vector embeddings, one for the chat history) will be created automatically as 
-specified in the `assets` part of the configuration.
+specified in the `assets` part of the configuration. Note that the conversation history table is indexed by
+session and timestamp to allow for a query to get the last N messages in the conversation. The table also
+has TTL set to 1 hour so the table doesn't not grow indefinitely.
 
 The gateway in this example is configured for GitHub authentication. You will need to a GitHub OAuth application
 to connect to the gateway. See the `gateway-authentication` example for details.

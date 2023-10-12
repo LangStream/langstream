@@ -3,3 +3,4 @@ cassandra-keyspace
 astra-keyspace
 milvus-collection
 jdbc-table
+solr-collection

@@ -25,24 +25,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-@ResourceConfig(name = "Milvus", description = "Connect to Milvus/Zillis service.")
-public class MilvusDatasourceConfig extends BaseDatasourceConfig {
+@ResourceConfig(name = "Solr", description = "Connect to Solr or Solr Cloud service.")
+public class SolrDatasourceConfig extends BaseDatasourceConfig {
 
     public static final BaseDataSourceResourceProvider.DatasourceConfig CONFIG =
             new BaseDataSourceResourceProvider.DatasourceConfig() {
 
                 @Override
                 public Class getResourceConfigModelClass() {
-                    return MilvusDatasourceConfig.class;
+                    return SolrDatasourceConfig.class;
                 }
 
                 @Override
                 public void validate(Resource resource) {
                     ClassConfigValidator.validateResourceModelFromClass(
-                            resource,
-                            MilvusDatasourceConfig.class,
-                            resource.configuration(),
-                            false);
+                            resource, SolrDatasourceConfig.class, resource.configuration(), false);
                     ConfigurationUtils.validateInteger(
                             resource.configuration(),
                             "port",
@@ -55,45 +52,38 @@ public class MilvusDatasourceConfig extends BaseDatasourceConfig {
     @ConfigProperty(
             description =
                     """
-                            User parameter for connecting to Milvus.
+                            Username parameter for connecting to Solr.
                                     """,
-            defaultValue = "default")
+            defaultValue = "")
     private String user;
 
     @ConfigProperty(
             description =
                     """
-                            Host parameter for connecting to Milvus.
-                                    """)
-    private String host;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Password parameter for connecting to Milvus.
+                            Password parameter for connecting to Solr.
                                     """)
     private String password;
 
     @ConfigProperty(
             description =
                     """
-                            Port parameter for connecting to Milvus.
+                            Host parameter for connecting to Solr.
+                                    """)
+    private String host;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Port parameter for connecting to Solr.
                                     """,
-            defaultValue = "19530")
+            defaultValue = "8983")
     private int port;
 
     @ConfigProperty(
             description =
                     """
-                            Url parameter for connecting to Zillis service.
+                            Collection to use in Solr.
                                     """)
-    @JsonProperty("url")
-    private String url;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Token parameter for connecting to Zillis service.
-                                    """)
-    private String token;
+    @JsonProperty("collection-name")
+    private String collectionName;
 }

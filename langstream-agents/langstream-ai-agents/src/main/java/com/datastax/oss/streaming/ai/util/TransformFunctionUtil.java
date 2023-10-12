@@ -361,9 +361,9 @@ public class TransformFunctionUtil {
                                 }
                             } else {
                                 if (!FIELD_NAMES.contains(field)
-                                        && !field.startsWith("value.")
-                                        && !field.startsWith("key.")
-                                        && !field.startsWith("properties.")) {
+                                        && !field.contains("value.")
+                                        && !field.contains("key.")
+                                        && !field.contains("properties.")) {
                                     throw new IllegalArgumentException(
                                             String.format(
                                                     "Invalid field name for query step: %s",

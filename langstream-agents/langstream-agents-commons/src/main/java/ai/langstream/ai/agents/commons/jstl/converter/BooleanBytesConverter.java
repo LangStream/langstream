@@ -32,7 +32,7 @@ public class BooleanBytesConverter implements BytesConverter<Boolean> {
             return null;
         }
         if (bytes.length != 1) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by BooleanBytesConverter is not 1");
         }
         return bytes[0] != 0;

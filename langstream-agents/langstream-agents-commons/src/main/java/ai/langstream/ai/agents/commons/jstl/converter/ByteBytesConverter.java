@@ -32,7 +32,7 @@ public class ByteBytesConverter implements BytesConverter<Byte> {
             return null;
         }
         if (bytes.length != 1) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by ByteBytesConverter is not 1");
         }
         return bytes[0];

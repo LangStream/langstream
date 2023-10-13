@@ -74,7 +74,8 @@
     <prometheus.version>0.16.0</prometheus.version>
     <jetty.version>11.0.14</jetty.version>
     <license-maven-plugin.version>4.1</license-maven-plugin.version>
-    <djl.version>0.22.1</djl.version>
+    <djl.version>0.24.0</djl.version>
+    <pytorch.version>2.0.1</pytorch.version>
     <json-schema-validator.version>1.0.72</json-schema-validator.version>
     <tomcat-embed-el.version>10.1.4</tomcat-embed-el.version>
     <commons-collections4.version>4.4</commons-collections4.version>
@@ -263,14 +264,12 @@
       <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-jni</artifactId>
-        <version>2.0.0-${djl.version}</version>
+        <version>${pytorch.version}-${djl.version}</version>
       </dependency>
       <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-native-cpu</artifactId>
-        <!--classifier>osx-aarch64</classifier-->
-        <classifier>osx-x86_64</classifier>
-        <version>2.0.0</version>
+        <version>${pytorch.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.avro</groupId>

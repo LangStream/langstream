@@ -27,10 +27,11 @@ import {
 import { Box, IconButton, InputAdornment, TextField } from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import Message from "./Message";
+import LoadingMessage from "./LoadingMessage";
 
 const Chatbot = (): JSX.Element => {
   const messagesEl = useRef<HTMLDivElement>(null);
-  const { connect, isConnected, messages, sendMessage } = useWebSockets();
+  const { connect, isConnected, messages, sendMessage, waitingForMessage } = useWebSockets();
   const [userInput, setUserInput] = useState<string>('');
   const sessionId = crypto.randomUUID();
 
@@ -92,6 +93,7 @@ const Chatbot = (): JSX.Element => {
         {messages.map((message, index) => (
           <Message key={index} message={message} />
         ))}
+        {waitingForMessage && <LoadingMessage />}
       </Box>
       <TextField
         fullWidth 

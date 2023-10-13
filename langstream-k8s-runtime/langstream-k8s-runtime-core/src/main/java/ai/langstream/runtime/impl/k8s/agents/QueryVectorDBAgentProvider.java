@@ -74,8 +74,8 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
     protected static final Map<String, VectorDatabaseSinkConfig>
             SUPPORTED_VECTOR_DB_SINK_DATASOURCES =
                     Map.of(
-                            "cassandra", CassandraVectorDatabaseSinkConfig.INSTANCE,
-                            "astra", CassandraVectorDatabaseSinkConfig.INSTANCE,
+                            "cassandra", CassandraVectorDatabaseSinkConfig.CASSANDRA,
+                            "astra", CassandraVectorDatabaseSinkConfig.ASTRA,
                             "jdbc", JDBCVectorDatabaseSinkConfig.INSTANCE,
                             "pinecone", PineconeVectorDatabaseSinkConfig.INSTANCE,
                             "opensearch", OpenSearchVectorDatabaseSinkConfig.INSTANCE,

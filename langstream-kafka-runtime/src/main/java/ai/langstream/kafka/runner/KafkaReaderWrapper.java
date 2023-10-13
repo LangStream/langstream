@@ -21,7 +21,9 @@ import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.util.ClassloaderUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,12 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 
 @Slf4j
@@ -56,20 +56,18 @@ class KafkaReaderWrapper implements TopicReader {
     }
 
     @Override
-    public void start() {
+    public void start() throws IOException {
         try (var context =
                 ClassloaderUtils.withContextClassloader(this.getClass().getClassLoader())) {
-            consumer = new KafkaConsumer(configuration);
+            consumer = new KafkaConsumer<>(configuration);
         }
         final List<TopicPartition> partitions =
-                ((List<PartitionInfo>) consumer.partitionsFor(topicName))
-                        .stream()
-                                .map(
-                                        partitionInfo ->
-                                                new TopicPartition(
-                                                        partitionInfo.topic(),
-                                                        partitionInfo.partition()))
-                                .collect(Collectors.toList());
+                consumer.partitionsFor(topicName).stream()
+                        .map(
+                                partitionInfo ->
+                                        new TopicPartition(
+                                                partitionInfo.topic(), partitionInfo.partition()))
+                        .collect(Collectors.toList());
         consumer.assign(partitions);
         if (initialPosition.position() == TopicOffsetPosition.Position.Latest) {
             consumer.seekToEnd(partitions);
@@ -102,8 +100,7 @@ class KafkaReaderWrapper implements TopicReader {
         }
     }
 
-    @SneakyThrows
-    private OffsetPerPartition parseOffset() {
+    private OffsetPerPartition parseOffset() throws IOException {
         return mapper.readValue(initialPosition.offset(), OffsetPerPartition.class);
     }
 
@@ -115,7 +112,7 @@ class KafkaReaderWrapper implements TopicReader {
     }
 
     @Override
-    public TopicReadResult read() {
+    public TopicReadResult read() throws JsonProcessingException {
         ConsumerRecords<?, ?> poll = consumer.poll(Duration.ofSeconds(5));
         List<Record> records = new ArrayList<>(poll.count());
         for (ConsumerRecord<?, ?> record : poll) {
@@ -133,6 +130,7 @@ class KafkaReaderWrapper implements TopicReader {
             partitions.put(key.partition() + "", topicPartitionLongEntry.getValue() + "");
         }
         final OffsetPerPartition offsetPerPartition = new OffsetPerPartition(partitions);
+        byte[] offset = mapper.writeValueAsBytes(offsetPerPartition);
         return new TopicReadResult() {
             @Override
             public List<Record> records() {
@@ -140,8 +138,8 @@ class KafkaReaderWrapper implements TopicReader {
             }
 
             @Override
-            public OffsetPerPartition partitionsOffsets() {
-                return offsetPerPartition;
+            public byte[] offset() {
+                return offset;
             }
         };
     }

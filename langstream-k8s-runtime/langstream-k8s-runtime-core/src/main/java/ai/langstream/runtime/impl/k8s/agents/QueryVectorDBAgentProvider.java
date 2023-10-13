@@ -18,7 +18,6 @@ package ai.langstream.runtime.impl.k8s.agents;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
-import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Module;
@@ -30,7 +29,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
-import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import ai.langstream.runtime.impl.k8s.agents.vectors.CassandraVectorDatabaseSinkConfig;
@@ -40,7 +38,6 @@ import ai.langstream.runtime.impl.k8s.agents.vectors.OpenSearchVectorDatabaseSin
 import ai.langstream.runtime.impl.k8s.agents.vectors.PineconeVectorDatabaseSinkConfig;
 import ai.langstream.runtime.impl.k8s.agents.vectors.SolrVectorDatabaseSinkConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +55,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @Getter
     @Setter
-    public static abstract class VectorDatabaseSinkConfig {
+    public abstract static class VectorDatabaseSinkConfig {
         @ConfigProperty(
                 description =
                         """
@@ -74,16 +71,16 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     protected static final String QUERY_VECTOR_DB = "query-vector-db";
     protected static final String VECTOR_DB_SINK = "vector-db-sink";
-    protected static final Map<String, VectorDatabaseSinkConfig> SUPPORTED_VECTOR_DB_SINK_DATASOURCES =
-            Map.of(
-                    "cassandra", CassandraVectorDatabaseSinkConfig.INSTANCE,
-                    "astra", CassandraVectorDatabaseSinkConfig.INSTANCE,
-                    "jdbc", JDBCVectorDatabaseSinkConfig.INSTANCE,
-                    "pinecone", PineconeVectorDatabaseSinkConfig.INSTANCE,
-                    "opensearch", OpenSearchVectorDatabaseSinkConfig.INSTANCE,
-                    "solr", SolrVectorDatabaseSinkConfig.INSTANCE,
-                    "milvus", MilvusVectorDatabaseSinkConfig.INSTANCE);
-
+    protected static final Map<String, VectorDatabaseSinkConfig>
+            SUPPORTED_VECTOR_DB_SINK_DATASOURCES =
+                    Map.of(
+                            "cassandra", CassandraVectorDatabaseSinkConfig.INSTANCE,
+                            "astra", CassandraVectorDatabaseSinkConfig.INSTANCE,
+                            "jdbc", JDBCVectorDatabaseSinkConfig.INSTANCE,
+                            "pinecone", PineconeVectorDatabaseSinkConfig.INSTANCE,
+                            "opensearch", OpenSearchVectorDatabaseSinkConfig.INSTANCE,
+                            "solr", SolrVectorDatabaseSinkConfig.INSTANCE,
+                            "milvus", MilvusVectorDatabaseSinkConfig.INSTANCE);
 
     public QueryVectorDBAgentProvider() {
         super(
@@ -117,7 +114,6 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                         clusterRuntime,
                         pluginsRegistry);
 
-
         // get the datasource configuration and inject it into the agent configuration
         String resourceId = (String) originalConfiguration.remove("datasource");
         if (resourceId == null) {
@@ -139,35 +135,41 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
         switch (type) {
             case QUERY_VECTOR_DB:
                 return false;
-            case VECTOR_DB_SINK: {
-                final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
-                        SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
-                if (vectorDatabaseSinkConfig == null) {
-                    throw new IllegalArgumentException(
-                            "Unsupported vector database service: " + service + ". Supported services are: "
-                            + SUPPORTED_VECTOR_DB_SINK_DATASOURCES.keySet());
+            case VECTOR_DB_SINK:
+                {
+                    final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
+                            SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
+                    if (vectorDatabaseSinkConfig == null) {
+                        throw new IllegalArgumentException(
+                                "Unsupported vector database service: "
+                                        + service
+                                        + ". Supported services are: "
+                                        + SUPPORTED_VECTOR_DB_SINK_DATASOURCES.keySet());
+                    }
+                    return vectorDatabaseSinkConfig.isAgentConfigModelAllowUnknownProperties();
                 }
-                return vectorDatabaseSinkConfig.isAgentConfigModelAllowUnknownProperties();
-            }
             default:
                 throw new IllegalStateException();
         }
-
     }
+
     private Class getAgentConfigModelClass(String type, String service) {
         switch (type) {
             case QUERY_VECTOR_DB:
                 return QueryVectorDBConfig.class;
-            case VECTOR_DB_SINK: {
-                final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
-                        SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
-                if (vectorDatabaseSinkConfig == null) {
-                    throw new IllegalArgumentException(
-                            "Unsupported vector database service: " + service + ". Supported services are: "
-                            + SUPPORTED_VECTOR_DB_SINK_DATASOURCES.keySet());
+            case VECTOR_DB_SINK:
+                {
+                    final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
+                            SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
+                    if (vectorDatabaseSinkConfig == null) {
+                        throw new IllegalArgumentException(
+                                "Unsupported vector database service: "
+                                        + service
+                                        + ". Supported services are: "
+                                        + SUPPORTED_VECTOR_DB_SINK_DATASOURCES.keySet());
+                    }
+                    return vectorDatabaseSinkConfig.getAgentConfigModelClass();
                 }
-                return vectorDatabaseSinkConfig.getAgentConfigModelClass();
-            }
             default:
                 throw new IllegalStateException();
         }
@@ -187,11 +189,11 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
             Map<String, Object> resourceConfiguration =
                     computeClusterRuntime.getResourceImplementation(resource, pluginsRegistry);
             if (!resource.type().equals("datasource")
-                && !resource.type().equals("vector-database")) {
+                    && !resource.type().equals("vector-database")) {
                 throw new IllegalArgumentException(
                         "Resource '"
-                        + resourceId
-                        + "' is not type=datasource or type=vector-database");
+                                + resourceId
+                                + "' is not type=datasource or type=vector-database");
             }
             configuration.put("datasource", resourceConfiguration);
             final String type = agentConfiguration.getType();
@@ -216,15 +218,17 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                             Query a vector database using Vector Search capabilities.
                             """)
     @Data
-    public static class QueryVectorDBConfig extends QueryConfiguration {
-    }
+    public static class QueryVectorDBConfig extends QueryConfiguration {}
 
     @Override
     public Map<String, AgentConfigurationModel> generateSupportedTypesDocumentation() {
         Map<String, AgentConfigurationModel> result = new LinkedHashMap<>();
-        result.put(QUERY_VECTOR_DB, ClassConfigValidator.generateAgentModelFromClass(QueryVectorDBConfig.class));
+        result.put(
+                QUERY_VECTOR_DB,
+                ClassConfigValidator.generateAgentModelFromClass(QueryVectorDBConfig.class));
 
-        for (Map.Entry<String, VectorDatabaseSinkConfig> datasource : SUPPORTED_VECTOR_DB_SINK_DATASOURCES.entrySet()) {
+        for (Map.Entry<String, VectorDatabaseSinkConfig> datasource :
+                SUPPORTED_VECTOR_DB_SINK_DATASOURCES.entrySet()) {
             final String service = datasource.getKey();
             AgentConfigurationModel value =
                     ClassConfigValidator.generateAgentModelFromClass(
@@ -234,8 +238,9 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                     .get("datasource")
                     .setDescription(
                             "Resource id. The target resource must be type: 'datasource' or 'vector-database' and "
-                            + "service: '"
-                            + service + "'.");
+                                    + "service: '"
+                                    + service
+                                    + "'.");
             value.setType(VECTOR_DB_SINK);
             result.put(VECTOR_DB_SINK + "_" + service, value);
         }
@@ -244,7 +249,6 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @SneakyThrows
     private static AgentConfigurationModel deepCopy(AgentConfigurationModel instance) {
-        return MAPPER.readValue(
-                MAPPER.writeValueAsBytes(instance), AgentConfigurationModel.class);
+        return MAPPER.readValue(MAPPER.writeValueAsBytes(instance), AgentConfigurationModel.class);
     }
 }

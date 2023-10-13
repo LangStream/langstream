@@ -136,7 +136,7 @@ class OpenSearchDataSourceTest {
 
             writer.upsert(record, Map.of()).get();
 
-            final List<Map<String, Object>> result =
+            List<Map<String, Object>> result =
                     writer.getDataSource()
                             .fetchData(
                                     """
@@ -154,10 +154,48 @@ class OpenSearchDataSourceTest {
             log.info("result: {}", result);
 
             assertEquals(1, result.size());
-            assertEquals("{\"myid\":\"xx\"}", result.get(0).get("id"));
+            final String id = "{\"myid\":\"xx\"}";
+            assertEquals(id, result.get(0).get("id"));
             assertEquals(1, ((Map) result.get(0).get("document")).get("chunk_id"));
             assertEquals("test-index-000", result.get(0).get("index"));
             assertTrue(((Number) result.get(0).get("score")).floatValue() > 0.0f);
+
+
+            result = writer.getDataSource()
+                    .fetchData(
+                            """
+                    {
+                        "index": "test-index-000",
+                        "query": {
+                            "ids": {
+                                "values": [?]
+                            }
+
+                        }
+                    }
+                    """,
+                            List.of(id));
+            assertEquals(1, result.size());
+            writer.upsert(SimpleRecord.of("{\"name\": \"{\\\"myid\\\":\\\"xx\\\"}\", \"chunk_id\": 1}", null), Map.of()).get();
+
+            result = writer.getDataSource()
+                    .fetchData(
+                            """
+                    {
+                        "index": "test-index-000",
+                        "query": {
+                            "ids": {
+                                "values": [?]
+                            }
+
+                        }
+                    }
+                    """,
+                            List.of(id));
+
+            assertEquals(0, result.size());
+
+
         }
     }
 

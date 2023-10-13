@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
 import org.apache.commons.io.input.Tailer;
@@ -341,13 +342,18 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                         .redirectErrorStream(true)
                         .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
-        Executors.newSingleThreadExecutor().execute(() -> tailLogSysOut(outputLog));
+        CompletableFuture.runAsync(() -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
 
         if (startUI) {
             Executors.newSingleThreadExecutor()
                     .execute(() -> startUI(tenant, applicationId, outputLog, process));
         }
-        process.waitFor();
+        final int exited = process.waitFor();
+        if (exited != 0) {
+            // wait for the log to be printed
+            Thread.sleep(1000);
+            throw new RuntimeException("Process exited with code " + exited);
+        }
     }
 
     private void startUI(String tenant, String applicationId, Path outputLog, Process process) {

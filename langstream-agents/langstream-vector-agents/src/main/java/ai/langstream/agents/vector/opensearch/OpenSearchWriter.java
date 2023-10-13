@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
+import org.opensearch.client.opensearch.core.bulk.DeleteOperation;
 import org.opensearch.client.opensearch.core.bulk.IndexOperation;
 
 @Slf4j
@@ -142,19 +144,33 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                     List<BulkOperation> bulkOps = new ArrayList<>();
 
                                     for (OpenSearchRecord record : records) {
-                                        log.info(
-                                                "indexing document {} with id {} on index {}",
-                                                record.document(),
-                                                record.id(),
-                                                indexName);
-                                        final IndexOperation<Object> request =
-                                                new IndexOperation.Builder<>()
-                                                        .index(indexName)
-                                                        .document(record.document())
-                                                        .id(record.id())
-                                                        .build();
-                                        final BulkOperation bulkOp =
-                                                new BulkOperation.Builder().index(request).build();
+                                        boolean delete = record.document() == null;
+                                        final BulkOperation bulkOp;
+                                        if (!delete) {
+                                            log.info(
+                                                    "indexing document {} with id {} on index {}",
+                                                    record.document(),
+                                                    record.id(),
+                                                    indexName);
+                                            final IndexOperation<Object> request =
+                                                    new IndexOperation.Builder<>()
+                                                            .index(indexName)
+                                                            .document(record.document())
+                                                            .id(record.id())
+                                                            .build();
+                                            bulkOp = new BulkOperation.Builder().index(request).build();
+                                        } else {
+                                            log.info(
+                                                    "deleting document with id {} on index {}",
+                                                    record.id(),
+                                                    indexName);
+                                            final DeleteOperation request =
+                                                    new DeleteOperation.Builder()
+                                                            .index(indexName)
+                                                            .id(record.id())
+                                                            .build();
+                                            bulkOp = new BulkOperation.Builder().delete(request).build();
+                                        }
                                         bulkOps.add(bulkOp);
                                     }
 
@@ -213,19 +229,18 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                     boolean failures = false;
                                     for (BulkResponseItem item : response.items()) {
                                         if (item.error() != null) {
+                                            String errorString = item.error().type() +  " - " + item.error().reason();;
                                             log.error(
                                                     "Error indexing document {} on index {}: {}",
                                                     item.id(),
                                                     indexName,
-                                                    item.error());
+                                                    errorString);
                                             failures = true;
                                             records.get(itemIndex++)
                                                     .completableFuture()
                                                     .completeExceptionally(
                                                             new RuntimeException(
-                                                                    "Error indexing document: "
-                                                                            + item.error()
-                                                                                    .toString()));
+                                                                    "Error indexing document: " + errorString));
                                         } else {
                                             records.get(itemIndex++)
                                                     .completableFuture()
@@ -280,26 +295,36 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
                 TransformContext transformContext = recordToTransformContext(record, true);
+                Map<String, Object> documentJson;
 
-                Map<String, Object> documentJson = new HashMap<>();
-                fields.forEach(
-                        (name, evaluator) -> {
-                            Object value = evaluator.evaluate(transformContext);
-                            if (log.isDebugEnabled()) {
-                                log.debug(
-                                        "setting value {} ({}) for field {}",
-                                        value,
-                                        value.getClass(),
-                                        name);
-                            }
-                            documentJson.put(name, value);
-                        });
+                if (record.value() != null) {
+                    documentJson = new HashMap<>();
+                    fields.forEach(
+                            (name, evaluator) -> {
+                                Object value = evaluator.evaluate(transformContext);
+                                if (log.isDebugEnabled()) {
+                                    log.debug(
+                                            "setting value {} ({}) for field {}",
+                                            value,
+                                            value.getClass(),
+                                            name);
+                                }
+                                documentJson.put(name, value);
+                            });
+                } else {
+                    documentJson = null;
+                }
 
                 final String documentId;
                 if (id == null) {
                     documentId = null;
                 } else {
-                    documentId = id.evaluate(transformContext).toString();
+                    final Object evaluate = id.evaluate(transformContext);
+                    documentId = evaluate == null ? null : evaluate.toString();
+                }
+                if (documentJson == null && documentId == null) {
+                    log.info("skipping null document and id, was record: {}", record);
+                    return CompletableFuture.completedFuture(null);
                 }
                 batchExecutor.add(new OpenSearchRecord(documentId, documentJson, handle));
             } catch (Exception e) {
@@ -310,7 +335,6 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
 
         record OpenSearchRecord(
                 String id, Map<String, Object> document, CompletableFuture<?> completableFuture) {}
-        ;
     }
 
     private static JstlEvaluator buildEvaluator(

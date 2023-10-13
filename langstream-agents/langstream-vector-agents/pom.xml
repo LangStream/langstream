@@ -30,6 +30,17 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>2.20.162</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -84,7 +95,6 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>opensearch</artifactId>
-      <version>2.20.162</version> <!-- Use the latest version -->
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>

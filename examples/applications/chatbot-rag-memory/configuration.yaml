@@ -16,25 +16,48 @@
 #
 
 configuration:
+  defaults:
+    globals:
+      assistantType: "LangStream project"
+      vectorKeyspace: "chatbot"
+      vectorTable: "langstreamdocs"
+      chatTable: "lsdocshistory"
+      vectorIndex: "annlangstream"
+      chunksTopic: "langstream-chunks"
+      questionsTopic: "langstream-questions"
+      answersTopic: "langstream-answers"
+      chatModelName: "gpt-35-turbo"
+      logTopic: "langstream-logs"
+      seedUrls: 
+        - "https://docs.langstream.ai/"
+        - "https://langstream.ai/"
+      allowedUrls: 
+        - "https://docs.langstream.ai/"
+        - "https://langstream.ai/"
+      forbiddenPaths: []
+      vectorDb: ""
   resources:
   - type: "open-ai-configuration"
     name: "OpenAI Azure configuration"
     configuration:
-      url: "{{ secrets.open-ai.url }}"
-      access-key: "{{ secrets.open-ai.access-key }}"
+      url: "${secrets.open-ai.url}"
+      access-key: "${secrets.open-ai.access-key}"
       provider: "azure"
   - type: "datasource"
     name: "AstraDatasource"
     configuration:
-      service: "astra"
-      clientId: "{{{ secrets.astra.clientId }}}"
-      secret: "{{{ secrets.astra.secret }}}"
-      token: "{{{ secrets.astra.token }}}"
-      database: "{{{ secrets.astra.database }}}"
+        service: "astra"
+        clientId: "${secrets.astra.clientId}"
+        secret: "${secrets.astra.secret}"
+        token: "${secrets.astra.token}"
+        database: "${secrets.astra.database}"
+        environment: "${secrets.astra.environment}"
   - type: "vector-database"
     name: "AstraVector"
     configuration:
-      service: "astra"
-      username: "{{{ secrets.astra.username }}}"
-      password: "{{{ secrets.astra.password }}}"
-      secureBundle: "{{{ secrets.astra.secureBundle }}}"
+        service: "astra"
+        clientId: "${secrets.astra.clientId}"
+        secret: "${secrets.astra.secret}"
+        token: "${secrets.astra.token}"
+        database: "${secrets.astra.database}"
+        environment: "${secrets.astra.environment}"

@@ -30,6 +30,17 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>2.20.162</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -77,6 +88,15 @@
       <version>9.3.0</version>
     </dependency>
     <dependency>
+      <groupId>org.opensearch.client</groupId>
+      <artifactId>opensearch-java</artifactId>
+      <version>2.6.0</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>opensearch</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
@@ -108,6 +128,12 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>cassandra</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.opensearch</groupId>
+        <artifactId>opensearch-testcontainers</artifactId>
+        <version>2.0.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

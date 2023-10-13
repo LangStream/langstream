@@ -473,7 +473,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                              "defaultValue" : "text-embedding-ada-002"
                            },
                            "model-url" : {
-                             "description" : "URL of the model to use. (HuggingFace only). The default is computed from the model: \\"djl://ai.djl.huggingface.pytorch{model}\\"",
+                             "description" : "URL of the model to use. (HuggingFace only). The default is computed from the model: \\"djl://ai.djl.huggingface.pytorch/{model}\\"",
                              "required" : false,
                              "type" : "string"
                            },

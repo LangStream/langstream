@@ -32,7 +32,7 @@ public class ShortBytesConverter implements BytesConverter<Short> {
             return null;
         }
         if (bytes.length != 2) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by ShortBytesConverter is not 2");
         }
         short value = 0;

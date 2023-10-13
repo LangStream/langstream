@@ -15,8 +15,8 @@
  */
 package ai.langstream.ai.agents.commons.jstl.converter;
 
-public class SchemaSerializationException extends RuntimeException {
-    public SchemaSerializationException(String message) {
+public class SerializationException extends RuntimeException {
+    public SerializationException(String message) {
         super(message);
     }
 }

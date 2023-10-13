@@ -160,10 +160,10 @@ class OpenSearchDataSourceTest {
             assertEquals("test-index-000", result.get(0).get("index"));
             assertTrue(((Number) result.get(0).get("score")).floatValue() > 0.0f);
 
-
-            result = writer.getDataSource()
-                    .fetchData(
-                            """
+            result =
+                    writer.getDataSource()
+                            .fetchData(
+                                    """
                     {
                         "index": "test-index-000",
                         "query": {
@@ -174,13 +174,19 @@ class OpenSearchDataSourceTest {
                         }
                     }
                     """,
-                            List.of(id));
+                                    List.of(id));
             assertEquals(1, result.size());
-            writer.upsert(SimpleRecord.of("{\"name\": \"{\\\"myid\\\":\\\"xx\\\"}\", \"chunk_id\": 1}", null), Map.of()).get();
+            writer.upsert(
+                            SimpleRecord.of(
+                                    "{\"name\": \"{\\\"myid\\\":\\\"xx\\\"}\", \"chunk_id\": 1}",
+                                    null),
+                            Map.of())
+                    .get();
 
-            result = writer.getDataSource()
-                    .fetchData(
-                            """
+            result =
+                    writer.getDataSource()
+                            .fetchData(
+                                    """
                     {
                         "index": "test-index-000",
                         "query": {
@@ -191,11 +197,9 @@ class OpenSearchDataSourceTest {
                         }
                     }
                     """,
-                            List.of(id));
+                                    List.of(id));
 
             assertEquals(0, result.size());
-
-
         }
     }
 

@@ -342,7 +342,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                         .redirectErrorStream(true)
                         .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
-        CompletableFuture.runAsync(() -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
+        CompletableFuture.runAsync(
+                () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
 
         if (startUI) {
             Executors.newSingleThreadExecutor()

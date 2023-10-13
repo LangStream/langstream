@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -158,7 +157,10 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                                             .document(record.document())
                                                             .id(record.id())
                                                             .build();
-                                            bulkOp = new BulkOperation.Builder().index(request).build();
+                                            bulkOp =
+                                                    new BulkOperation.Builder()
+                                                            .index(request)
+                                                            .build();
                                         } else {
                                             log.info(
                                                     "deleting document with id {} on index {}",
@@ -169,7 +171,10 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                                             .index(indexName)
                                                             .id(record.id())
                                                             .build();
-                                            bulkOp = new BulkOperation.Builder().delete(request).build();
+                                            bulkOp =
+                                                    new BulkOperation.Builder()
+                                                            .delete(request)
+                                                            .build();
                                         }
                                         bulkOps.add(bulkOp);
                                     }
@@ -229,7 +234,11 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                     boolean failures = false;
                                     for (BulkResponseItem item : response.items()) {
                                         if (item.error() != null) {
-                                            String errorString = item.error().type() +  " - " + item.error().reason();;
+                                            String errorString =
+                                                    item.error().type()
+                                                            + " - "
+                                                            + item.error().reason();
+                                            ;
                                             log.error(
                                                     "Error indexing document {} on index {}: {}",
                                                     item.id(),
@@ -240,7 +249,8 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                                                     .completableFuture()
                                                     .completeExceptionally(
                                                             new RuntimeException(
-                                                                    "Error indexing document: " + errorString));
+                                                                    "Error indexing document: "
+                                                                            + errorString));
                                         } else {
                                             records.get(itemIndex++)
                                                     .completableFuture()

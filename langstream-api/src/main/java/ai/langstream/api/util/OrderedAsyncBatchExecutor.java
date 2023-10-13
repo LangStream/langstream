@@ -92,9 +92,6 @@ public class OrderedAsyncBatchExecutor<T> {
     }
 
     private Bucket bucket(int hash) {
-        if (numBuckets == 1) {
-            return buckets[0];
-        }
         return buckets[Math.abs(hash % numBuckets)];
     }
 

@@ -4,4 +4,3 @@ astra-keyspace
 milvus-collection
 jdbc-table
 solr-collection
-opensearch-index

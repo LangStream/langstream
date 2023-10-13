@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 public interface AgentSink extends AgentCode {
 
     /**
-     * The agent processes records and typically writes to an external service.
+     * The agent processes records and typically writes then to an external service.
      *
      * @param record the record to write
      * @throws Exception if the agent fails to process the records

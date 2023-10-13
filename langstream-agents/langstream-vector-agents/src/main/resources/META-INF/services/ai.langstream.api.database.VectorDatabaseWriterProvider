@@ -3,4 +3,3 @@ ai.langstream.agents.vector.cassandra.CassandraWriter
 ai.langstream.agents.vector.milvus.MilvusWriter
 ai.langstream.agents.vector.jdbc.JdbcWriter
 ai.langstream.agents.vector.solr.SolrWriter
-ai.langstream.agents.vector.opensearch.OpenSearchWriter

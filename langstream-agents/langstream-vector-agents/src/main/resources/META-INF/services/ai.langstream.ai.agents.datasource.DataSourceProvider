@@ -1,4 +1,3 @@
 ai.langstream.agents.vector.pinecone.PineconeDataSource
 ai.langstream.agents.vector.milvus.MilvusDataSource
 ai.langstream.agents.vector.solr.SolrDataSource
-ai.langstream.agents.vector.opensearch.OpenSearchDataSource

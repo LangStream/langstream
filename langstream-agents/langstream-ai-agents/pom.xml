@@ -173,7 +173,8 @@
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-native-cpu</artifactId>
       <!--classifier>osx-aarch64</classifier-->
-      <classifier>osx-x86_64</classifier>
+      <!--<classifier>osx-x86_64</classifier>-->
+      <classifier>linux-x86_64</classifier>
     </dependency>
     <dependency>
       <groupId>ai.djl.pytorch</groupId>

@@ -17,7 +17,6 @@ package ai.langstream.runtime.impl.k8s.agents.vectors;
 
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
-import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.agents.QueryVectorDBAgentProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -39,7 +38,6 @@ public abstract class CassandraVectorDatabaseSinkConfig
         public Class getAgentConfigModelClass() {
             return ApacheCassandraVectorDatabaseSinkConfig.class;
         }
-
     }
 
     @AgentConfig(
@@ -49,8 +47,7 @@ public abstract class CassandraVectorDatabaseSinkConfig
     Writes data to DataStax Astra service.
     All the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html
     """)
-    public static class AstraVectorDatabaseSinkConfig
-            extends CassandraVectorDatabaseSinkConfig {
+    public static class AstraVectorDatabaseSinkConfig extends CassandraVectorDatabaseSinkConfig {
 
         @Override
         public Class getAgentConfigModelClass() {
@@ -60,10 +57,7 @@ public abstract class CassandraVectorDatabaseSinkConfig
 
     public static final ApacheCassandraVectorDatabaseSinkConfig CASSANDRA =
             new ApacheCassandraVectorDatabaseSinkConfig();
-    public static final AstraVectorDatabaseSinkConfig ASTRA =
-            new AstraVectorDatabaseSinkConfig();
-
-
+    public static final AstraVectorDatabaseSinkConfig ASTRA = new AstraVectorDatabaseSinkConfig();
 
     @Override
     public boolean isAgentConfigModelAllowUnknownProperties() {

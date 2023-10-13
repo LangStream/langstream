@@ -23,7 +23,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
@@ -36,6 +35,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarTopic;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,8 +51,10 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
@@ -100,7 +102,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            final TopicConsumer consumer = createConsumer(null, streamingCluster, configuration);
             switch (initialPosition.position()) {
                 case Earliest -> copy.put(
                         "subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
@@ -109,33 +110,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 default -> throw new IllegalArgumentException(
                         "Unsupported initial position: " + initialPosition.position());
             }
-            return new TopicReader() {
-                @Override
-                public void start() throws Exception {
-                    consumer.start();
-                }
-
-                @Override
-                public void close() throws Exception {
-                    consumer.close();
-                }
-
-                @Override
-                public TopicReadResult read() throws Exception {
-                    final List<Record> records = consumer.read();
-                    return new TopicReadResult() {
-                        @Override
-                        public List<Record> records() {
-                            return records;
-                        }
-
-                        @Override
-                        public OffsetPerPartition partitionsOffsets() {
-                            return null;
-                        }
-                    };
-                }
-            };
+            return new PulsarTopicReader(copy, initialPosition);
         }
 
         @Override
@@ -153,7 +128,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            return new PulsarTopicProducer(copy);
+            return new PulsarTopicProducer<>(copy);
         }
 
         @Override
@@ -382,6 +357,83 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
         }
 
+        private class PulsarTopicReader implements TopicReader {
+            private final Map<String, Object> configuration;
+            private final MessageId startMessageId;
+
+            private Reader<GenericRecord> reader;
+
+            private PulsarTopicReader(
+                    Map<String, Object> configuration, TopicOffsetPosition initialPosition) {
+                this.configuration = configuration;
+                this.startMessageId =
+                        switch (initialPosition.position()) {
+                            case Earliest -> MessageId.earliest;
+                            case Latest -> MessageId.latest;
+                            case Absolute -> {
+                                try {
+                                    yield MessageId.fromByteArray(initialPosition.offset());
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        };
+            }
+
+            @Override
+            public void start() throws Exception {
+                String topic = (String) configuration.remove("topic");
+                reader =
+                        client.newReader(Schema.AUTO_CONSUME())
+                                .topic(topic)
+                                .startMessageId(this.startMessageId)
+                                .loadConf(configuration)
+                                .create();
+            }
+
+            @Override
+            public void close() throws Exception {
+                if (reader != null) {
+                    reader.close();
+                }
+            }
+
+            @Override
+            public TopicReadResult read() throws Exception {
+                Message<GenericRecord> receive = reader.readNext(1, TimeUnit.SECONDS);
+                List<Record> records;
+                byte[] offset;
+                if (receive != null) {
+                    Object key = receive.getKey();
+                    Object value = receive.getValue().getNativeObject();
+                    if (value instanceof KeyValue<?, ?> kv) {
+                        key = kv.getKey();
+                        value = kv.getValue();
+                    }
+
+                    final Object finalKey = key;
+                    final Object finalValue = value;
+                    log.info("Received message: {}", receive);
+                    records = List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
+                    offset = receive.getMessageId().toByteArray();
+                } else {
+                    records = List.of();
+                    offset = null;
+                }
+                return new TopicReadResult() {
+                    @Override
+                    public List<Record> records() {
+                        return records;
+                    }
+
+                    @Override
+                    public byte[] offset() {
+                        return offset;
+                    }
+                };
+            }
+        }
+
         private class PulsarTopicConsumer implements TopicConsumer {
 
             private final Map<String, Object> configuration;
@@ -469,7 +521,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String topic = (String) configuration.remove("topic");
                 schema = (Schema<K>) configuration.remove("schema");
                 if (schema == null) {
-                    schema = (Schema) Schema.BYTES;
+                    schema = (Schema) Schema.STRING;
                 }
                 producer = client.newProducer(schema).topic(topic).loadConf(configuration).create();
             }

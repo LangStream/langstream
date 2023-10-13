@@ -37,7 +37,6 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +48,7 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -137,18 +137,17 @@ class PulsarRunnerDockerTest {
                         PulsarClient.builder()
                                 .serviceUrl(pulsarContainer.getPulsarBrokerUrl())
                                 .build();
-                Producer<byte[]> producer = client.newProducer().topic("input-topic").create();
-                org.apache.pulsar.client.api.Consumer<byte[]> consumer =
-                        client.newConsumer()
+                Producer<String> producer =
+                        client.newProducer(Schema.STRING).topic("input-topic").create();
+                org.apache.pulsar.client.api.Consumer<String> consumer =
+                        client.newConsumer(Schema.STRING)
                                 .topic("output-topic")
                                 .subscriptionName("test")
                                 .subscribe()) {
 
             // produce one message to the input-topic
             producer.newMessage()
-                    .value(
-                            "{\"name\": \"some name\", \"description\": \"some description\"}"
-                                    .getBytes(StandardCharsets.UTF_8))
+                    .value("{\"name\": \"some name\", \"description\": \"some description\"}")
                     .key("key")
                     .properties(Map.of("header-key", "header-value"))
                     .send();
@@ -166,10 +165,8 @@ class PulsarRunnerDockerTest {
                     narFileHandler);
 
             // receive one message from the output-topic (written by the PodJavaRuntime)
-            Message<byte[]> record = consumer.receive();
-            assertEquals(
-                    "{\"name\":\"some name\"}",
-                    new String(record.getValue(), StandardCharsets.UTF_8));
+            Message<String> record = consumer.receive();
+            assertEquals("{\"name\":\"some name\"}", record.getValue());
             assertEquals("header-value", record.getProperties().get("header-key"));
         }
     }

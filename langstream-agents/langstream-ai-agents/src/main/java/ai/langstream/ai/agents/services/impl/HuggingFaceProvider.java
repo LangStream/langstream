@@ -80,11 +80,11 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
         public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration)
                 throws Exception {
             String provider =
-                    additionalConfiguration
+                    providerConfiguration
                             .getOrDefault("provider", ComputeProvider.API.name())
                             .toString()
                             .toUpperCase();
-            String modelUrl = (String) additionalConfiguration.get("modelUrl");
+            String modelUrl = (String) additionalConfiguration.get("model-url");
             String model = (String) additionalConfiguration.get("model");
             Map<String, String> options = (Map) additionalConfiguration.get("options");
             Map<String, String> arguments = (Map) additionalConfiguration.get("arguments");
@@ -98,7 +98,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                     if (model != null && !model.isEmpty()) {
                         builder.modelName(model);
                         if (modelUrl == null || modelUrl.isEmpty()) {
-                            modelUrl = "djl://ai.djl.huggingface.pytorch" + model;
+                            modelUrl = "djl://ai.djl.huggingface.pytorch/" + model;
                             log.info("Automatically computed model URL {}", modelUrl);
                         }
                     }

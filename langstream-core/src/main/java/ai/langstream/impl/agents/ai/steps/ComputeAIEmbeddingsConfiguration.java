@@ -59,12 +59,6 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
                                     aiServiceConfigurationGenerator);
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
-
-                    // in the user config we use the pascal but the downstream impl requires snake
-                    final Object modelUrl = step.remove("modelUrl");
-                    if (modelUrl != null) {
-                        step.put("model-url", modelUrl);
-                    }
                 }
             };
 
@@ -153,7 +147,8 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
-                            URL of the model to use. (HuggingFace only). The default is computed from the model: "djl://ai.djl.huggingface.pytorch{model}"
+                            URL of the model to use. (HuggingFace only). The default is computed from the model: "djl://ai.djl.huggingface.pytorch/{model}"
                              """)
+    @JsonProperty("model-url")
     private String modelUrl;
 }

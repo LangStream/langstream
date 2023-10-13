@@ -32,7 +32,7 @@ pipeline:
     output: "output-topic"
     configuration:
       model: "${secrets.hugging-face.embeddings-model}" # This is the id of the model
-      modelUrl: "${secrets.hugging-face.embeddings-model-url}" # This is the URL of the repository containing the model
+      model-url: "${secrets.hugging-face.embeddings-model-url}" # This is the URL of the repository containing the model
       embeddings-field: "value.embeddings"
       text: "{{ value.question }}"
       batch-size: 10

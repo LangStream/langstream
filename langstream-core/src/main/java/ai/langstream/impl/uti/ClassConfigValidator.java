@@ -260,6 +260,10 @@ public class ClassConfigValidator {
         return "Found error on %s. Property '%s' %s".formatted(entityRef.ref(), property, message);
     }
 
+    public static String formatErrString(EntityRef entityRef, String message) {
+        return "Found error on %s. %s".formatted(entityRef.ref(), message);
+    }
+
     private static void validateProperties(
             EntityRef entityRef,
             String parentProp,

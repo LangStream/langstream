@@ -239,7 +239,11 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyResources(ApplicationModel model, Map<String, Object> application) {
-        ((Map<String, Object>) asMap(application.get("resources")))
+        final Map<String, Object> resources = asMap(application.get("resources"));
+        if (resources == null) {
+            return;
+        }
+        resources
                 .entrySet()
                 .forEach(
                         entry -> {
@@ -261,7 +265,11 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyPipelines(ApplicationModel model, Map<String, Object> application) {
-        asList(application.get("modules"))
+        final List modules = asList(application.get("modules"));
+        if (modules == null) {
+            return;
+        }
+        modules
                 .forEach(
                         module -> {
                             applyTopics(model, asMap(module));
@@ -367,7 +375,11 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyGateway(ApplicationModel model, Map<String, Object> application) {
-        final List<Object> gateways = asList(asMap(application.get("gateways")).get("gateways"));
+        final Map gatewaysObject = asMap(application.get("gateways"));
+        if (gatewaysObject == null) {
+            return;
+        }
+        final List<Object> gateways = asList(gatewaysObject.get("gateways"));
         if (gateways != null) {
             gateways.forEach(
                     e -> {
@@ -410,16 +422,10 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static Map asMap(Object e) {
-        if (e == null) {
-            return Map.of();
-        }
         return mapper.convertValue(e, Map.class);
     }
 
     private static List asList(Object e) {
-        if (e == null) {
-            return List.of();
-        }
         return mapper.convertValue(e, List.class);
     }
 

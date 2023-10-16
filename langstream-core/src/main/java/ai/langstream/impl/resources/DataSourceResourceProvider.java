@@ -18,6 +18,7 @@ package ai.langstream.impl.resources;
 import ai.langstream.impl.resources.datasource.AstraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.CassandraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.JDBCDatasourceConfig;
+import ai.langstream.impl.resources.datasource.OpenSearchDatasourceConfig;
 import java.util.Map;
 
 public class DataSourceResourceProvider extends BaseDataSourceResourceProvider {
@@ -25,6 +26,7 @@ public class DataSourceResourceProvider extends BaseDataSourceResourceProvider {
     protected static final String SERVICE_ASTRA = "astra";
     protected static final String SERVICE_CASSANDRA = "cassandra";
     protected static final String SERVICE_JDBC = "jdbc";
+    protected static final String SERVICE_OPENSEARCH = "opensearch";
 
     public DataSourceResourceProvider() {
         super(
@@ -32,6 +34,7 @@ public class DataSourceResourceProvider extends BaseDataSourceResourceProvider {
                 Map.of(
                         SERVICE_ASTRA, AstraDatasourceConfig.CONFIG,
                         SERVICE_CASSANDRA, CassandraDatasourceConfig.CONFIG,
-                        SERVICE_JDBC, JDBCDatasourceConfig.CONFIG));
+                        SERVICE_JDBC, JDBCDatasourceConfig.CONFIG,
+                        SERVICE_OPENSEARCH, OpenSearchDatasourceConfig.CONFIG));
     }
 }

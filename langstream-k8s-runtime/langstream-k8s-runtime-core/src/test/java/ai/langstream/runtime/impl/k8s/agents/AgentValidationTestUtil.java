@@ -32,12 +32,14 @@ public class AgentValidationTestUtil {
         validate(pipeline, null, expectErrMessage);
     }
 
-    public static void validate(String pipeline, String configuration, String expectErrMessage) throws Exception {
+    public static void validate(String pipeline, String configuration, String expectErrMessage)
+            throws Exception {
         if (expectErrMessage != null && expectErrMessage.isBlank()) {
             throw new IllegalArgumentException("expectErrMessage cannot be blank");
         }
         if (configuration == null) {
-            configuration = """
+            configuration =
+                    """
                     configuration:
                         resources:
                           - type: "datasource"

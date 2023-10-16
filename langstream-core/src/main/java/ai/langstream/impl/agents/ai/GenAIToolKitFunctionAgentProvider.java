@@ -228,11 +228,12 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 }
             }
             if (!found) {
-                final String errString = ClassConfigValidator.formatErrString(
-                        new ClassConfigValidator.AgentEntityRef(agentConfiguration),
-                        "No ai service resource found in application configuration. One of " + AI_SERVICES.stream()
-                                .collect(
-                                        Collectors.joining(", ")) + " must be defined.");
+                final String errString =
+                        ClassConfigValidator.formatErrString(
+                                new ClassConfigValidator.AgentEntityRef(agentConfiguration),
+                                "No ai service resource found in application configuration. One of "
+                                        + AI_SERVICES.stream().collect(Collectors.joining(", "))
+                                        + " must be defined.");
                 throw new IllegalArgumentException(errString);
             }
         }

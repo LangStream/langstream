@@ -97,4 +97,10 @@ class MermaidAppDiagramGeneratorTest {
                         + "linkStyle 13 stroke:#F4D03F\n",
                 result);
     }
+
+    @Test
+    void generateNoData() throws Exception {
+        assertNotNull(MermaidAppDiagramGenerator.generate("{\"application\": {}}"));
+        assertNotNull(MermaidAppDiagramGenerator.generate("{\"application\": {\"gateways\": {}}}"));
+    }
 }

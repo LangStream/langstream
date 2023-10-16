@@ -29,7 +29,8 @@ import lombok.Data;
 public class JDBCVectorDatabaseWriterConfig
         extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final JDBCVectorDatabaseWriterConfig INSTANCE = new JDBCVectorDatabaseWriterConfig();
+    public static final JDBCVectorDatabaseWriterConfig INSTANCE =
+            new JDBCVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {

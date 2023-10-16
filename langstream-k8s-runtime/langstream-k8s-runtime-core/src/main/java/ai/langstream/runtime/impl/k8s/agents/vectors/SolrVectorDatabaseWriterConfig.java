@@ -33,7 +33,8 @@ import lombok.Data;
 public class SolrVectorDatabaseWriterConfig
         extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final SolrVectorDatabaseWriterConfig INSTANCE = new SolrVectorDatabaseWriterConfig();
+    public static final SolrVectorDatabaseWriterConfig INSTANCE =
+            new SolrVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {

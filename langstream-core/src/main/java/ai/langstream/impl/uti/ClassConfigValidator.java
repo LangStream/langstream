@@ -150,7 +150,8 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        validateModelFromClass(new AgentEntityRef(agentConfiguration), modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(
+                new AgentEntityRef(agentConfiguration), modelClazz, asMap, allowUnknownProperties);
     }
 
     @AllArgsConstructor
@@ -199,11 +200,11 @@ public class ClassConfigValidator {
         @Override
         public String ref() {
             return "agent configuration (agent: '%s', type: '%s')"
-                                    .formatted(
-                                            agentConfiguration.getName() == null
-                                                    ? agentConfiguration.getId()
-                                                    : agentConfiguration.getName(),
-                                            agentConfiguration.getType());
+                    .formatted(
+                            agentConfiguration.getName() == null
+                                    ? agentConfiguration.getId()
+                                    : agentConfiguration.getName(),
+                            agentConfiguration.getType());
         }
     }
 

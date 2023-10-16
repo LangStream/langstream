@@ -47,7 +47,8 @@ public abstract class CassandraVectorDatabaseWriterConfig
     Writes data to DataStax Astra service.
     All the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html
     """)
-    public static class AstraVectorDatabaseWriterConfig extends CassandraVectorDatabaseWriterConfig {
+    public static class AstraVectorDatabaseWriterConfig
+            extends CassandraVectorDatabaseWriterConfig {
 
         @Override
         public Class getAgentConfigModelClass() {
@@ -57,7 +58,8 @@ public abstract class CassandraVectorDatabaseWriterConfig
 
     public static final ApacheCassandraVectorDatabaseWriterConfig CASSANDRA =
             new ApacheCassandraVectorDatabaseWriterConfig();
-    public static final AstraVectorDatabaseWriterConfig ASTRA = new AstraVectorDatabaseWriterConfig();
+    public static final AstraVectorDatabaseWriterConfig ASTRA =
+            new AstraVectorDatabaseWriterConfig();
 
     @Override
     public boolean isAgentConfigModelAllowUnknownProperties() {

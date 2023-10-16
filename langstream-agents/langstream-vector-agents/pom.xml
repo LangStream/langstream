@@ -143,7 +143,6 @@
         <groupId>${project.groupId}</groupId>
         <artifactId>nifi-maven-plugin</artifactId>
         <version>${project.version}</version>
-        <extensions>true</extensions>
         <configuration>
           <classifier>nar</classifier>
           <skipDocGeneration>true</skipDocGeneration>

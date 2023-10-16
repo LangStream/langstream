@@ -23,17 +23,21 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-@AgentConfig(name = "JDBC", description = """
-    Writes data to any JDBC compatible database.
+@AgentConfig(
+        name = "Apache Solr",
+        description =
+                """
+    Writes data to Apache Solr service.
+    The collection-name is configured at datasource level.
 """)
-public class JDBCVectorDatabaseSinkConfig
-        extends QueryVectorDBAgentProvider.VectorDatabaseSinkConfig {
+public class SolrVectorDatabaseWriterConfig
+        extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final JDBCVectorDatabaseSinkConfig INSTANCE = new JDBCVectorDatabaseSinkConfig();
+    public static final SolrVectorDatabaseWriterConfig INSTANCE = new SolrVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {
-        return JDBCVectorDatabaseSinkConfig.class;
+        return SolrVectorDatabaseWriterConfig.class;
     }
 
     @Override
@@ -42,13 +46,7 @@ public class JDBCVectorDatabaseSinkConfig
     }
 
     @Data
-    public static class TableField {
-
-        @ConfigProperty(
-                description = "Is this field part of the primary key?",
-                defaultValue = "false")
-        @JsonProperty("primary-key")
-        boolean primaryKey;
+    public static class SolrField {
 
         @ConfigProperty(description = "Field name", required = true)
         String name;
@@ -59,12 +57,10 @@ public class JDBCVectorDatabaseSinkConfig
         String expression;
     }
 
-    @ConfigProperty(
-            description = "The name of the table to write to. The table must already exist.",
-            required = true)
-    @JsonProperty("table-name")
-    String table;
+    @ConfigProperty(description = "Fields definition.", required = true)
+    List<SolrField> fields;
 
-    @ConfigProperty(description = "Fields of the table to write to.", required = true)
-    List<TableField> fields;
+    @ConfigProperty(description = "Commit within option", defaultValue = "1000")
+    @JsonProperty("commit-within")
+    int commitWithin;
 }

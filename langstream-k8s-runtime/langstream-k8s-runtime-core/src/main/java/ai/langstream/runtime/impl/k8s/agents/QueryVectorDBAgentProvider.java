@@ -31,12 +31,12 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import ai.langstream.runtime.impl.k8s.agents.vectors.CassandraVectorDatabaseSinkConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.JDBCVectorDatabaseSinkConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.MilvusVectorDatabaseSinkConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.OpenSearchVectorDatabaseSinkConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.PineconeVectorDatabaseSinkConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.SolrVectorDatabaseSinkConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.CassandraVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.JDBCVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.MilvusVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.OpenSearchVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.PineconeVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.SolrVectorDatabaseWriterConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,7 +55,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @Getter
     @Setter
-    public abstract static class VectorDatabaseSinkConfig {
+    public abstract static class VectorDatabaseWriterConfig {
         @ConfigProperty(
                 description =
                         """
@@ -71,16 +71,16 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     protected static final String QUERY_VECTOR_DB = "query-vector-db";
     protected static final String VECTOR_DB_SINK = "vector-db-sink";
-    protected static final Map<String, VectorDatabaseSinkConfig>
+    protected static final Map<String, VectorDatabaseWriterConfig>
             SUPPORTED_VECTOR_DB_SINK_DATASOURCES =
                     Map.of(
-                            "cassandra", CassandraVectorDatabaseSinkConfig.CASSANDRA,
-                            "astra", CassandraVectorDatabaseSinkConfig.ASTRA,
-                            "jdbc", JDBCVectorDatabaseSinkConfig.INSTANCE,
-                            "pinecone", PineconeVectorDatabaseSinkConfig.INSTANCE,
-                            "opensearch", OpenSearchVectorDatabaseSinkConfig.INSTANCE,
-                            "solr", SolrVectorDatabaseSinkConfig.INSTANCE,
-                            "milvus", MilvusVectorDatabaseSinkConfig.INSTANCE);
+                            "cassandra", CassandraVectorDatabaseWriterConfig.CASSANDRA,
+                            "astra", CassandraVectorDatabaseWriterConfig.ASTRA,
+                            "jdbc", JDBCVectorDatabaseWriterConfig.INSTANCE,
+                            "pinecone", PineconeVectorDatabaseWriterConfig.INSTANCE,
+                            "opensearch", OpenSearchVectorDatabaseWriterConfig.INSTANCE,
+                            "solr", SolrVectorDatabaseWriterConfig.INSTANCE,
+                            "milvus", MilvusVectorDatabaseWriterConfig.INSTANCE);
 
     public QueryVectorDBAgentProvider() {
         super(
@@ -137,7 +137,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                 return false;
             case VECTOR_DB_SINK:
                 {
-                    final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
+                    final VectorDatabaseWriterConfig vectorDatabaseSinkConfig =
                             SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
                     if (vectorDatabaseSinkConfig == null) {
                         throw new IllegalArgumentException(
@@ -159,7 +159,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                 return QueryVectorDBConfig.class;
             case VECTOR_DB_SINK:
                 {
-                    final VectorDatabaseSinkConfig vectorDatabaseSinkConfig =
+                    final VectorDatabaseWriterConfig vectorDatabaseSinkConfig =
                             SUPPORTED_VECTOR_DB_SINK_DATASOURCES.get(service);
                     if (vectorDatabaseSinkConfig == null) {
                         throw new IllegalArgumentException(
@@ -227,7 +227,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                 QUERY_VECTOR_DB,
                 ClassConfigValidator.generateAgentModelFromClass(QueryVectorDBConfig.class));
 
-        for (Map.Entry<String, VectorDatabaseSinkConfig> datasource :
+        for (Map.Entry<String, VectorDatabaseWriterConfig> datasource :
                 SUPPORTED_VECTOR_DB_SINK_DATASOURCES.entrySet()) {
             final String service = datasource.getKey();
             AgentConfigurationModel value =

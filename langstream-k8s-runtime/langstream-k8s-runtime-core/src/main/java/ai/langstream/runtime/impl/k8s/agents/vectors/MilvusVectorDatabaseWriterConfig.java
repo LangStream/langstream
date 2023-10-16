@@ -23,21 +23,18 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-@AgentConfig(
-        name = "Solr",
-        description =
-                """
-    Writes data to Solr service.
-    The collection-name is configured at datasource level.
+@AgentConfig(name = "Milvus", description = """
+    Writes data to Milvus/Zillis service.
 """)
-public class SolrVectorDatabaseSinkConfig
-        extends QueryVectorDBAgentProvider.VectorDatabaseSinkConfig {
+public class MilvusVectorDatabaseWriterConfig
+        extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final SolrVectorDatabaseSinkConfig INSTANCE = new SolrVectorDatabaseSinkConfig();
+    public static final MilvusVectorDatabaseWriterConfig INSTANCE =
+            new MilvusVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {
-        return SolrVectorDatabaseSinkConfig.class;
+        return MilvusVectorDatabaseWriterConfig.class;
     }
 
     @Override
@@ -46,7 +43,7 @@ public class SolrVectorDatabaseSinkConfig
     }
 
     @Data
-    public static class SolrField {
+    public static class MilvusField {
 
         @ConfigProperty(description = "Field name", required = true)
         String name;
@@ -58,9 +55,13 @@ public class SolrVectorDatabaseSinkConfig
     }
 
     @ConfigProperty(description = "Fields definition.", required = true)
-    List<SolrField> fields;
+    List<MilvusField> fields;
 
-    @ConfigProperty(description = "Commit within option", defaultValue = "1000")
-    @JsonProperty("commit-within")
-    int commitWithin;
+    @ConfigProperty(description = "Collection name")
+    @JsonProperty("collection-name")
+    String collectionName;
+
+    @ConfigProperty(description = "Collection name")
+    @JsonProperty("database-name")
+    String databaseName;
 }

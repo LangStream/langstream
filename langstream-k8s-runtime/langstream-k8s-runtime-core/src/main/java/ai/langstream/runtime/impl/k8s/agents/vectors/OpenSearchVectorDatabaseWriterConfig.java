@@ -26,15 +26,15 @@ import lombok.Data;
 @AgentConfig(
         name = "OpenSearch",
         description = "Writes data to OpenSearch or AWS OpenSearch serverless.")
-public class OpenSearchVectorDatabaseSinkConfig
-        extends QueryVectorDBAgentProvider.VectorDatabaseSinkConfig {
+public class OpenSearchVectorDatabaseWriterConfig
+        extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final OpenSearchVectorDatabaseSinkConfig INSTANCE =
-            new OpenSearchVectorDatabaseSinkConfig();
+    public static final OpenSearchVectorDatabaseWriterConfig INSTANCE =
+            new OpenSearchVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {
-        return OpenSearchVectorDatabaseSinkConfig.class;
+        return OpenSearchVectorDatabaseWriterConfig.class;
     }
 
     @Override

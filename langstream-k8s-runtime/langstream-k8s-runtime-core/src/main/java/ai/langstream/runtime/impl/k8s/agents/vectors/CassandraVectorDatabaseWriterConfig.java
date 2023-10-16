@@ -22,8 +22,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public abstract class CassandraVectorDatabaseSinkConfig
-        extends QueryVectorDBAgentProvider.VectorDatabaseSinkConfig {
+public abstract class CassandraVectorDatabaseWriterConfig
+        extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
     @AgentConfig(
             name = "Cassandra",
@@ -32,11 +32,11 @@ public abstract class CassandraVectorDatabaseSinkConfig
     Writes data to Apache Cassandra.
     All the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html
     """)
-    public static class ApacheCassandraVectorDatabaseSinkConfig
-            extends CassandraVectorDatabaseSinkConfig {
+    public static class ApacheCassandraVectorDatabaseWriterConfig
+            extends CassandraVectorDatabaseWriterConfig {
         @Override
         public Class getAgentConfigModelClass() {
-            return ApacheCassandraVectorDatabaseSinkConfig.class;
+            return ApacheCassandraVectorDatabaseWriterConfig.class;
         }
     }
 
@@ -47,17 +47,17 @@ public abstract class CassandraVectorDatabaseSinkConfig
     Writes data to DataStax Astra service.
     All the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html
     """)
-    public static class AstraVectorDatabaseSinkConfig extends CassandraVectorDatabaseSinkConfig {
+    public static class AstraVectorDatabaseWriterConfig extends CassandraVectorDatabaseWriterConfig {
 
         @Override
         public Class getAgentConfigModelClass() {
-            return AstraVectorDatabaseSinkConfig.class;
+            return AstraVectorDatabaseWriterConfig.class;
         }
     }
 
-    public static final ApacheCassandraVectorDatabaseSinkConfig CASSANDRA =
-            new ApacheCassandraVectorDatabaseSinkConfig();
-    public static final AstraVectorDatabaseSinkConfig ASTRA = new AstraVectorDatabaseSinkConfig();
+    public static final ApacheCassandraVectorDatabaseWriterConfig CASSANDRA =
+            new ApacheCassandraVectorDatabaseWriterConfig();
+    public static final AstraVectorDatabaseWriterConfig ASTRA = new AstraVectorDatabaseWriterConfig();
 
     @Override
     public boolean isAgentConfigModelAllowUnknownProperties() {

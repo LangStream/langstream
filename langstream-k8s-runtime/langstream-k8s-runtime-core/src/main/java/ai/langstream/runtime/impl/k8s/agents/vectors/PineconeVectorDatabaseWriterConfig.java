@@ -26,15 +26,15 @@ import lombok.Data;
 @AgentConfig(name = "Pinecone", description = """
     Writes data to Pinecone service.
 """)
-public class PineconeVectorDatabaseSinkConfig
-        extends QueryVectorDBAgentProvider.VectorDatabaseSinkConfig {
+public class PineconeVectorDatabaseWriterConfig
+        extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 
-    public static final PineconeVectorDatabaseSinkConfig INSTANCE =
-            new PineconeVectorDatabaseSinkConfig();
+    public static final PineconeVectorDatabaseWriterConfig INSTANCE =
+            new PineconeVectorDatabaseWriterConfig();
 
     @Override
     public Class getAgentConfigModelClass() {
-        return PineconeVectorDatabaseSinkConfig.class;
+        return PineconeVectorDatabaseWriterConfig.class;
     }
 
     @Override

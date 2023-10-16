@@ -140,11 +140,13 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-maven-plugin</artifactId>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>nifi-maven-plugin</artifactId>
+        <version>${project.version}</version>
         <extensions>true</extensions>
         <configuration>
           <classifier>nar</classifier>
+          <skipDocGeneration>true</skipDocGeneration>
         </configuration>
         <executions>
           <execution>

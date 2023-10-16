@@ -18,13 +18,9 @@ package ai.langstream.cli.commands.applications;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MermaidAppDiagramGeneratorTest {
-
-
-
 
     @Test
     void generate() throws Exception {

@@ -44,11 +44,13 @@ import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.xnio.OptionMap;
 import org.xnio.Xnio;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "ui", header = "Run UI for interact with the application")
+@Slf4j
 public class UIAppCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "Application ID")
@@ -165,8 +167,18 @@ public class UIAppCmd extends BaseApplicationCmd {
         server.start();
         port.set(((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
-        new ProcessBuilder("open", "http://localhost:" + port).start().waitFor();
+        openBrowserAtPort("open", port.get());
+
         return server;
+    }
+
+    static void openBrowserAtPort(String openCommand, int port) {
+        try {
+            new ProcessBuilder(openCommand, "http://localhost:" + port).start().waitFor();
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+        } catch (IOException ioException) {
+        }
     }
 
     @Data

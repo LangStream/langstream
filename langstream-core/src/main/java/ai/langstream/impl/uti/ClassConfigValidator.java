@@ -150,15 +150,7 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        final EntityRef ref =
-                () ->
-                        "agent configuration (agent: '%s', type: '%s')"
-                                .formatted(
-                                        agentConfiguration.getName() == null
-                                                ? agentConfiguration.getId()
-                                                : agentConfiguration.getName(),
-                                        agentConfiguration.getType());
-        validateModelFromClass(ref, modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(new AgentEntityRef(agentConfiguration), modelClazz, asMap, allowUnknownProperties);
     }
 
     @AllArgsConstructor
@@ -196,6 +188,22 @@ public class ClassConfigValidator {
                     .formatted(
                             asset.getName() == null ? asset.getId() : asset.getName(),
                             asset.getAssetType());
+        }
+    }
+
+    @AllArgsConstructor
+    public static class AgentEntityRef implements EntityRef {
+
+        private final AgentConfiguration agentConfiguration;
+
+        @Override
+        public String ref() {
+            return "agent configuration (agent: '%s', type: '%s')"
+                                    .formatted(
+                                            agentConfiguration.getName() == null
+                                                    ? agentConfiguration.getId()
+                                                    : agentConfiguration.getName(),
+                                            agentConfiguration.getType());
         }
     }
 

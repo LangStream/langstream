@@ -101,6 +101,8 @@ class QueryVectorDBAgentProviderTest {
                     configuration:
                       datasource: "cassandra"
                       unknown-field: "..."
+                      table-name: "my-table"
+                      mapping: "..."
                 """,
                 null);
     }
@@ -175,14 +177,311 @@ class QueryVectorDBAgentProviderTest {
                               }
                             }
                           },
-                          "vector-db-sink" : {
-                            "name" : "Vector database sink",
-                            "description" : "Store vectors in a vector database.\\nConfiguration properties depends on the vector database implementation, specified by the \\"datasource\\" property.",
+                          "vector-db-sink_astra" : {
+                            "type" : "vector-db-sink",
+                            "name" : "Astra",
+                            "description" : "Writes data to DataStax Astra service.\\nAll the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html",
                             "properties" : {
                               "datasource" : {
-                                "description" : "The defined datasource ID to use to store the vectors.",
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'astra'.",
                                 "required" : true,
                                 "type" : "string"
+                              },
+                              "keyspace" : {
+                                "description" : "The keyspace of the table to write to.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "mapping" : {
+                                "description" : "Comma separated list of mapping between the table column and the record field. e.g. my_colum_id=key, my_column_name=value.name.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "table-name" : {
+                                "description" : "The name of the table to write to. The table must already exist.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink_cassandra" : {
+                            "type" : "vector-db-sink",
+                            "name" : "Cassandra",
+                            "description" : "Writes data to Apache Cassandra.\\nAll the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html",
+                            "properties" : {
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'cassandra'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "keyspace" : {
+                                "description" : "The keyspace of the table to write to.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "mapping" : {
+                                "description" : "Comma separated list of mapping between the table column and the record field. e.g. my_colum_id=key, my_column_name=value.name.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "table-name" : {
+                                "description" : "The name of the table to write to. The table must already exist.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink_jdbc" : {
+                            "type" : "vector-db-sink",
+                            "name" : "JDBC",
+                            "description" : "Writes data to any JDBC compatible database.",
+                            "properties" : {
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'jdbc'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Fields of the table to write to.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Fields of the table to write to.",
+                                  "required" : true,
+                                  "type" : "object",
+                                  "properties" : {
+                                    "expression" : {
+                                      "description" : "JSTL Expression for computing the field value.",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "name" : {
+                                      "description" : "Field name",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "primary-key" : {
+                                      "description" : "Is this field part of the primary key?",
+                                      "required" : false,
+                                      "type" : "boolean",
+                                      "defaultValue" : "false"
+                                    }
+                                  }
+                                }
+                              },
+                              "table-name" : {
+                                "description" : "The name of the table to write to. The table must already exist.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink_milvus" : {
+                            "type" : "vector-db-sink",
+                            "name" : "Milvus",
+                            "description" : "Writes data to Milvus/Zillis service.",
+                            "properties" : {
+                              "collection-name" : {
+                                "description" : "Collection name",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "database-name" : {
+                                "description" : "Collection name",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'milvus'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Fields definition.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Fields definition.",
+                                  "required" : true,
+                                  "type" : "object",
+                                  "properties" : {
+                                    "expression" : {
+                                      "description" : "JSTL Expression for computing the field value.",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "name" : {
+                                      "description" : "Field name",
+                                      "required" : true,
+                                      "type" : "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "vector-db-sink_opensearch" : {
+                            "type" : "vector-db-sink",
+                            "name" : "OpenSearch",
+                            "description" : "Writes data to OpenSearch or AWS OpenSearch serverless.",
+                            "properties" : {
+                              "batch-size" : {
+                                "description" : "Batch size for bulk operations. Hitting the batch size will trigger a flush.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "10"
+                              },
+                              "bulk-parameters" : {
+                                "description" : "OpenSearch bulk URL parameters.",
+                                "required" : false,
+                                "type" : "object",
+                                "properties" : {
+                                  "pipeline" : {
+                                    "description" : "The pipeline ID for preprocessing documents.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "refresh" : {
+                                    "description" : "Whether to refresh the affected shards after performing the indexing operations. Default is false. true makes the changes show up in search results immediately, but hurts cluster performance. wait_for waits for a refresh. Requests take longer to return, but cluster performance doesn’t suffer.\\nNote that AWS OpenSearch supports only false.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "require_alias" : {
+                                    "description" : "Set to true to require that all actions target an index alias rather than an index.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "boolean"
+                                  },
+                                  "routing" : {
+                                    "description" : "Routes the request to the specified shard.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "timeout" : {
+                                    "description" : "How long to wait for the request to return.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "wait_for_active_shards" : {
+                                    "description" : "Specifies the number of active shards that must be available before OpenSearch processes the bulk request. Default is 1 (only the primary shard). Set to all or a positive integer. Values greater than 1 require replicas. For example, if you specify a value of 3, the index must have two replicas distributed across two additional nodes for the request to succeed.\\nRefer to the OpenSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  }
+                                }
+                              },
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'opensearch'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Index fields definition.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Index fields definition.",
+                                  "required" : true,
+                                  "type" : "object",
+                                  "properties" : {
+                                    "expression" : {
+                                      "description" : "JSTL Expression for computing the field value.",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "name" : {
+                                      "description" : "Field name",
+                                      "required" : true,
+                                      "type" : "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "flush-interval" : {
+                                "description" : "Flush interval in milliseconds",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "1000"
+                              },
+                              "id" : {
+                                "description" : "JSTL Expression to compute the index _id field. Leave it empty to let OpenSearch auto-generate the _id field.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "index-name" : {
+                                "description" : "The name of the index to write to. The index must already exist.",
+                                "required" : true,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink_pinecone" : {
+                            "type" : "vector-db-sink",
+                            "name" : "Pinecone",
+                            "description" : "Writes data to Pinecone service.",
+                            "properties" : {
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'pinecone'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "vector.id" : {
+                                "description" : "JSTL Expression to compute the id.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "vector.metadata" : {
+                                "description" : "Metadata to append. The key is the metadata name and the value the JSTL Expression to compute the actual value.",
+                                "required" : false,
+                                "type" : "object"
+                              },
+                              "vector.namespace" : {
+                                "description" : "JSTL Expression to compute the namespace.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "vector.vector" : {
+                                "description" : "JSTL Expression to compute the vector.",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
+                          "vector-db-sink_solr" : {
+                            "type" : "vector-db-sink",
+                            "name" : "Apache Solr",
+                            "description" : "Writes data to Apache Solr service.\\n    The collection-name is configured at datasource level.",
+                            "properties" : {
+                              "commit-within" : {
+                                "description" : "Commit within option",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "1000"
+                              },
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'solr'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Fields definition.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Fields definition.",
+                                  "required" : true,
+                                  "type" : "object",
+                                  "properties" : {
+                                    "expression" : {
+                                      "description" : "JSTL Expression for computing the field value.",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "name" : {
+                                      "description" : "Field name",
+                                      "required" : true,
+                                      "type" : "string"
+                                    }
+                                  }
+                                }
                               }
                             }
                           }

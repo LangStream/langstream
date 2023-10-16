@@ -117,8 +117,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
         // get the datasource configuration and inject it into the agent configuration
         String resourceId = (String) originalConfiguration.remove("datasource");
         if (resourceId == null) {
-            throw new IllegalStateException(
-                    "datasource is required but this exception should have been raised before ?");
+            throw new IllegalArgumentException(ClassConfigValidator.formatErrString(new ClassConfigValidator.AgentEntityRef(agentConfiguration), "datasource", "is required"));
         }
         generateDataSourceConfiguration(
                 resourceId,

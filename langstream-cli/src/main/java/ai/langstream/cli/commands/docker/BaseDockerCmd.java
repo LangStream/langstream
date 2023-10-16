@@ -15,8 +15,6 @@
  */
 package ai.langstream.cli.commands.docker;
 
-import ai.langstream.cli.LangStreamCLIConfig;
-import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootDockerCmd;

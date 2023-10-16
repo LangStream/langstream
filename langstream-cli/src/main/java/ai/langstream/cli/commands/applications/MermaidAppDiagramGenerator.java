@@ -410,10 +410,16 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static Map asMap(Object e) {
+        if (e == null) {
+            return Map.of();
+        }
         return mapper.convertValue(e, Map.class);
     }
 
     private static List asList(Object e) {
+        if (e == null) {
+            return List.of();
+        }
         return mapper.convertValue(e, List.class);
     }
 

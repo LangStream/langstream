@@ -18,9 +18,13 @@ package ai.langstream.cli.commands.applications;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MermaidAppDiagramGeneratorTest {
+
+
+
 
     @Test
     void generate() throws Exception {
@@ -96,5 +100,11 @@ class MermaidAppDiagramGeneratorTest {
                         + "agent-write-to-astra-sink-1-->external-sink-agent-write-to-astra-sink-1\n"
                         + "linkStyle 13 stroke:#F4D03F\n",
                 result);
+    }
+
+    @Test
+    void generateNoData() throws Exception {
+        assertNotNull(MermaidAppDiagramGenerator.generate("{\"application\": {}}"));
+        assertNotNull(MermaidAppDiagramGenerator.generate("{\"application\": {\"gateways\": {}}}"));
     }
 }

@@ -820,6 +820,7 @@
         <module>langstream-api-gateway</module>
         <module>langstream-api-gateway-auth</module>
         <module>langstream-runtime</module>
+        <module>nifi-maven-plugin</module>
       </modules>
     </profile>
     <profile>

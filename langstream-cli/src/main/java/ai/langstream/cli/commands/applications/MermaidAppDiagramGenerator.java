@@ -269,28 +269,26 @@ public class MermaidAppDiagramGenerator {
         if (modules == null) {
             return;
         }
-        modules
-                .forEach(
-                        module -> {
-                            applyTopics(model, asMap(module));
+        modules.forEach(
+                module -> {
+                    applyTopics(model, asMap(module));
 
-                            asList(asMap(module).get("pipelines"))
-                                    .forEach(
-                                            p -> {
-                                                final Map pipeline = asMap(p);
-                                                List<Agent> agents = new ArrayList<>();
+                    asList(asMap(module).get("pipelines"))
+                            .forEach(
+                                    p -> {
+                                        final Map pipeline = asMap(p);
+                                        List<Agent> agents = new ArrayList<>();
 
-                                                for (Object ag : asList(pipeline.get("agents"))) {
+                                        for (Object ag : asList(pipeline.get("agents"))) {
 
-                                                    final Map agentMap = asMap(ag);
-                                                    final Agent agent = parseAgent(model, agentMap);
-                                                    agents.add(agent);
-                                                }
-                                                final String id = (String) pipeline.get("id");
-                                                model.getPipelines()
-                                                        .add(new Pipeline(id, id, agents));
-                                            });
-                        });
+                                            final Map agentMap = asMap(ag);
+                                            final Agent agent = parseAgent(model, agentMap);
+                                            agents.add(agent);
+                                        }
+                                        final String id = (String) pipeline.get("id");
+                                        model.getPipelines().add(new Pipeline(id, id, agents));
+                                    });
+                });
     }
 
     private static Agent parseAgent(ApplicationModel model, Map agentMap) {

@@ -74,6 +74,46 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                 null);
     }
 
+
+    @Test
+    @SneakyThrows
+    public void testValidationAiChatCompletions() {
+        validate(
+                """
+                topics: []
+                pipeline:
+                  - name: "chat"
+                    type: "ai-chat-completions"
+                    configuration:
+                        model: my-model
+                        messages:
+                         - role: system
+                           content: "Hello"
+                """,
+                "Found error on agent configuration (agent: 'chat', type: 'ai-chat-completions'). No ai service resource found in application configuration. One of vertex-configuration, hugging-face-configuration, open-ai-configuration must be defined.");
+
+        AgentValidationTestUtil.validate("""
+                topics: []
+                pipeline:
+                  - name: "chat"
+                    type: "ai-chat-completions"
+                    configuration:
+                        model: my-model
+                        messages:
+                         - role: system
+                           content: "Hello"
+                """,
+                """
+                        configuration:
+                            resources:
+                                - type: "open-ai-configuration"
+                                  name: "OpenAI Azure configuration"
+                                  configuration:
+                                    access-key: "yy"
+                        """, null);
+
+    }
+
     private void validate(String pipeline, String expectErrMessage) throws Exception {
         AgentValidationTestUtil.validate(pipeline, expectErrMessage);
     }

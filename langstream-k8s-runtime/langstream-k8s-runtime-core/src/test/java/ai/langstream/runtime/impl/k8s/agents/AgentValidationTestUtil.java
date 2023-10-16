@@ -29,8 +29,25 @@ import lombok.Cleanup;
 public class AgentValidationTestUtil {
 
     public static void validate(String pipeline, String expectErrMessage) throws Exception {
+        validate(pipeline, null, expectErrMessage);
+    }
+
+    public static void validate(String pipeline, String configuration, String expectErrMessage) throws Exception {
         if (expectErrMessage != null && expectErrMessage.isBlank()) {
             throw new IllegalArgumentException("expectErrMessage cannot be blank");
+        }
+        if (configuration == null) {
+            configuration = """
+                    configuration:
+                        resources:
+                          - type: "datasource"
+                            name: "cassandra"
+                            configuration:
+                              service: "cassandra"
+                              contact-points: "xx"
+                              loadBalancing-localDc: "xx"
+                              port: 999
+                    """;
         }
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
@@ -38,17 +55,7 @@ public class AgentValidationTestUtil {
                                         "module.yaml",
                                         pipeline,
                                         "configuration.yaml",
-                                        """
-                                              configuration:
-                                                resources:
-                                                  - type: "datasource"
-                                                    name: "cassandra"
-                                                    configuration:
-                                                      service: "cassandra"
-                                                      contact-points: "xx"
-                                                      loadBalancing-localDc: "xx"
-                                                      port: 999
-                                                                      """),
+                                        configuration),
                                 """
                                         instance:
                                           streamingCluster:
@@ -70,7 +77,7 @@ public class AgentValidationTestUtil {
             ExecutionPlan implementation =
                     deployer.createImplementation("app", applicationInstance);
             if (expectErrMessage != null) {
-                fail("Expected error message: " + expectErrMessage);
+                fail("Expected error message instead no errors thrown: " + expectErrMessage);
             }
         } catch (IllegalArgumentException e) {
             if (expectErrMessage != null && e.getMessage().contains(expectErrMessage)) {

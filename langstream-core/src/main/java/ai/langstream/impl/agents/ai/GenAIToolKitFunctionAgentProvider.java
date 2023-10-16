@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -155,7 +156,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                                 application,
                                 configuration,
                                 computeClusterRuntime,
-                                pluginsRegistry);
+                                pluginsRegistry,
+                                agentConfiguration);
 
         STEP_TYPES
                 .get(agentConfiguration.getType())
@@ -185,7 +187,8 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             Application applicationInstance,
             Map<String, Object> configuration,
             ComputeClusterRuntime clusterRuntime,
-            PluginsRegistry pluginsRegistry) {
+            PluginsRegistry pluginsRegistry,
+            AgentConfiguration agentConfiguration) {
         if (resourceId != null) {
             Resource resource = applicationInstance.getResources().get(resourceId);
             log.info("Generating ai service configuration for {}", resourceId);
@@ -208,6 +211,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 throw new IllegalArgumentException("Resource " + resourceId + " not found");
             }
         } else {
+            boolean found = false;
             for (Resource resource : applicationInstance.getResources().values()) {
                 final String configKey =
                         switch (resource.type()) {
@@ -220,7 +224,16 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     Map<String, Object> configurationCopy =
                             clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
                     configuration.put(configKey, configurationCopy);
+                    found = true;
                 }
+            }
+            if (!found) {
+                final String errString = ClassConfigValidator.formatErrString(
+                        new ClassConfigValidator.AgentEntityRef(agentConfiguration),
+                        "No ai service resource found in application configuration. One of " + AI_SERVICES.stream()
+                                .collect(
+                                        Collectors.joining(", ")) + " must be defined.");
+                throw new IllegalArgumentException(errString);
             }
         }
     }

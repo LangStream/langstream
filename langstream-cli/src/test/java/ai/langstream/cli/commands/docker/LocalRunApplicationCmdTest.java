@@ -43,7 +43,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         assertTrue(
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
-                                + "-e LANSGSTREAM_TESTER_TENANT=local-docker-run -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
+                                + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
                                 + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "
                                 + "-v "
                                 + appDir
@@ -59,7 +59,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
 
         final NamedProfile namedProfile = getConfig().getProfiles().get("local-docker-run");
         assertNotNull(namedProfile);
-        assertEquals("local-docker-run", namedProfile.getTenant());
+        assertEquals("default", namedProfile.getTenant());
         assertEquals("http://localhost:8090", namedProfile.getWebServiceUrl());
         assertEquals("ws://localhost:8091", namedProfile.getApiGatewayUrl());
     }

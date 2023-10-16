@@ -133,7 +133,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     @CommandLine.Option(
             names = {"--tenant"},
             description = "Tenant name. Default to local-docker-run")
-    private String tenant = LOCAL_DOCKER_RUN_PROFILE;
+    private String tenant = "default";
 
     @Override
     @SneakyThrows

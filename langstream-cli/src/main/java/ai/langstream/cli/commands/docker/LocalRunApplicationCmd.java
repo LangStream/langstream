@@ -127,6 +127,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
     private boolean dryRun;
 
+    @CommandLine.Option(
+            names = {"--tenant"},
+            description = "Tenant name. Default to local-docker-run")
+    private String tenant = "local-docker-run";
+
     @Override
     @SneakyThrows
     public void run() {
@@ -160,7 +165,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
 
-        log("Tenant " + getTenant());
+        log("Tenant " + tenant);
         log("Application " + name);
         log("Application directory: " + appDirectory.getAbsolutePath());
         if (singleAgentId != null && !singleAgentId.isEmpty()) {
@@ -231,7 +236,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
 
         executeOnDocker(
-                getTenant(),
+                tenant,
                 name,
                 singleAgentId,
                 appDirectory,

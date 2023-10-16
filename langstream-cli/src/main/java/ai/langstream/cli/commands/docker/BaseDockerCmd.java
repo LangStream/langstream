@@ -15,6 +15,8 @@
  */
 package ai.langstream.cli.commands.docker;
 
+import ai.langstream.cli.LangStreamCLIConfig;
+import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.BaseCmd;
 import ai.langstream.cli.commands.RootCmd;
 import ai.langstream.cli.commands.RootDockerCmd;
@@ -23,10 +25,6 @@ import picocli.CommandLine;
 public abstract class BaseDockerCmd extends BaseCmd {
 
     @CommandLine.ParentCommand private RootDockerCmd rootDockerCmd;
-
-    protected String getTenant() {
-        return getCurrentProfile().getTenant();
-    }
 
     @Override
     protected RootCmd getRootCmd() {

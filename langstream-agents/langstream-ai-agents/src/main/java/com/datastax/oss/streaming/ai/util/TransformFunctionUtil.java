@@ -375,6 +375,8 @@ public class TransformFunctionUtil {
                 .outputFieldName(config.getOutputField())
                 .query(config.getQuery())
                 .loopOver(config.getLoopOver())
+                .generatedKeys(config.getGeneratedKeys())
+                .mode(config.getMode())
                 .onlyFirst(config.isOnlyFirst())
                 .fields(config.getFields())
                 .dataSource(dataSource)

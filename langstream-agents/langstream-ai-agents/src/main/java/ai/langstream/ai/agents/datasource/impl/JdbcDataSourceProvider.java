@@ -66,7 +66,8 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
         @Override
         @SneakyThrows
-        public Map<String, Object> executeStatement(String query, List<String> generatedKeys, List<Object> params) {
+        public Map<String, Object> executeStatement(
+                String query, List<String> generatedKeys, List<Object> params) {
             PreparedStatement ps;
             if (generatedKeys != null && !generatedKeys.isEmpty()) {
                 ps = connection.prepareStatement(query, generatedKeys.toArray(new String[0]));
@@ -79,7 +80,7 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
             long resultCount = ps.executeLargeUpdate();
             Map<String, Object> generatedKeysValues = null;
             if (generatedKeys != null && !generatedKeys.isEmpty()) {
-                try (ResultSet resultSet = ps.getGeneratedKeys();) {
+                try (ResultSet resultSet = ps.getGeneratedKeys(); ) {
                     ResultSetMetaData metaData = resultSet.getMetaData();
                     int numColumns = metaData.getColumnCount();
                     generatedKeysValues = new HashMap<>();

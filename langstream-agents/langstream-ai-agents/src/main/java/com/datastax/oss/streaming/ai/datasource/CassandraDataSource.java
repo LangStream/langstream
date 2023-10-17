@@ -128,7 +128,8 @@ public class CassandraDataSource implements QueryStepDataSource {
     }
 
     @Override
-    public Map<String, Object> executeStatement(String query, List<String> generatedKeys, List<Object> params) {
+    public Map<String, Object> executeStatement(
+            String query, List<String> generatedKeys, List<Object> params) {
         if (log.isDebugEnabled()) {
             log.debug(
                     "Executing statement {} with params {} ({})",

@@ -119,4 +119,25 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    """,
             required = true)
     private String datasource;
+
+    @ConfigProperty(
+            description =
+                    """
+                   Execution mode: query or execute. In query mode, the query is executed and the results are returned. In execute mode, the query is executed and the result is the number of rows affected (depending on the database).
+                   """,
+            defaultValue = "query")
+    private Mode mode = Mode.query;
+
+    @ConfigProperty(
+            description =
+                    """
+                   List of fields to use as generated keys. The generated keys are returned in the output, depending on the database.
+                   """)
+    @JsonProperty("generated-keys")
+    private List<String> generatedKeys;
+
+    enum Mode {
+        query,
+        execute
+    }
 }

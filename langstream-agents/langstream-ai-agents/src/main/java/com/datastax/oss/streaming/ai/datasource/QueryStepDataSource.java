@@ -27,7 +27,8 @@ public interface QueryStepDataSource extends AutoCloseable {
         return Collections.emptyList();
     }
 
-    default Map<String, Object> executeStatement(String query, List<String> generatedKeys, List<Object> params) {
+    default Map<String, Object> executeStatement(
+            String query, List<String> generatedKeys, List<Object> params) {
         fetchData(query, params);
         return Map.of();
     }

@@ -34,9 +34,14 @@ import org.apache.avro.Schema;
 @Slf4j
 public class QueryStep implements TransformStep {
 
+    public static final String MODE_QUERY = "query";
+    public static final String MODE_EXECUTE = "execute";
+
     @Builder.Default private final List<String> fields;
     private final String outputFieldName;
+    private final String mode = MODE_QUERY;
     private final String query;
+    private final List<String> generatedKeys;
     private final boolean onlyFirst;
     private final QueryStepDataSource dataSource;
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
@@ -52,8 +57,10 @@ public class QueryStep implements TransformStep {
             boolean onlyFirst,
             QueryStepDataSource dataSource,
             String loopOver,
-            JstlEvaluator<List> loopOverAccessor) {
+            JstlEvaluator<List> loopOverAccessor,
+            List<String> generatedKeys) {
         this.fields = fields;
+        this.generatedKeys = generatedKeys;
         this.outputFieldName = outputFieldName;
         this.query = query;
         this.onlyFirst = onlyFirst;
@@ -127,6 +134,29 @@ public class QueryStep implements TransformStep {
         if (results == null) {
             results = List.of();
         }
+        if (log.isDebugEnabled()) {
+            log.debug("Result from datasource: {}", results);
+        }
+        return results;
+    }
+
+    private Map<String, Object> executeStatement(TransformContext transformContext) {
+        List<Object> params = new ArrayList<>();
+        fieldsEvaluators.forEach(
+                field -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Evaluating {}", field);
+                    }
+                    Object value = field.evaluate(transformContext);
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Result {} type {}",
+                                value,
+                                value != null ? value.getClass() : "null");
+                    }
+                    params.add(value);
+                });
+        Map<String, Object> results = dataSource.executeStatement(query, generatedKeys, params);
         if (log.isDebugEnabled()) {
             log.debug("Result from datasource: {}", results);
         }

@@ -20,6 +20,7 @@ import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.http.GenericRetryExecution;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.NoRetryPolicy;
+import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
@@ -42,8 +43,10 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "run", header = "Run on a docker container a LangStream application")
 public class LocalRunApplicationCmd extends BaseDockerCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+    protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
+
+    @CommandLine.Parameters(description = "ID of the application")
+    private String applicationId;
 
     @CommandLine.Option(
             names = {"-app", "--application"},
@@ -127,6 +130,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
     private boolean dryRun;
 
+    @CommandLine.Option(
+            names = {"--tenant"},
+            description = "Tenant name. Default to local-docker-run")
+    private String tenant = "default";
+
     @Override
     @SneakyThrows
     public void run() {
@@ -160,8 +168,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
 
-        log("Tenant " + getTenant());
-        log("Application " + name);
+        log("Tenant " + tenant);
+        log("Application " + applicationId);
         log("Application directory: " + appDirectory.getAbsolutePath());
         if (singleAgentId != null && !singleAgentId.isEmpty()) {
             log("Filter agent: " + singleAgentId);
@@ -176,6 +184,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         log("Start S3: " + startS3);
         log("Start Database: " + startDatabase);
         log("Start Webservices " + startWebservices);
+        log("Using docker image: " + dockerImageName + ":" + dockerImageVersion);
 
         if (appDirectory == null) {
             throw new IllegalArgumentException("application files are required");
@@ -230,9 +239,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             secretsContents = null;
         }
 
+        updateLocalDockerRunProfile(tenant);
+
         executeOnDocker(
-                getTenant(),
-                name,
+                tenant,
+                applicationId,
                 singleAgentId,
                 appDirectory,
                 instanceContents,
@@ -242,6 +253,19 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 startWebservices,
                 startDatabase,
                 dryRun);
+    }
+
+    private void updateLocalDockerRunProfile(String tenant) {
+        updateConfig(
+                langStreamCLIConfig -> {
+                    final NamedProfile profile = new NamedProfile();
+                    profile.setName(LOCAL_DOCKER_RUN_PROFILE);
+                    profile.setTenant(tenant);
+                    profile.setWebServiceUrl("http://localhost:8090");
+                    profile.setApiGatewayUrl("ws://localhost:8091");
+                    langStreamCLIConfig.updateProfile(LOCAL_DOCKER_RUN_PROFILE, profile);
+                    log("profile " + LOCAL_DOCKER_RUN_PROFILE + " updated");
+                });
     }
 
     private void executeOnDocker(
@@ -350,9 +374,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     .execute(() -> startUI(tenant, applicationId, outputLog, process));
         }
         final int exited = process.waitFor();
+        // wait for the log to be printed
+        Thread.sleep(1000);
         if (exited != 0) {
-            // wait for the log to be printed
-            Thread.sleep(1000);
             throw new RuntimeException("Process exited with code " + exited);
         }
     }

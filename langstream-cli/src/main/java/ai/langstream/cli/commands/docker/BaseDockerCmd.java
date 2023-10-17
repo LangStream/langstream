@@ -24,10 +24,6 @@ public abstract class BaseDockerCmd extends BaseCmd {
 
     @CommandLine.ParentCommand private RootDockerCmd rootDockerCmd;
 
-    protected String getTenant() {
-        return getCurrentProfile().getTenant();
-    }
-
     @Override
     protected RootCmd getRootCmd() {
         return rootDockerCmd.getRootCmd();

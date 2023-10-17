@@ -119,8 +119,9 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
     @AllArgsConstructor
     private static class BedrockCompletionsService implements CompletionsService {
-        static final ObjectMapper MAPPER = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        static final ObjectMapper MAPPER =
+                new ObjectMapper()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         private final BedrockClient client;
 
         @Override

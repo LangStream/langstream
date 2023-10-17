@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -430,5 +431,124 @@ public class QueryStepTest {
                         Map.of("text", "retrieved-similar-to-1-2"),
                         Map.of("text", "retrieved-similar-to-2")),
                 retrieved_documents);
+    }
+
+    @Test
+    void testExecute() throws Exception {
+
+        String value = """
+                {"question":"really?"}
+                """;
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public Map<String, Object> executeStatement(
+                            String query, List<String> generatedKeys, List<Object> params) {
+                        assertEquals(List.of("pk"), generatedKeys);
+                        log.info("Params: {}", params);
+                        Map<String, Object> res = new HashMap<>();
+                        for (int i = 0; i < params.size(); i++) {
+                            res.put(i + "", params.get(0));
+                        }
+                        return res;
+                    }
+
+                    @Override
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.command_results")
+                        .fields(List.of("value.question"))
+                        .mode("execute")
+                        .generatedKeys(List.of("pk"))
+                        .query("update something set a=1 WHERE value=?")
+                        .build();
+        queryStep.start();
+
+        TransformContext context =
+                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+
+        queryStep.process(context);
+        ai.langstream.api.runner.code.Record record =
+                TransformContext.transformContextToRecord(context).orElseThrow();
+        Map<String, Object> result = (Map<String, Object>) record.value();
+        log.info("Result: {}", result);
+
+        Map<String, Object> command_results = (Map<String, Object>) result.get("command_results");
+        assertEquals(Map.of("0", "really?"), command_results);
+    }
+
+    @Test
+    void testLoopOverWithExecute() throws Exception {
+
+        String value =
+                """
+                {
+                    "documents_to_retrieve": [
+                        {
+                            "text": "text 1",
+                            "embeddings": [1,2,3,4,5]
+                        },
+                        {
+                            "text": "text 2",
+                            "embeddings": [2,2,3,4,5]
+                        }
+                    ]
+                }
+                """;
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+                    @Override
+                    public Map<String, Object> executeStatement(
+                            String query, List<String> generatedKeys, List<Object> params) {
+                        assertEquals(List.of("pk"), generatedKeys);
+                        log.info("Params: {}", params);
+                        List<Double> param1 = (List<Double>) params.get(0);
+                        if (param1.equals(List.of(1, 2, 3, 4, 5))) {
+                            return Map.of("foo", "bar");
+                        } else if (param1.equals(List.of(2, 2, 3, 4, 5))) {
+                            return Map.of("foo", "bar2");
+                        } else {
+                            throw new IllegalArgumentException(params + "");
+                        }
+                    }
+
+                    @Override
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .loopOver("value.documents_to_retrieve")
+                        .outputFieldName("value.command_results")
+                        .fields(List.of("record.embeddings"))
+                        .mode("execute")
+                        .generatedKeys(List.of("pk"))
+                        .query("update something set a=1 WHERE value=?")
+                        .build();
+        queryStep.start();
+
+        TransformContext context =
+                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+
+        queryStep.process(context);
+        ai.langstream.api.runner.code.Record record =
+                TransformContext.transformContextToRecord(context).orElseThrow();
+        Map<String, Object> result = (Map<String, Object>) record.value();
+        log.info("Result: {}", result);
+
+        List<Map<String, Object>> command_results =
+                (List<Map<String, Object>>) result.get("command_results");
+        assertEquals(List.of(Map.of("foo", "bar"), Map.of("foo", "bar2")), command_results);
     }
 }

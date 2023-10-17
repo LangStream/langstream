@@ -202,6 +202,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 Map<String, Object> resourceImplementation =
                         clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
                 final String configKey = getConfigKey(type);
+                if (configKey == null) {
+                    throw new IllegalArgumentException(
+                            "Resource " + resourceId + " is not in types: " + AI_SERVICES);
+                }
                 configuration.put(configKey, resourceImplementation);
             } else {
                 throw new IllegalArgumentException("Resource " + resourceId + " not found");
@@ -235,7 +239,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             case SERVICE_HUGGING_FACE -> "huggingface";
             case SERVICE_OPEN_AI -> "openai";
             case SERVICE_BEDROCK -> "bedrock";
-            default -> throw new IllegalStateException("Unexpected value: " + type);
+            default -> null;
         };
     }
 

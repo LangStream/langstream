@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -381,7 +380,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
     }
 
-    private static File createReadableTempFile(String prefix, String instanceContents) throws IOException {
+    private static File createReadableTempFile(String prefix, String instanceContents)
+            throws IOException {
         File tempFile = Files.createTempFile(prefix, ".yaml").toFile();
         tempFile.setReadable(true, false);
         Files.write(tempFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));

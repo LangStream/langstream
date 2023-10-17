@@ -44,7 +44,15 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         final String appDir = tempDir.toFile().getAbsolutePath();
         CommandResult result =
                 executeCommand(
-                        "docker", "run", "my-app", "-app", appDir, "-s", secrets.toFile().getAbsolutePath(), "--docker-command", "echo");
+                        "docker",
+                        "run",
+                        "my-app",
+                        "-app",
+                        appDir,
+                        "-s",
+                        secrets.toFile().getAbsolutePath(),
+                        "--docker-command",
+                        "echo");
         assertEquals("", result.err());
         assertEquals(0, result.exitCode());
 
@@ -67,7 +75,6 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "-p 8090:8090 "
                                 + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
-
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());
         volumes.forEach(
@@ -79,15 +86,18 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                         final Set<PosixFilePermission> posixFilePermissions;
                         try {
                             posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                            System.out.println("permissions: " + posixFilePermissions + " for " + file);
-                            assertTrue(posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
-                            assertTrue(posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
-                            assertTrue(posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
+                            System.out.println(
+                                    "permissions: " + posixFilePermissions + " for " + file);
+                            assertTrue(
+                                    posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
+                            assertTrue(
+                                    posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
+                            assertTrue(
+                                    posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     }
-
                 });
 
         final NamedProfile namedProfile = getConfig().getProfiles().get("local-docker-run");
@@ -108,5 +118,4 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
 
         return volumes;
     }
-
 }

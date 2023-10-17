@@ -69,7 +69,8 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
                     if (step.containsKey("bedrock")) {
-                        final Map<String, Object> options = ConfigurationUtils.getMap("options", Map.of(), step);
+                        final Map<String, Object> options =
+                                ConfigurationUtils.getMap("options", Map.of(), step);
                         final Map<String, Object> optionsWithDefaults =
                                 ClassConfigValidator.validateGenericClassAndApplyDefaults(
                                         new ClassConfigValidator.AgentEntityRef(agentConfiguration),
@@ -240,7 +241,8 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     private String aiService;
 
     @ConfigProperty(
-            description = """
+            description =
+                    """
                     Additional options for the model configuration. The structure depends on the model and AI provider.
                     """)
     @JsonProperty(value = "options")

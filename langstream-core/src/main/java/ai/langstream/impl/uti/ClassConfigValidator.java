@@ -43,7 +43,6 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfig;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -451,7 +450,6 @@ public class ClassConfigValidator {
         return null;
     }
 
-
     @SneakyThrows
     public static Map<String, Object> validateGenericClassAndApplyDefaults(
             EntityRef entityRef,
@@ -459,17 +457,13 @@ public class ClassConfigValidator {
             Map<String, Object> inputValue,
             boolean allowUnknownProperties) {
 
-        final Map asMap = validatorMapper.readValue(validatorMapper.writeValueAsBytes(inputValue), Map.class);
+        final Map asMap =
+                validatorMapper.readValue(validatorMapper.writeValueAsBytes(inputValue), Map.class);
 
         final Map<String, ai.langstream.api.doc.ConfigPropertyModel> properties =
                 readPropertiesFromClass(modelClazz);
 
-        validateProperties(
-                entityRef,
-                null,
-                asMap,
-                properties,
-                allowUnknownProperties);
+        validateProperties(entityRef, null, asMap, properties, allowUnknownProperties);
 
         validateConversion(asMap, modelClazz, entityRef);
 
@@ -481,8 +475,8 @@ public class ClassConfigValidator {
                         e -> {
                             Object value = inputValue.get(e.getKey());
                             if (value == null
-                                && !e.getValue().isRequired()
-                                && e.getValue().getDefaultValue() != null) {
+                                    && !e.getValue().isRequired()
+                                    && e.getValue().getDefaultValue() != null) {
                                 value = e.getValue().getDefaultValue();
                             }
                             if (value != null) {
@@ -492,7 +486,8 @@ public class ClassConfigValidator {
         return result;
     }
 
-    private static void validateConversion(Map<String, Object> asMap, Class modelClazz, EntityRef entityRef) {
+    private static void validateConversion(
+            Map<String, Object> asMap, Class modelClazz, EntityRef entityRef) {
         try {
             convertValidatedConfiguration(asMap, modelClazz);
         } catch (IllegalArgumentException ex) {
@@ -506,7 +501,7 @@ public class ClassConfigValidator {
                                 entityRef,
                                 property,
                                 "has a wrong data type. Expected type: "
-                                + mismatchedInputException.getTargetType().getName()));
+                                        + mismatchedInputException.getTargetType().getName()));
             } else {
                 throw ex;
             }

@@ -27,15 +27,21 @@ pipeline:
       text-field: "question"
   - name: "ai-text-completions"
     type: "ai-text-completions"
-    output: "answers"
     configuration:
       model: "${secrets.bedrock.completions-model}"
       completion-field: "value.answer"
-      log-field: "value.prompt"
       prompt:
         - "{{ value.question}}"
-      bedrock-options:
+      options:
         request-parameters:
           temperature: 0.5
           maxTokens: 300
         response-completions-expression: "completions[0].data.text"
+  - name: "Format response"
+    type: compute
+    output: "answers"
+    configuration:
+      fields:
+        - name: "value"
+          type: STRING
+          expression: "value.answer"

@@ -18,7 +18,9 @@ package ai.langstream.impl.agents.ai.steps;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
+import ai.langstream.impl.uti.ClassConfigValidator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,16 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
                     }
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
+                    if (step.containsKey("bedrock")) {
+                        final Map<String, Object> options = ConfigurationUtils.getMap("options", Map.of(), step);
+                        final Map<String, Object> optionsWithDefaults =
+                                ClassConfigValidator.validateGenericClassAndApplyDefaults(
+                                        new ClassConfigValidator.AgentEntityRef(agentConfiguration),
+                                        AITextCompletionsConfiguration.BedrockOptions.class,
+                                        options,
+                                        false);
+                        step.put("options", optionsWithDefaults);
+                    }
                 }
             };
 
@@ -257,8 +269,8 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
 
     @ConfigProperty(
             description = """
-                    Bedrock model options.
+                    Additional options for the model configuration. The structure depends on the model and AI provider.
                     """)
-    @JsonProperty(value = "bedrock-options")
-    private BedrockOptions bedrockOptions;
+    @JsonProperty(value = "options")
+    private Map<String, Object> options;
 }

@@ -124,7 +124,7 @@ class BedrockEmbeddingsCompletionsIT extends AbstractApplicationRunner {
                                       min-chunks-per-message: 3
                                       messages:
                                         - content: "%s"
-                                      bedrock-options:
+                                      options:
                                           request-parameters:
                                             maxTokens: 5
                                             temperature: 0.2
@@ -155,7 +155,7 @@ class BedrockEmbeddingsCompletionsIT extends AbstractApplicationRunner {
 
                 String expected =
                         """
-                                {"question":"the car","session-id":"2139847128764192","answer":"\\nA car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"ai21.j2-mid-v1\\",\\"messages\\":[{\\"role\\":null,\\"content\\":\\"What can you tell me about {{{ value.question }}} ?\\"}],\\"stream-to-topic\\":null,\\"stream-response-completion-field\\":null,\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null,\\"bedrock-options\\":{\\"request-parameters\\":{\\"maxTokens\\":5,\\"temperature\\":0.2},\\"response-completions-expression\\":\\"completions[0].data.text\\"}},\\"messages\\":[{\\"role\\":null,\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"ai21.j2-mid-v1\\"}"}"""
+                                {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"ai21.j2-mid-v1\\",\\"messages\\":[{\\"role\\":null,\\"content\\":\\"What can you tell me about {{{ value.question }}} ?\\"}],\\"stream-to-topic\\":null,\\"stream-response-completion-field\\":null,\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null,\\"options\\":{\\"request-parameters\\":{\\"maxTokens\\":5,\\"temperature\\":0.2},\\"response-completions-expression\\":\\"completions[0].data.text\\"}},\\"messages\\":[{\\"role\\":null,\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"ai21.j2-mid-v1\\"}"}"""
                                 .formatted(prompt, outputTopic);
                 waitForMessages(consumer, List.of(expected));
             }

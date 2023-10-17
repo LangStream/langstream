@@ -151,7 +151,7 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
             final BedrockOptions bedrockOptions =
                     MAPPER.convertValue(
-                            agentConfiguration.getOrDefault("bedrock-options", Map.of()),
+                            agentConfiguration.getOrDefault("options", Map.of()),
                             BedrockOptions.class);
 
             final Map<String, Object> parameters = bedrockOptions.getRequestParameters();
@@ -186,7 +186,6 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
                                                         Collectors.toMap(
                                                                 e -> e.getKey(),
                                                                 v -> v.getValue()));
-                                log.info("Result: {}", context);
                                 final Object result =
                                         new JstlEvaluator(textCompletionExpression, Object.class)
                                                 .evaluateRawContext(context);
@@ -198,9 +197,11 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
                                                     + r
                                                     + ")");
                                 }
-                                log.info("Result: {}", result);
-
-                                return new TextCompletionResult(result.toString(), null);
+                                String resultValue = result.toString();
+                                if (resultValue.startsWith("\n")) {
+                                    resultValue = resultValue.substring(1);
+                                }
+                                return new TextCompletionResult(resultValue, null);
                             });
         }
 

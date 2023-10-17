@@ -20,7 +20,7 @@ langstream docker run test -app https://github.com/LangStream/langstream/example
 ## Chat with the model
 
 ```
-langstream gateway chat test -g chat
+bin/langstream gateway chat test -g chat
 ```
 
 This model is optimized to run tasks. For example, you can ask it to translate a document into another language.

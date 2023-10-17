@@ -28,6 +28,7 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -118,7 +119,8 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
     @AllArgsConstructor
     private static class BedrockCompletionsService implements CompletionsService {
-        static final ObjectMapper MAPPER = new ObjectMapper();
+        static final ObjectMapper MAPPER = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         private final BedrockClient client;
 
         @Override

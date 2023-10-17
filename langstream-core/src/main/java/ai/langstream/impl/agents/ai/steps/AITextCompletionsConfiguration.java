@@ -67,17 +67,6 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
                     }
                     aiServiceConfigurationGenerator.generateAIServiceConfiguration(
                             (String) step.remove("ai-service"));
-                    if (step.containsKey("bedrock")) {
-                        final Map<String, Object> options =
-                                ConfigurationUtils.getMap("options", Map.of(), step);
-                        final Map<String, Object> optionsWithDefaults =
-                                ClassConfigValidator.validateGenericClassAndApplyDefaults(
-                                        new ClassConfigValidator.AgentEntityRef(agentConfiguration),
-                                        AITextCompletionsConfiguration.BedrockOptions.class,
-                                        options,
-                                        false);
-                        step.put("options", optionsWithDefaults);
-                    }
                 }
             };
 

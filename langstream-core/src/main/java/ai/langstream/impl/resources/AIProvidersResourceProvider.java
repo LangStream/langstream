@@ -35,8 +35,9 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
     protected static final String OPEN_AI_CONFIGURATION = "open-ai-configuration";
     protected static final String HUGGING_FACE_CONFIGURATION = "hugging-face-configuration";
     protected static final String VERTEX_CONFIGURATION = "vertex-configuration";
+    protected static final String BEDROCK_CONFIGURATION = "bedrock-configuration";
     private static final Set<String> SUPPORTED_TYPES =
-            Set.of(OPEN_AI_CONFIGURATION, HUGGING_FACE_CONFIGURATION, VERTEX_CONFIGURATION);
+            Set.of(OPEN_AI_CONFIGURATION, HUGGING_FACE_CONFIGURATION, VERTEX_CONFIGURATION, BEDROCK_CONFIGURATION);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public AIProvidersResourceProvider() {
@@ -98,6 +99,9 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             }
             case VERTEX_CONFIGURATION -> {
                 return VertexAIConfig.class;
+            }
+            case BEDROCK_CONFIGURATION -> {
+                return BedrockConfig.class;
             }
             default -> throw new IllegalStateException();
         }
@@ -223,4 +227,45 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         @JsonProperty("access-key")
         private String accessKey;
     }
+
+    @Data
+    @ResourceConfig(name = "AWS Bedrock", description = "Connect to AWS Bedrock API.")
+    public static class BedrockConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                        Aws access key.
+                        """,
+                required = true)
+        @JsonProperty("access-key")
+        private String accessKey;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Aws secret key.
+                        """,
+                required = true)
+        @JsonProperty("secret-key")
+        private String secretKey;
+
+        @ConfigProperty(
+                description =
+                        """
+                        AWS endpoint url. You can find it in the AWS endpoints table. Example: bedrock-runtime.us-east-1.amazonaws.com
+                        """,
+                required = true)
+        private String url;
+
+        @ConfigProperty(
+                description =
+                        """
+                        AWS region for signing the credentials.
+                        """,
+                defaultValue = "us-east-1")
+        @JsonProperty("signing-region")
+        private String signingRegion;
+    }
+
 }

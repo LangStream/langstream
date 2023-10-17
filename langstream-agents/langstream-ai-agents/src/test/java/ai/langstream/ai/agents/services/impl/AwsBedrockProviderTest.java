@@ -15,12 +15,7 @@
  */
 package ai.langstream.ai.agents.services.impl;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import com.datastax.oss.streaming.ai.completions.ChatCompletions;
-import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;

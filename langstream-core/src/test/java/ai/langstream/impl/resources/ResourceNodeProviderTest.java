@@ -175,7 +175,13 @@ class ResourceNodeProviderTest {
                                 "project",
                                 "some-project",
                                 "token",
-                                "some-token")));
+                                "some-token")),
+                Arguments.of(NON_VALID, "bedrock-configuration", Map.of()),
+                Arguments.of(VALID, "bedrock-configuration", Map.of(
+                        "region", "us-east-1",
+                        "access-key", "xx",
+                        "secret-key", "yy"
+                )));
     }
 
     @ParameterizedTest

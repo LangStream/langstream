@@ -5,22 +5,32 @@ import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import ai.langstream.ai.agents.services.impl.bedrock.BaseInvokeModelRequest;
 import ai.langstream.ai.agents.services.impl.bedrock.BedrockClient;
 import ai.langstream.ai.agents.services.impl.bedrock.TitanEmbeddingsModel;
+import ai.langstream.api.doc.ConfigProperty;
+import ai.langstream.api.util.ConfigurationUtils;
+import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.processing.Completions;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 
+@Slf4j
 public class BedrockServiceProvider implements ServiceProviderProvider {
     @Override
     public boolean supports(Map<String, Object> agentConfiguration) {
@@ -32,8 +42,9 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
         Map<String, Object> config = (Map<String, Object>) agentConfiguration.get("bedrock");
         String accessKey = (String) config.get("access-key");
         String secretKey = (String) config.get("secret-key");
-        String region = (String) config.get("region");
-        return new BedrockService(new BedrockClient(AwsBasicCredentials.create(accessKey, secretKey), region));
+        String url = (String) config.get("url");
+        String signingRegion = (String) config.getOrDefault("signing-region", "us-east-1");
+        return new BedrockService(() -> new BedrockClient(AwsBasicCredentials.create(accessKey, secretKey), url, signingRegion));
     }
 
 
@@ -42,8 +53,8 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
         private final BedrockClient client;
 
-        public BedrockService(BedrockClient client) {
-            this.client = client;
+        public BedrockService(Supplier<BedrockClient> client) {
+            this.client = client.get();
         }
 
         @Override
@@ -56,42 +67,53 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
             final String model = (String) additionalConfiguration.getOrDefault("model", "amazon.titan-embed-text-v1");
 
-            return new EmbeddingsService() {
-                @Override
-                public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
+            return texts -> {
 
-                    List<CompletableFuture<List<Double>>> all = new ArrayList<>();
-                    for (String text : texts) {
-                        all.add(client.invokeModel(TitanEmbeddingsModel.builder()
-                                .modelId(model)
-                                .inputText(text).build(), TitanEmbeddingsModel.ResponseBody.class)
-                                .thenApply(r -> r.embedding())
-                        );
-                    }
-                    CompletableFuture<Void> joinedPromise = CompletableFuture.allOf(all.toArray(CompletableFuture[]::new));
-                    return joinedPromise.thenApply(voit -> all.stream().map(CompletableFuture::join).collect(
-                            Collectors.toList()));
+                List<CompletableFuture<List<Double>>> all = new ArrayList<>();
+                for (String text : texts) {
+                    all.add(client.invokeModel(TitanEmbeddingsModel.builder()
+                            .modelId(model)
+                            .inputText(text).build(), TitanEmbeddingsModel.ResponseBody.class)
+                            .thenApply(r -> r.embedding())
+                    );
                 }
+                CompletableFuture<Void> joinedPromise = CompletableFuture.allOf(all.toArray(CompletableFuture[]::new));
+                return joinedPromise.thenApply(voit -> all.stream().map(CompletableFuture::join).collect(
+                        Collectors.toList()));
             };
         }
 
         @Override
         public void close() {
+            if (client != null) {
+                client.close();
+            }
 
         }
     }
 
     @AllArgsConstructor
     private static class BedrockCompletionsService implements CompletionsService {
+        static final ObjectMapper MAPPER = new ObjectMapper();
         private final BedrockClient client;
+
 
 
         @Override
         public CompletableFuture<ChatCompletions> getChatCompletions(List<ChatMessage> message,
                                                                      StreamingChunksConsumer streamingChunksConsumer,
                                                                      Map<String, Object> options) {
+            final List<String> prompt = message.stream()
+                    .map(ChatMessage::getContent)
+                    .collect(Collectors.toList());
+            return getTextCompletions(prompt, streamingChunksConsumer, options)
+                    .thenApply(r -> {
+                        final ChatCompletions result = new ChatCompletions();
+                        result.setChoices(
+                                List.of(new ChatChoice(new ChatMessage(null, r.text()))));
+                        return result;
 
-            throw new UnsupportedOperationException("Chat completions not supported for Bedrock, please use text completions instead");
+                    });
         }
 
         @Override
@@ -100,16 +122,21 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
                                                                           Map<String, Object> agentConfiguration) {
             if (prompt.size() != 1) {
                 throw new IllegalArgumentException(
-                        "Bedrock models only support a single prompt for text completions.");
+                        "Bedrock models only support a single prompt for completions.");
             }
             final String model = (String) agentConfiguration.get("model");
-            final Map<String, Object> options = (Map<String, Object>) agentConfiguration.getOrDefault("options", Map.of());
-            final Map<String, Object> parameters = (Map<String, Object>) options.getOrDefault("parameters", Map.of());
-            final String promptField = (String) options.getOrDefault("prompt-parameter", "prompt");
-            final String textCompletionExpression = (String) options.getOrDefault("text-completion-expression", null);
-            Map<String, Object> body = new HashMap<>();
-            body.put(promptField, prompt.get(0));
-            body.putAll(parameters);
+
+            final BedrockOptions bedrockOptions =
+                    MAPPER.convertValue(agentConfiguration.getOrDefault("bedrock-options", Map.of()),
+                            BedrockOptions.class);
+
+            final Map<String, Object> parameters = bedrockOptions.getRequestParameters();
+            final String textCompletionExpression = "${%s}".formatted(bedrockOptions.getResponseCompletionsExpression());
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put(bedrockOptions.getRequestPromptProperty(), prompt.get(0));
+            if (parameters != null) {
+                body.putAll(parameters);
+            }
 
             final BaseInvokeModelRequest<Map> request = new BaseInvokeModelRequest<>() {
                 @Override
@@ -125,17 +152,31 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
             return client.invokeModel(request, Map.class)
                     .thenApply(r -> {
-                        System.out.println("got " + r);
                         final Map<String, Object> asMap = (Map<String, Object>) r;
                         final Map<String, Object> context =
                                 asMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), v -> v.getValue()));
+                        log.info("Result: {}", context);
                         final Object result =
-                                new JstlEvaluator(textCompletionExpression, String.class).evaluateRawContext(context);
+                                new JstlEvaluator(textCompletionExpression, Object.class).evaluateRawContext(context);
                         if (result == null) {
                             throw new IllegalStateException("No result found in response (tried with expression " + textCompletionExpression + ", response was: " + r + ")");
                         }
+                        log.info("Result: {}", result);
+
                         return new TextCompletionResult(result.toString(), null);
                     });
+        }
+
+
+        @Data
+        public static class BedrockOptions {
+            @JsonProperty(value = "request-parameters")
+            private Map<String, Object> requestParameters;
+            @JsonProperty(value = "request-prompt-property")
+            private String requestPromptProperty = "prompt";
+            @JsonProperty(value = "response-completions-expression")
+            private String responseCompletionsExpression;
+
         }
     }
 }

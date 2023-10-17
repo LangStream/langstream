@@ -54,8 +54,9 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     protected static final String SERVICE_VERTEX = "vertex-configuration";
     protected static final String SERVICE_HUGGING_FACE = "hugging-face-configuration";
     protected static final String SERVICE_OPEN_AI = "open-ai-configuration";
+    protected static final String SERVICE_BEDROCK = "bedrock-configuration";
     protected static final List<String> AI_SERVICES =
-            List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI);
+            List.of(SERVICE_VERTEX, SERVICE_HUGGING_FACE, SERVICE_OPEN_AI, SERVICE_BEDROCK);
 
     static {
         final Map<String, StepConfigurationInitializer> steps = new HashMap<>();
@@ -193,19 +194,15 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             Resource resource = applicationInstance.getResources().get(resourceId);
             log.info("Generating ai service configuration for {}", resourceId);
             if (resource != null) {
-                if (!AI_SERVICES.contains(resource.type())) {
+                final String type = resource.type();
+                if (!AI_SERVICES.contains(type)) {
                     throw new IllegalArgumentException(
                             "Resource " + resourceId + " is not in types: " + AI_SERVICES);
                 }
                 Map<String, Object> resourceImplementation =
                         clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
                 final String configKey =
-                        switch (resource.type()) {
-                            case SERVICE_VERTEX -> "vertex";
-                            case SERVICE_HUGGING_FACE -> "huggingface";
-                            case SERVICE_OPEN_AI -> "openai";
-                            default -> throw new IllegalStateException();
-                        };
+                        getConfigKey(type);
                 configuration.put(configKey, resourceImplementation);
             } else {
                 throw new IllegalArgumentException("Resource " + resourceId + " not found");
@@ -213,13 +210,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         } else {
             boolean found = false;
             for (Resource resource : applicationInstance.getResources().values()) {
-                final String configKey =
-                        switch (resource.type()) {
-                            case SERVICE_VERTEX -> "vertex";
-                            case SERVICE_HUGGING_FACE -> "huggingface";
-                            case SERVICE_OPEN_AI -> "openai";
-                            default -> null;
-                        };
+                final String configKey = getConfigKey(resource.type());
                 if (configKey != null) {
                     Map<String, Object> configurationCopy =
                             clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
@@ -237,6 +228,16 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 throw new IllegalArgumentException(errString);
             }
         }
+    }
+
+    private static String getConfigKey(String type) {
+        return switch (type) {
+            case SERVICE_VERTEX -> "vertex";
+            case SERVICE_HUGGING_FACE -> "huggingface";
+            case SERVICE_OPEN_AI -> "openai";
+            case SERVICE_BEDROCK -> "bedrock";
+            default -> throw new IllegalStateException("Unexpected value: " + type);
+        };
     }
 
     private void generateDataSourceConfiguration(

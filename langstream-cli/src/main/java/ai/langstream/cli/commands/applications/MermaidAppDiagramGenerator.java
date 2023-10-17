@@ -346,7 +346,10 @@ public class MermaidAppDiagramGenerator {
                                                                     .equals("open-ai-configuration")
                                                             || r.getOriginalType()
                                                                     .equals(
-                                                                            "hugging-face-configuration"))
+                                                                            "hugging-face-configuration")
+                                                    || r.getOriginalType()
+                                                            .equals(
+                                                                    "bedrock-configuration"))
                                     .findFirst()
                                     .orElse(null);
                     if (resource != null) {

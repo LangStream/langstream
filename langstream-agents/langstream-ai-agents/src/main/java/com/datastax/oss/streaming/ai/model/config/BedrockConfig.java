@@ -16,22 +16,20 @@
 package com.datastax.oss.streaming.ai.model.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 
 @Getter
-public class TransformStepConfig {
-    @JsonProperty(required = true)
-    private List<StepConfig> steps;
+public class BedrockConfig {
 
-    @JsonProperty private OpenAIConfig openai;
+    @JsonProperty(value = "access-key", required = true)
+    private String accessKey;
 
-    @JsonProperty private HuggingFaceConfig huggingface;
+    @JsonProperty(value = "secret-key", required = true)
+    private String secretKey;
 
-    @JsonProperty private BedrockConfig bedrock;
+    @JsonProperty(value = "url", required = true)
+    private String url;
 
-    @JsonProperty private Map<String, Object> datasource;
-
-    @JsonProperty private boolean attemptJsonConversion = true;
+    @JsonProperty(value = "signing-region")
+    private String signingRegion;
 }

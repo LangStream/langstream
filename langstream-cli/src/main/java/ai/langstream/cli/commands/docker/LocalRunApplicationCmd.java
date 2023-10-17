@@ -27,9 +27,11 @@ import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -281,12 +283,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startDatabase,
             boolean dryRun)
             throws Exception {
-        File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
-        Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
+        File tmpInstanceFile = createReadableTempFile("instance", instanceContents);
         File tmpSecretsFile = null;
         if (secretsContents != null) {
-            tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
-            Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
+            tmpSecretsFile = createReadableTempFile("secrets", secretsContents);
         }
         String imageName = dockerImageName + ":" + dockerImageVersion;
         List<String> commandLine = new ArrayList<>();
@@ -379,6 +379,13 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         if (exited != 0) {
             throw new RuntimeException("Process exited with code " + exited);
         }
+    }
+
+    private static File createReadableTempFile(String prefix, String instanceContents) throws IOException {
+        File tempFile = Files.createTempFile(prefix, ".yaml").toFile();
+        tempFile.setReadable(true, false);
+        Files.write(tempFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
+        return tempFile;
     }
 
     private void startUI(String tenant, String applicationId, Path outputLog, Process process) {

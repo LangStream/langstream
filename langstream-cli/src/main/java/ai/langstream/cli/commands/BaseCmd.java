@@ -441,6 +441,7 @@ public abstract class BaseCmd implements Runnable {
                             + response.body());
         }
         Files.write(tempFile, response.body());
+        tempFile.toFile().setReadable(true, false);
         final long time = (System.currentTimeMillis() - start) / 1000;
         logger.accept(String.format("downloaded remote file %s (%d s)", path, time));
         return tempFile.toFile();

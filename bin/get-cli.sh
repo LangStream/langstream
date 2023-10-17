@@ -59,7 +59,6 @@ echo "$(tput setaf 6)Checking archive:$(tput setaf 7)"
 if [ -z "$LANGSTREAM_CLI_URL" ]; then
   echo "$(tput setaf 2)LANGSTREAM_CLI_URL$(tput setaf 7) environment not set, checking for the latest release"
   if ! command -v jq > /dev/null; then
-    	echo "Not found."
     	echo "======================================================================================================"
     	echo " Please install jq on your system using your favourite package manager."
     	echo ""
@@ -102,7 +101,6 @@ esac
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - Ready to install $(basename $downloaded_extracted_dir)."
 
 if ! command -v unzip > /dev/null; then
-	echo "Not found."
 	echo "======================================================================================================"
 	echo " Please install unzip on your system using your favourite package manager."
 	echo ""
@@ -114,7 +112,6 @@ fi
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - unzip command is available"
 
 if ! command -v curl > /dev/null; then
-	echo "Not found."
 	echo ""
 	echo "======================================================================================================"
 	echo " Please install curl on your system using your favourite package manager."

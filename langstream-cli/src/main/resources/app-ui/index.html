@@ -173,8 +173,8 @@
             document.getElementById("tab-home").style.display = "flex"
             document.getElementById("tab-button-home").classList.add(selectedClass)
             document.getElementById("tab-button-connect").classList.remove(selectedClass)
-            window.mermaid.run({
-                querySelector: '.mermaid',
+            window.mermaid.render('graphDiv', handler.applicationConfig.mermaidDefinition).then(result => {
+                document.getElementById('app-mermaid-box').innerHTML = result.svg;
             });
         } else {
             document.getElementById("tab-home").style.display = "none"

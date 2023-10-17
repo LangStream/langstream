@@ -38,13 +38,12 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
+import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import ai.langstream.impl.deploy.ApplicationDeployer;
-import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
-import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -74,16 +73,12 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -92,7 +87,7 @@ import org.springframework.context.annotation.Primary;
         })
 @WireMockTest
 @Slf4j
-class ProduceConsumeHandlerTest {
+abstract class ProduceConsumeHandlerTest {
 
     public static final Path agentsDirectory;
 
@@ -103,55 +98,49 @@ class ProduceConsumeHandlerTest {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @RegisterExtension
-    static KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
-
     static List<String> topics;
     static Gateways testGateways;
 
-    @TestConfiguration
-    public static class WebSocketTestConfig {
+    protected static ApplicationStore getMockedStore(String instanceYaml) {
+        ApplicationStore mock = Mockito.mock(ApplicationStore.class);
+        doAnswer(
+                        invocationOnMock -> {
+                            final StoredApplication storedApplication = new StoredApplication();
+                            final Application application = buildApp(instanceYaml);
+                            storedApplication.setInstance(application);
+                            return storedApplication;
+                        })
+                .when(mock)
+                .get(anyString(), anyString(), anyBoolean());
+        doAnswer(
+                        invocationOnMock ->
+                                ApplicationSpecs.builder()
+                                        .application(buildApp(instanceYaml))
+                                        .build())
+                .when(mock)
+                .getSpecs(anyString(), anyString());
 
-        @Bean
-        @Primary
-        public ApplicationStore store() {
-            final ApplicationStore mock = Mockito.mock(ApplicationStore.class);
-            doAnswer(
-                            invocationOnMock -> {
-                                final StoredApplication storedApplication = new StoredApplication();
-                                final Application application = buildApp();
-                                storedApplication.setInstance(application);
-                                return storedApplication;
-                            })
-                    .when(mock)
-                    .get(anyString(), anyString(), anyBoolean());
-            doAnswer(invocationOnMock -> ApplicationSpecs.builder().application(buildApp()).build())
-                    .when(mock)
-                    .getSpecs(anyString(), anyString());
-
-            return mock;
-        }
-
-        @Bean
-        @Primary
-        public GatewayTestAuthenticationProperties gatewayTestAuthenticationProperties() {
-            final GatewayTestAuthenticationProperties props =
-                    new GatewayTestAuthenticationProperties();
-            props.setType("http");
-            props.setConfiguration(
-                    Map.of(
-                            "base-url",
-                            wireMockBaseUrl,
-                            "path-template",
-                            "/auth/{tenant}",
-                            "headers",
-                            Map.of("h1", "v1")));
-            return props;
-        }
+        return mock;
     }
 
+    protected static GatewayTestAuthenticationProperties getGatewayTestAuthenticationProperties() {
+        final GatewayTestAuthenticationProperties props = new GatewayTestAuthenticationProperties();
+        props.setType("http");
+        props.setConfiguration(
+                Map.of(
+                        "base-url",
+                        wireMockBaseUrl,
+                        "path-template",
+                        "/auth/{tenant}",
+                        "headers",
+                        Map.of("h1", "v1")));
+        return props;
+    }
+
+    @Autowired private TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeProvider;
+
     @NotNull
-    private static Application buildApp() throws Exception {
+    private static Application buildApp(String instanceYaml) throws Exception {
         final Map<String, Object> module =
                 Map.of(
                         "module",
@@ -175,17 +164,7 @@ class ProduceConsumeHandlerTest {
                                         "module.yaml",
                                         new ObjectMapper(new YAMLFactory())
                                                 .writeValueAsString(module)),
-                                """
-                                        instance:
-                                          streamingCluster:
-                                            type: "kafka"
-                                            configuration:
-                                              admin:
-                                                bootstrap.servers: "%s"
-                                          computeCluster:
-                                             type: "none"
-                                        """
-                                        .formatted(kafkaContainer.getBootstrapServers()),
+                                instanceYaml,
                                 null)
                         .getApplication();
         application.setGateways(testGateways);
@@ -276,38 +255,25 @@ class ProduceConsumeHandlerTest {
         }
     }
 
+    protected abstract StreamingCluster getStreamingCluster();
+
     private void prepareTopicsForTest(String... topic) throws Exception {
         topics = List.of(topic);
-        try (NarFileHandler narFileHandler =
-                new NarFileHandler(
-                        agentsDirectory, List.of(), NarFileHandler.class.getClassLoader()); ) {
-            narFileHandler.scan();
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
-                    new TopicConnectionsRuntimeRegistry();
-            topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
-            final ApplicationDeployer deployer =
-                    ApplicationDeployer.builder()
-                            .pluginsRegistry(new PluginsRegistry())
-                            .registry(new ClusterRuntimeRegistry())
-                            .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
-                            .build();
-            final StreamingCluster streamingCluster =
-                    new StreamingCluster(
-                            "kafka",
-                            Map.of(
-                                    "admin",
-                                    Map.of(
-                                            "bootstrap.servers",
-                                            kafkaContainer.getBootstrapServers(),
-                                            "default.api.timeout.ms",
-                                            5000)));
-            topicConnectionsRuntimeRegistry
-                    .getTopicConnectionsRuntime(streamingCluster)
-                    .asTopicConnectionsRuntime()
-                    .deploy(
-                            deployer.createImplementation(
-                                    "app", store.get("t", "app", false).getInstance()));
-        }
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                topicConnectionsRuntimeProvider.getTopicConnectionsRuntimeRegistry();
+        final ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .pluginsRegistry(new PluginsRegistry())
+                        .registry(new ClusterRuntimeRegistry())
+                        .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .build();
+        final StreamingCluster streamingCluster = getStreamingCluster();
+        topicConnectionsRuntimeRegistry
+                .getTopicConnectionsRuntime(streamingCluster)
+                .asTopicConnectionsRuntime()
+                .deploy(
+                        deployer.createImplementation(
+                                "app", store.get("t", "app", false).getInstance()));
     }
 
     @ParameterizedTest

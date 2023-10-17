@@ -37,6 +37,8 @@ assets:
           chunk_id TEXT,
           contents TEXT,
           name TEXT,
+          product_name TEXT,
+          product_version TEXT,
           embeddings_vector VECTOR<FLOAT, 1536>,
           PRIMARY KEY (filename, chunk_id));
         - |
@@ -71,23 +73,32 @@ pipeline:
     configuration:
       text-field: text
       copy-properties: true
-  - name: "prepare-structure"
+  - name: "prepare-structure" # This step assumes that the filename for the doc follows the naming convention.
     type: "compute"
     configuration:
       fields:
-        - name: "value.filename"
-          expression: "properties.url"
+        - name: "value.product_name"
+          expression: "fn:split(properties.filename, ' ')[0]"
           type: STRING
-        - name: "value.chunk_id"
-          expression: "properties.chunk_id"
+        - name: "value.product_version"
+          expression: "fn:split(properties.filename, ' ')[1]"
           type: STRING
-        - name: "value.chunk_num_tokens"
-          expression: "properties.chunk_num_tokens"
-          type: STRING
+  - name: "compute-embeddings"
+    id: "step1"
+    type: "compute-ai-embeddings"
+    configuration:
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.embeddings"
+      text: "{{ value.text }}"
+      batch-size: 10
+      # this is in milliseconds. It is important to take this value into consideration when using this agent in the chat response pipeline
+      # in fact this value impacts the latency of the response
+      # for latency sensitive applications, consider to set batch-size to 1 or flush-interval to 0
+      flush-interval: 500
   - name: "Write to Astra"
     type: "vector-db-sink"
     configuration:
       datasource: "AstraDatasource"
       table-name: "${secrets.astra.table}"
       keyspace: "${secrets.astra.keyspace}"
-      mapping: "filename=value.name,chunk_text_length=value.chunk_text_length, chunk_num_tokens=value.chunk_num_tokens, chunk_id=value.chunk_id, contents=value.text, name=value.name"
+      mapping: "filename=value.name,chunk_text_length=value.chunk_text_length, chunk_num_tokens=value.chunk_num_tokens, chunk_id=value.chunk_id, contents=value.text, name=value.name, product_name=value.product_name, product_version=value.product_version, embeddings_vector=value.embeddings"

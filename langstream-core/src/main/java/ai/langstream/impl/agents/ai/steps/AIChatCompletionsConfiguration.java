@@ -228,8 +228,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
     private String aiService;
 
     @ConfigProperty(
-            description =
-                    """
+            description = """
                     Bedrock model options.
                     """)
     @JsonProperty(value = "bedrock-options")

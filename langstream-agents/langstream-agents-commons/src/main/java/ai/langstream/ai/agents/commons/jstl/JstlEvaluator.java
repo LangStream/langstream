@@ -255,8 +255,12 @@ public class JstlEvaluator<T> {
 
     public T evaluateRawContext(Map<String, Object> context) {
         for (Map.Entry<String, Object> stringObjectEntry : context.entrySet()) {
-            System.out.println("set " + stringObjectEntry.getKey() + " to " + stringObjectEntry.getValue());
-            FACTORY.createValueExpression(expressionContext, "${%s}".formatted(stringObjectEntry.getKey()), Object.class)
+            System.out.println(
+                    "set " + stringObjectEntry.getKey() + " to " + stringObjectEntry.getValue());
+            FACTORY.createValueExpression(
+                            expressionContext,
+                            "${%s}".formatted(stringObjectEntry.getKey()),
+                            Object.class)
                     .setValue(expressionContext, stringObjectEntry.getValue());
         }
         return this.valueExpression.getValue(expressionContext);

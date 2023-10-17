@@ -17,7 +17,6 @@ package ai.langstream.kafka;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -225,21 +224,27 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                             url: "%s"
                                             access-key: "xx"
                                             secret-key: "yy"
-                                """.formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
+                                """
+                                        .formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
                                 () -> {
-                                    final String amzDate = new SimpleDateFormat("yyyyMMdd").format(System.currentTimeMillis());
+                                    final String amzDate =
+                                            new SimpleDateFormat("yyyyMMdd")
+                                                    .format(System.currentTimeMillis());
                                     stubFor(
                                             post("/model/amazon.titan-embed-text-v1/invoke")
-                                                    .withHeader("Authorization", MultiValuePattern.of(containing("AWS4-HMAC-SHA256 Credential=xx/%s/us-east-1/bedrock/aws4_request".formatted(
-                                                            amzDate))))
+                                                    .withHeader(
+                                                            "Authorization",
+                                                            MultiValuePattern.of(
+                                                                    containing(
+                                                                            "AWS4-HMAC-SHA256 Credential=xx/%s/us-east-1/bedrock/aws4_request"
+                                                                                    .formatted(
+                                                                                            amzDate))))
                                                     .withRequestBody(containing("\"inputText\""))
                                                     .willReturn(
                                                             okJson(
                                                                     """
                                                                             {"embedding": [1.0, 5.4, 8.7]}
-                                                                            """
-                                                            )
-                                                    ));
+                                                                            """)));
                                 },
                                 Set.of("[1.0,5.4,8.7]")));
         return Stream.of(vertex, openAi, huggingFaceApi, hugginFaceLocal, bedrock);

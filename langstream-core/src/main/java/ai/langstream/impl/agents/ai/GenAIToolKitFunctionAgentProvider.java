@@ -201,8 +201,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                 }
                 Map<String, Object> resourceImplementation =
                         clusterRuntime.getResourceImplementation(resource, pluginsRegistry);
-                final String configKey =
-                        getConfigKey(type);
+                final String configKey = getConfigKey(type);
                 configuration.put(configKey, resourceImplementation);
             } else {
                 throw new IllegalArgumentException("Resource " + resourceId + " not found");

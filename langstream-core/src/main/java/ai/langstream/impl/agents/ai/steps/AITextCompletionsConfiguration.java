@@ -253,17 +253,12 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
                         """)
         @JsonProperty(value = "response-completions-expression")
         private String responseCompletionsExpression;
-
     }
 
-
     @ConfigProperty(
-            description =
-                    """
+            description = """
                     Bedrock model options.
                     """)
     @JsonProperty(value = "bedrock-options")
     private BedrockOptions bedrockOptions;
-
-
 }

@@ -37,7 +37,11 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
     protected static final String VERTEX_CONFIGURATION = "vertex-configuration";
     protected static final String BEDROCK_CONFIGURATION = "bedrock-configuration";
     private static final Set<String> SUPPORTED_TYPES =
-            Set.of(OPEN_AI_CONFIGURATION, HUGGING_FACE_CONFIGURATION, VERTEX_CONFIGURATION, BEDROCK_CONFIGURATION);
+            Set.of(
+                    OPEN_AI_CONFIGURATION,
+                    HUGGING_FACE_CONFIGURATION,
+                    VERTEX_CONFIGURATION,
+                    BEDROCK_CONFIGURATION);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public AIProvidersResourceProvider() {
@@ -267,5 +271,4 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         @JsonProperty("signing-region")
         private String signingRegion;
     }
-
 }

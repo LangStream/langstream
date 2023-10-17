@@ -74,5 +74,4 @@ public class ChatCompletionsConfig extends StepConfig {
 
     @JsonProperty(value = "bedrock-options")
     private Map<String, Object> bedrockOptions;
-
 }

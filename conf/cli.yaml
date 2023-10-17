@@ -23,7 +23,7 @@ profiles:
   local-docker-run:
     webServiceUrl: "http://localhost:8090"
     apiGatewayUrl: "ws://localhost:8091"
-    tenant: "local-docker-run"
+    tenant: "default"
     token: null
     name: "local-docker-run"
 currentProfile: "default"

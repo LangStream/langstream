@@ -23,7 +23,7 @@ if [ -z "$agent_module" ]; then
   exit 1
 fi
 
-#mvn clean install -DskipTests -PskipPython -Dlicense.skip -Dspotless.skip -ntp -pl langstream-agents/$agent_module
+mvn clean install -DskipTests -PskipPython -Dlicense.skip -Dspotless.skip -ntp -pl langstream-agents/$agent_module
 cd langstream-agents/$agent_module/target
 cd ..
 docker build -t langstream/langstream-runtime-tester:latest-dev -f- . <<EOF

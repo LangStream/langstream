@@ -120,7 +120,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
 
     @Test
     @SneakyThrows
-    public void testStepsDoc() {
+    public void testDocumentation() {
         final Map<String, AgentConfigurationModel> model =
                 new PluginsRegistry()
                         .lookupAgentImplementation(

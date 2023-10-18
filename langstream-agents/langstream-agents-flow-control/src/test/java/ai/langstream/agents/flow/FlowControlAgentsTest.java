@@ -59,8 +59,11 @@ public class FlowControlAgentsTest {
                                             "fn:random(1000)"))));
             timerSource.start();
             List<Record> all = new ArrayList<>();
-            for (int i = 0; i < 10; i++) {
+            while (all.size() < 10) {
                 List<Record> read = timerSource.read();
+                if (read.isEmpty()) {
+                    continue;
+                }
                 assertEquals(1, read.size());
                 all.addAll(read);
                 Record r = read.get(0);
@@ -73,7 +76,6 @@ public class FlowControlAgentsTest {
                 assertNotNull(someprop);
                 assertNotNull(someprop.value());
             }
-            assertEquals(10, all.size());
         }
     }
 

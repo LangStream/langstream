@@ -86,11 +86,11 @@ public class InterpolationUtils {
         try {
             if (log.isDebugEnabled()) {
                 log.debug("Query {}", json);
+                params.forEach(
+                        param ->
+                                log.debug(
+                                        "Param {} {}", param, param != null ? param.getClass() : null));
             }
-            params.forEach(
-                    param ->
-                            log.info(
-                                    "Param {} {}", param, param != null ? param.getClass() : null));
             // interpolate the query
             json = interpolate(json, params);
             if (log.isDebugEnabled()) {

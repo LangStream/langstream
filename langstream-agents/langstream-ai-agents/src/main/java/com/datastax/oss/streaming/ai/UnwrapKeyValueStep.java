@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 
 public class UnwrapKeyValueStep implements TransformStep {
 
@@ -26,16 +26,16 @@ public class UnwrapKeyValueStep implements TransformStep {
     }
 
     @Override
-    public void process(TransformContext transformContext) throws Exception {
-        if (transformContext.getKeySchemaType() != null) {
+    public void process(MutableRecord mutableRecord) throws Exception {
+        if (mutableRecord.getKeySchemaType() != null) {
             if (unwrapKey) {
-                transformContext.setValueSchemaType(transformContext.getKeySchemaType());
-                transformContext.setValueNativeSchema(transformContext.getKeyNativeSchema());
-                transformContext.setValueObject(transformContext.getKeyObject());
+                mutableRecord.setValueSchemaType(mutableRecord.getKeySchemaType());
+                mutableRecord.setValueNativeSchema(mutableRecord.getKeyNativeSchema());
+                mutableRecord.setValueObject(mutableRecord.getKeyObject());
             }
-            transformContext.setKeySchemaType(null);
-            transformContext.setKeyNativeSchema(null);
-            transformContext.setKeyObject(null);
+            mutableRecord.setKeySchemaType(null);
+            mutableRecord.setKeyNativeSchema(null);
+            mutableRecord.setKeyObject(null);
         }
     }
 }

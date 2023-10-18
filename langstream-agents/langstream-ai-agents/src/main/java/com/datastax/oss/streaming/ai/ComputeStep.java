@@ -16,7 +16,7 @@
 package com.datastax.oss.streaming.ai;
 
 import ai.langstream.ai.agents.commons.AvroUtil;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.JstlTypeConverter;
 import com.datastax.oss.streaming.ai.model.ComputeField;
@@ -56,35 +56,35 @@ public class ComputeStep implements TransformStep {
             new ConcurrentHashMap<>();
 
     @Override
-    public void process(TransformContext transformContext) {
+    public void process(MutableRecord mutableRecord) {
         computePrimitiveField(
                 fields.stream()
                         .filter(f -> "primitive".equals(f.getScope()))
                         .collect(Collectors.toList()),
-                transformContext);
+                mutableRecord);
         computeKeyFields(
                 fields.stream()
                         .filter(f -> "key".equals(f.getScope()))
                         .collect(Collectors.toList()),
-                transformContext);
+                mutableRecord);
         computeValueFields(
                 fields.stream()
                         .filter(f -> "value".equals(f.getScope()))
                         .collect(Collectors.toList()),
-                transformContext);
+                mutableRecord);
         computeHeaderFields(
                 fields.stream()
                         .filter(f -> "header".equals(f.getScope()))
                         .collect(Collectors.toList()),
-                transformContext);
+                mutableRecord);
         computeHeaderPropertiesFields(
                 fields.stream()
                         .filter(f -> "header.properties".equals(f.getScope()))
                         .collect(Collectors.toList()),
-                transformContext);
+                mutableRecord);
     }
 
-    public void computeValueFields(List<ComputeField> fields, TransformContext context) {
+    public void computeValueFields(List<ComputeField> fields, MutableRecord context) {
         TransformSchemaType schemaType = context.getValueSchemaType();
         if (context.getValueObject() instanceof Map) {
             getEvaluatedFields(fields, context)
@@ -98,7 +98,7 @@ public class ComputeStep implements TransformStep {
         }
     }
 
-    public void computePrimitiveField(List<ComputeField> fields, TransformContext context) {
+    public void computePrimitiveField(List<ComputeField> fields, MutableRecord context) {
         fields.stream()
                 .filter(f -> "key".equals(f.getName()))
                 .findFirst()
@@ -137,7 +137,7 @@ public class ComputeStep implements TransformStep {
                         });
     }
 
-    public void computeKeyFields(List<ComputeField> fields, TransformContext context) {
+    public void computeKeyFields(List<ComputeField> fields, MutableRecord context) {
         Object keyObject = context.getKeyObject();
         if (keyObject != null) {
             if (keyObject instanceof Map) {
@@ -154,7 +154,7 @@ public class ComputeStep implements TransformStep {
         }
     }
 
-    public void computeHeaderFields(List<ComputeField> fields, TransformContext context) {
+    public void computeHeaderFields(List<ComputeField> fields, MutableRecord context) {
         fields.forEach(
                 field -> {
                     switch (field.getName()) {
@@ -173,13 +173,13 @@ public class ComputeStep implements TransformStep {
                 });
     }
 
-    public void computeHeaderPropertiesFields(List<ComputeField> fields, TransformContext context) {
+    public void computeHeaderPropertiesFields(List<ComputeField> fields, MutableRecord context) {
         fields.forEach(
                 field ->
                         context.setProperty(field.getName(), validateAndGetString(field, context)));
     }
 
-    private String validateAndGetString(ComputeField field, TransformContext context) {
+    private String validateAndGetString(ComputeField field, MutableRecord context) {
         Object value = field.getEvaluator().evaluate(context);
         if (value instanceof String) {
             return (String) value;
@@ -194,7 +194,7 @@ public class ComputeStep implements TransformStep {
     }
 
     private Map<Schema.Field, Object> getEvaluatedFields(
-            List<ComputeField> fields, TransformContext context) {
+            List<ComputeField> fields, MutableRecord context) {
         Map<Schema.Field, Object> evaluatedFields =
                 new LinkedHashMap<>(); // preserves the insertion order of keys
         for (ComputeField field : fields) {

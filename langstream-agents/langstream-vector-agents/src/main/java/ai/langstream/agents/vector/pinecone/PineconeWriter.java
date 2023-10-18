@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.vector.pinecone;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
@@ -103,23 +103,22 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext = recordToTransformContext(record, true);
-                String id =
-                        idFunction != null ? (String) idFunction.evaluate(transformContext) : null;
+                MutableRecord mutableRecord = recordToMutableRecord(record, true);
+                String id = idFunction != null ? (String) idFunction.evaluate(mutableRecord) : null;
                 String namespace =
                         namespaceFunction != null
-                                ? (String) namespaceFunction.evaluate(transformContext)
+                                ? (String) namespaceFunction.evaluate(mutableRecord)
                                 : null;
                 List<Object> vector =
                         vectorFunction != null
-                                ? (List<Object>) vectorFunction.evaluate(transformContext)
+                                ? (List<Object>) vectorFunction.evaluate(mutableRecord)
                                 : null;
                 Map<String, Object> metadata =
                         metadataFunctions.entrySet().stream()
                                 .collect(
                                         Collectors.toMap(
                                                 Map.Entry::getKey,
-                                                e -> e.getValue().evaluate(transformContext)));
+                                                e -> e.getValue().evaluate(mutableRecord)));
                 Struct metadataStruct =
                         Struct.newBuilder()
                                 .putAllFields(

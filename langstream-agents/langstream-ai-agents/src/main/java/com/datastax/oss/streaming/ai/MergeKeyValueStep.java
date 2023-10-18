@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,20 +33,20 @@ public class MergeKeyValueStep implements TransformStep {
             schemaCache = new ConcurrentHashMap<>();
 
     @Override
-    public void process(TransformContext transformContext) {
-        TransformSchemaType keySchemaType = transformContext.getKeySchemaType();
+    public void process(MutableRecord mutableRecord) {
+        TransformSchemaType keySchemaType = mutableRecord.getKeySchemaType();
         if (keySchemaType == null) {
             return;
         }
-        Object keyObject = transformContext.getKeyObject();
-        Object valueObject = transformContext.getValueObject();
+        Object keyObject = mutableRecord.getKeyObject();
+        Object valueObject = mutableRecord.getValueObject();
         if (keyObject instanceof Map && valueObject instanceof Map) {
             Map<Object, Object> value = (Map<Object, Object>) valueObject;
             Map<String, Object> keyCopy =
                     OBJECT_MAPPER.convertValue(keyObject, new TypeReference<>() {});
             keyCopy.forEach(value::putIfAbsent);
         } else if (keySchemaType == TransformSchemaType.AVRO
-                && transformContext.getValueSchemaType() == TransformSchemaType.AVRO) {
+                && mutableRecord.getValueSchemaType() == TransformSchemaType.AVRO) {
             GenericRecord avroKeyRecord = (GenericRecord) keyObject;
             org.apache.avro.Schema avroKeySchema = avroKeyRecord.getSchema();
 
@@ -65,24 +65,24 @@ public class MergeKeyValueStep implements TransformStep {
                     newRecord.put(field.name(), avroKeyRecord.get(field.name()));
                 }
             }
-            transformContext.setValueObject(newRecord);
-            transformContext.setValueNativeSchema(newRecord.getSchema());
+            mutableRecord.setValueObject(newRecord);
+            mutableRecord.setValueNativeSchema(newRecord.getSchema());
         } else if (keySchemaType == TransformSchemaType.JSON
-                && transformContext.getValueSchemaType() == TransformSchemaType.JSON) {
+                && mutableRecord.getValueSchemaType() == TransformSchemaType.JSON) {
             org.apache.avro.Schema avroKeySchema =
-                    (org.apache.avro.Schema) transformContext.getKeyNativeSchema();
+                    (org.apache.avro.Schema) mutableRecord.getKeyNativeSchema();
             org.apache.avro.Schema avroValueSchema =
-                    (org.apache.avro.Schema) transformContext.getValueNativeSchema();
+                    (org.apache.avro.Schema) mutableRecord.getValueNativeSchema();
             if (avroValueSchema != null && avroKeySchema != null) {
                 org.apache.avro.Schema mergedSchema =
                         getMergedSchema(avroKeySchema, avroValueSchema);
-                transformContext.setValueNativeSchema(mergedSchema);
+                mutableRecord.setValueNativeSchema(mergedSchema);
             } else {
-                transformContext.setValueNativeSchema(null);
+                mutableRecord.setValueNativeSchema(null);
             }
             ObjectNode newValue = ((ObjectNode) keyObject).deepCopy();
             newValue.setAll(((ObjectNode) valueObject).deepCopy());
-            transformContext.setValueObject(newValue);
+            mutableRecord.setValueObject(newValue);
         }
     }
 

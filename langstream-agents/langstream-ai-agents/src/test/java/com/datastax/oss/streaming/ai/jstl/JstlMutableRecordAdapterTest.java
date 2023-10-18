@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlTransformContextAdapter;
 import com.datastax.oss.streaming.ai.Utils;
 import java.time.LocalDate;
@@ -42,7 +42,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 import org.junit.jupiter.api.Test;
 
-public class JstlTransformContextAdapterTest {
+public class JstlMutableRecordAdapterTest {
     private static final org.apache.avro.Schema dateType =
             LogicalTypes.date()
                     .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT));
@@ -58,11 +58,11 @@ public class JstlTransformContextAdapterTest {
          }
         */
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertTrue(adapter.getKey() instanceof Map);
@@ -89,11 +89,11 @@ public class JstlTransformContextAdapterTest {
                 Schema.KeyValue(Schema.STRING, Schema.INT32, KeyValueEncodingType.SEPARATED);
         KeyValue<String, Integer> keyValue = new KeyValue<>("key", 42);
 
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 Utils.createContextWithPrimitiveRecord(keyValueSchema, keyValue, "header-key");
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         assertEquals(adapter.getKey(), "key");
         assertEquals(adapter.adaptValue(), 42);
@@ -103,11 +103,11 @@ public class JstlTransformContextAdapterTest {
     @Test
     void testAdapterForPrimitiveRecord() {
         // given
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "header-key");
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertEquals(adapter.getHeader().get("messageKey"), "header-key");
@@ -130,11 +130,11 @@ public class JstlTransformContextAdapterTest {
          "level4Union": "level4_2" } } } }
         */
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertEquals(adapter.getHeader().get("messageKey"), "header-key");
@@ -160,11 +160,11 @@ public class JstlTransformContextAdapterTest {
          "level4Union": "level4_2" } } } }
         */
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertTrue(adapter.getKey() instanceof Map);
@@ -194,11 +194,11 @@ public class JstlTransformContextAdapterTest {
                         .build();
 
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertEquals(adapter.getHeader().get("messageKey"), "test-key");
@@ -238,11 +238,11 @@ public class JstlTransformContextAdapterTest {
         Record<GenericObject> record =
                 new Utils.TestRecord<>(pulsarValueSchema, valueRecord, "key");
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
         // when
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
 
         // then
         assertTrue(adapter.adaptValue() instanceof Map);

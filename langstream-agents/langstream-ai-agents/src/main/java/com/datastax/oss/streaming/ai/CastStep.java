@@ -15,9 +15,9 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static ai.langstream.ai.agents.commons.TransformContext.attemptJsonConversion;
+import static ai.langstream.ai.agents.commons.MutableRecord.attemptJsonConversion;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.JstlTypeConverter;
 import java.sql.Time;
@@ -37,18 +37,18 @@ public class CastStep implements TransformStep {
     private final boolean attemptJsonConversion;
 
     @Override
-    public void process(TransformContext transformContext) {
-        if (transformContext.getKeySchemaType() != null
+    public void process(MutableRecord mutableRecord) {
+        if (mutableRecord.getKeySchemaType() != null
                 && keySchemaType != null
-                && transformContext.getKeySchemaType() != keySchemaType) {
-            Object value = convertValue(transformContext.getKeyObject(), keySchemaType);
-            transformContext.setKeySchemaType(keySchemaType);
-            transformContext.setKeyObject(value);
+                && mutableRecord.getKeySchemaType() != keySchemaType) {
+            Object value = convertValue(mutableRecord.getKeyObject(), keySchemaType);
+            mutableRecord.setKeySchemaType(keySchemaType);
+            mutableRecord.setKeyObject(value);
         }
-        if (valueSchemaType != null && transformContext.getValueSchemaType() != valueSchemaType) {
-            Object value = convertValue(transformContext.getValueObject(), valueSchemaType);
-            transformContext.setValueSchemaType(valueSchemaType);
-            transformContext.setValueObject(value);
+        if (valueSchemaType != null && mutableRecord.getValueSchemaType() != valueSchemaType) {
+            Object value = convertValue(mutableRecord.getValueObject(), valueSchemaType);
+            mutableRecord.setValueSchemaType(valueSchemaType);
+            mutableRecord.setValueObject(value);
         }
     }
 

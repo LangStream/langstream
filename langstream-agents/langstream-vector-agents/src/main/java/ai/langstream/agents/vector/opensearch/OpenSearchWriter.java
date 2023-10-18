@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.vector.opensearch;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
@@ -304,14 +304,14 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
 
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext = recordToTransformContext(record, true);
+                MutableRecord mutableRecord = recordToMutableRecord(record, true);
                 Map<String, Object> documentJson;
 
                 if (record.value() != null) {
                     documentJson = new HashMap<>();
                     fields.forEach(
                             (name, evaluator) -> {
-                                Object value = evaluator.evaluate(transformContext);
+                                Object value = evaluator.evaluate(mutableRecord);
                                 if (log.isDebugEnabled()) {
                                     log.debug(
                                             "setting value {} ({}) for field {}",
@@ -329,7 +329,7 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                 if (id == null) {
                     documentId = null;
                 } else {
-                    final Object evaluate = id.evaluate(transformContext);
+                    final Object evaluate = id.evaluate(mutableRecord);
                     documentId = evaluate == null ? null : evaluate.toString();
                 }
                 if (documentJson == null && documentId == null) {

@@ -15,10 +15,10 @@
  */
 package ai.langstream.agents.vector;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
-import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.mutableRecordToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
@@ -65,10 +65,10 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         if (log.isDebugEnabled()) {
             log.debug("Processing record {}", record);
         }
-        TransformContext context = recordToTransformContext(record, true);
+        MutableRecord context = recordToMutableRecord(record, true);
         TransformFunctionUtil.processTransformSteps(context, steps);
         context.convertMapToStringOrBytes();
-        Optional<Record> recordResult = transformContextToRecord(context);
+        Optional<Record> recordResult = mutableRecordToRecord(context);
         if (log.isDebugEnabled()) {
             log.debug("recordResult {}", recordResult);
         }

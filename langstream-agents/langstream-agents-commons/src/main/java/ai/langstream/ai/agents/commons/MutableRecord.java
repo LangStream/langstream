@@ -55,7 +55,7 @@ import org.apache.avro.io.EncoderFactory;
 
 @Slf4j
 @Data
-public class TransformContext {
+public class MutableRecord {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private TransformSchemaType keySchemaType;
     private Object keyNativeSchema;
@@ -73,8 +73,8 @@ public class TransformContext {
     // only for fn:filter
     private Object recordObject;
 
-    public TransformContext copy() {
-        TransformContext copy = new TransformContext();
+    public MutableRecord copy() {
+        MutableRecord copy = new MutableRecord();
 
         copy.keyObject = safeClone(keyObject);
         copy.valueObject = safeClone(valueObject);
@@ -322,6 +322,10 @@ public class TransformContext {
             if (valueObject instanceof Map) {
                 ((Map<String, Object>) valueObject).put(valueFieldName, content);
             } else {
+                if (fieldSchema == null) {
+                    throw new IllegalStateException(
+                            "Cannot set a value field without a schema on a non-map value");
+                }
                 Schema.Field fieldSchemaField =
                         new Schema.Field(valueFieldName, fieldSchema, null, null);
                 addOrReplaceValueFields(Map.of(fieldSchemaField, content), avroValueSchemaCache);
@@ -331,6 +335,10 @@ public class TransformContext {
             if (keyObject instanceof Map) {
                 ((Map<String, Object>) keyObject).put(keyFieldName, content);
             } else {
+                if (fieldSchema == null) {
+                    throw new IllegalStateException(
+                            "Cannot set a key field without a schema on a non-map key");
+                }
                 Schema.Field fieldSchemaField =
                         new Schema.Field(keyFieldName, fieldSchema, null, null);
                 addOrReplaceKeyFields(Map.of(fieldSchemaField, content), avroKeySchemaCache);
@@ -372,9 +380,9 @@ public class TransformContext {
         throw new UnsupportedOperationException("Cannot copy a value of " + object.getClass());
     }
 
-    public static TransformContext recordToTransformContext(
+    public static MutableRecord recordToMutableRecord(
             Record record, boolean attemptJsonConversion) {
-        TransformContext context = new TransformContext();
+        MutableRecord context = new MutableRecord();
         context.setKeyObject(record.key());
         context.setKeySchemaType(
                 record.key() == null ? null : getSchemaType(record.key().getClass()));
@@ -417,7 +425,7 @@ public class TransformContext {
         return context;
     }
 
-    public static Optional<Record> transformContextToRecord(TransformContext context) {
+    public static Optional<Record> mutableRecordToRecord(MutableRecord context) {
         if (context.isDropCurrentRecord()) {
             return Optional.empty();
         }
@@ -432,9 +440,9 @@ public class TransformContext {
         return Optional.of(new TransformRecord(context, headers));
     }
 
-    private record TransformRecord(TransformContext context, Collection<Header> headers)
+    private record TransformRecord(MutableRecord context, Collection<Header> headers)
             implements Record {
-        private TransformRecord(TransformContext context, Collection<Header> headers) {
+        private TransformRecord(MutableRecord context, Collection<Header> headers) {
             this.context = context;
             this.headers = new ArrayList<>(headers);
         }

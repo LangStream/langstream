@@ -96,6 +96,7 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
         String text = Utils.toText(value);
         List<String> chunks = textSplitter.splitText(text);
         int chunkId = 0;
+        int numChunks = chunks.size();
         List<Record> result = new ArrayList<>();
         for (String chunk : chunks) {
             List<Header> chunkHeaders = new ArrayList<>(record.headers());
@@ -106,6 +107,8 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
             int numTokens = lengthFunction.length(chunk);
             chunkHeaders.add(
                     new SimpleRecord.SimpleHeader("chunk_num_tokens", String.valueOf(numTokens)));
+            chunkHeaders.add(
+                    new SimpleRecord.SimpleHeader("chunk_num_chunks", String.valueOf(numChunks)));
 
             // here we are setting as key the original key
             // this is to ensure that all the chunks will be processed in order downstream

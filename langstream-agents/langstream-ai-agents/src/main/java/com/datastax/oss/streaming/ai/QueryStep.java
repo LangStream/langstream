@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import java.util.ArrayList;
@@ -82,13 +82,13 @@ public class QueryStep implements TransformStep {
     }
 
     @Override
-    public void process(TransformContext transformContext) {
+    public void process(MutableRecord mutableRecord) {
         Schema schema;
         Object finalResult;
 
         switch (mode) {
             case MODE_QUERY:
-                List<Map<String, Object>> results = processQuery(transformContext);
+                List<Map<String, Object>> results = processQuery(mutableRecord);
                 if (onlyFirst) {
                     schema = Schema.createMap(Schema.create(Schema.Type.STRING));
                     if (results.isEmpty()) {
@@ -103,7 +103,7 @@ public class QueryStep implements TransformStep {
                 }
                 break;
             case MODE_EXECUTE:
-                finalResult = processExecute(transformContext);
+                finalResult = processExecute(mutableRecord);
                 if (finalResult instanceof Map) {
                     schema = Schema.createMap(Schema.create(Schema.Type.STRING));
                 } else if (finalResult instanceof List) {
@@ -117,21 +117,21 @@ public class QueryStep implements TransformStep {
                 throw new IllegalStateException("Unknown mode " + mode);
         }
 
-        transformContext.setResultField(
+        mutableRecord.setResultField(
                 finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
     }
 
-    private List<Map<String, Object>> processQuery(TransformContext transformContext) {
+    private List<Map<String, Object>> processQuery(MutableRecord mutableRecord) {
         List<Map<String, Object>> results;
         if (loopOverAccessor == null) {
-            results = performQuery(transformContext);
+            results = performQuery(mutableRecord);
         } else {
             // loop over a list
             // for each item we name if "record" and we perform the query
-            List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
+            List<Object> nestedRecords = loopOverAccessor.evaluate(mutableRecord);
             results = new ArrayList<>();
             for (Object document : nestedRecords) {
-                TransformContext nestedRecordContext = new TransformContext();
+                MutableRecord nestedRecordContext = new MutableRecord();
                 nestedRecordContext.setRecordObject(document);
                 // set in the item the result
                 List<Map<String, Object>> resultsForDocument = performQuery(nestedRecordContext);
@@ -141,17 +141,17 @@ public class QueryStep implements TransformStep {
         return results;
     }
 
-    private Object processExecute(TransformContext transformContext) {
+    private Object processExecute(MutableRecord mutableRecord) {
         Object res;
         if (loopOverAccessor == null) {
-            res = executeStatement(transformContext);
+            res = executeStatement(mutableRecord);
         } else {
             // loop over a list
             // for each item we name if "record" and we perform the query
-            List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
+            List<Object> nestedRecords = loopOverAccessor.evaluate(mutableRecord);
             List<Map<String, Object>> results = new ArrayList<>();
             for (Object document : nestedRecords) {
-                TransformContext nestedRecordContext = new TransformContext();
+                MutableRecord nestedRecordContext = new MutableRecord();
                 nestedRecordContext.setRecordObject(document);
                 // set in the item the result
                 Map<String, Object> resultsForDocument = executeStatement(nestedRecordContext);
@@ -162,14 +162,14 @@ public class QueryStep implements TransformStep {
         return res;
     }
 
-    private List<Map<String, Object>> performQuery(TransformContext transformContext) {
+    private List<Map<String, Object>> performQuery(MutableRecord mutableRecord) {
         List<Object> params = new ArrayList<>();
         fieldsEvaluators.forEach(
                 field -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Evaluating {}", field);
                     }
-                    Object value = field.evaluate(transformContext);
+                    Object value = field.evaluate(mutableRecord);
                     if (log.isDebugEnabled()) {
                         log.debug(
                                 "Result {} type {}",
@@ -188,14 +188,14 @@ public class QueryStep implements TransformStep {
         return results;
     }
 
-    private Map<String, Object> executeStatement(TransformContext transformContext) {
+    private Map<String, Object> executeStatement(MutableRecord mutableRecord) {
         List<Object> params = new ArrayList<>();
         fieldsEvaluators.forEach(
                 field -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Evaluating {}", field);
                     }
-                    Object value = field.evaluate(transformContext);
+                    Object value = field.evaluate(mutableRecord);
                     if (log.isDebugEnabled()) {
                         log.debug(
                                 "Result {} type {}",

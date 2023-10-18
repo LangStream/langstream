@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.util.List;
@@ -539,19 +539,18 @@ public class TransformFunctionTest {
         Utils.TestRecord<String> testRecord = new Utils.TestRecord<>(Schema.STRING, value, null);
         Utils.TestContext context = new Utils.TestContext(testRecord, config);
         transformFunction.initialize(context);
-        TransformContext transformContext =
-                TransformFunction.newTransformContext(context, value, true);
-        transformFunction.process(transformContext);
+        MutableRecord mutableRecord = TransformFunction.newTransformContext(context, value, true);
+        transformFunction.process(mutableRecord);
         log.info(
                 "result: {} {}",
-                transformContext.getValueObject(),
-                transformContext.getValueObject().getClass());
+                mutableRecord.getValueObject(),
+                mutableRecord.getValueObject().getClass());
         assertEquals(
                 Map.of(
                         "queryResults",
                         List.of(Map.of("v1", "v2")),
                         "newQueryResults",
                         List.of(Map.of("v1", "v2"))),
-                transformContext.getValueObject());
+                mutableRecord.getValueObject());
     }
 }

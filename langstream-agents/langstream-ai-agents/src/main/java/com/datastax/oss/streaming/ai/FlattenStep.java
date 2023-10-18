@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,23 +42,23 @@ public class FlattenStep implements TransformStep {
     private final String part;
 
     @Override
-    public void process(TransformContext transformContext) throws Exception {
+    public void process(MutableRecord mutableRecord) throws Exception {
         if (part != null && !part.equals("key") && !part.equals("value")) {
             throw new IllegalArgumentException("Unsupported part for Flatten: " + part);
         }
         if ("key".equals(part) || part == null) {
-            validateAvro(transformContext.getKeySchemaType());
+            validateAvro(mutableRecord.getKeySchemaType());
             GenericRecord flattenedKey =
-                    flattenGenericRecord((GenericRecord) transformContext.getKeyObject());
-            transformContext.setKeyObject(flattenedKey);
-            transformContext.setKeyNativeSchema(flattenedKey.getSchema());
+                    flattenGenericRecord((GenericRecord) mutableRecord.getKeyObject());
+            mutableRecord.setKeyObject(flattenedKey);
+            mutableRecord.setKeyNativeSchema(flattenedKey.getSchema());
         }
         if ("value".equals(part) || part == null) {
-            validateAvro(transformContext.getValueSchemaType());
+            validateAvro(mutableRecord.getValueSchemaType());
             GenericRecord flattenedValue =
-                    flattenGenericRecord((GenericRecord) transformContext.getValueObject());
-            transformContext.setValueObject(flattenedValue);
-            transformContext.setValueNativeSchema(flattenedValue.getSchema());
+                    flattenGenericRecord((GenericRecord) mutableRecord.getValueObject());
+            mutableRecord.setValueObject(flattenedValue);
+            mutableRecord.setValueNativeSchema(flattenedValue.getSchema());
         }
     }
 

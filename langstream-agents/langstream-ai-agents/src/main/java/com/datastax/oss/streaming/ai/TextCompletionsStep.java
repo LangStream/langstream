@@ -18,7 +18,7 @@ package com.datastax.oss.streaming.ai;
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
@@ -80,8 +80,8 @@ public class TextCompletionsStep implements TransformStep {
     }
 
     @Override
-    public CompletableFuture<?> processAsync(TransformContext transformContext) {
-        JsonRecord jsonRecord = transformContext.toJsonRecord();
+    public CompletableFuture<?> processAsync(MutableRecord mutableRecord) {
+        JsonRecord jsonRecord = mutableRecord.toJsonRecord();
 
         List<String> prompt =
                 config.getPrompt().stream()
@@ -102,7 +102,7 @@ public class TextCompletionsStep implements TransformStep {
                                 // we must copy the context because the same context is used for all
                                 // chunks
                                 // and also for the final answer
-                                TransformContext copy = transformContext.copy();
+                                MutableRecord copy = mutableRecord.copy();
 
                                 copy.getProperties().put("stream-id", answerId);
                                 copy.getProperties().put("stream-index", index + "");
@@ -118,7 +118,7 @@ public class TextCompletionsStep implements TransformStep {
 
         return chatCompletionsHandle.thenApply(
                 content -> {
-                    applyResultFieldToContext(transformContext, content.text(), false);
+                    applyResultFieldToContext(mutableRecord, content.text(), false);
 
                     String logField = config.getLogField();
                     if (logField != null && !logField.isEmpty()) {
@@ -126,8 +126,8 @@ public class TextCompletionsStep implements TransformStep {
                         logMap.put("model", config.getModel());
                         logMap.put("options", options);
                         logMap.put("messages", prompt);
-                        transformContext.setResultField(
-                                TransformContext.toJson(logMap),
+                        mutableRecord.setResultField(
+                                MutableRecord.toJson(logMap),
                                 logField,
                                 Schema.create(Schema.Type.STRING),
                                 avroKeySchemaCache,
@@ -151,7 +151,7 @@ public class TextCompletionsStep implements TransformStep {
                         logMap.put("tokens", tokens != null ? tokens : List.of());
                         logMap.put("logprobs", logprobs != null ? logprobs : List.of());
 
-                        transformContext.setResultField(
+                        mutableRecord.setResultField(
                                 logMap,
                                 logProbsField,
                                 Schema.createRecord(
@@ -180,7 +180,7 @@ public class TextCompletionsStep implements TransformStep {
     }
 
     private void applyResultFieldToContext(
-            TransformContext transformContext, String content, boolean streamingAnswer) {
+            MutableRecord mutableRecord, String content, boolean streamingAnswer) {
         String fieldName = config.getFieldName();
 
         // maybe we want a different field in the streaming answer
@@ -190,7 +190,7 @@ public class TextCompletionsStep implements TransformStep {
                 && !config.getStreamResponseCompletionField().isEmpty()) {
             fieldName = config.getStreamResponseCompletionField();
         }
-        transformContext.setResultField(
+        mutableRecord.setResultField(
                 content,
                 fieldName,
                 Schema.create(Schema.Type.STRING),

@@ -15,10 +15,10 @@
  */
 package ai.langstream.ai.agents.flare;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
-import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.mutableRecordToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentCode;
@@ -117,9 +117,9 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
             recordSink.emitEmptyList(record);
             return;
         }
-        TransformContext transformContext = recordToTransformContext(record, true).copy();
+        MutableRecord mutableRecord = recordToMutableRecord(record, true).copy();
 
-        Integer iterationCount = numIterationsAccessor.evaluate(transformContext);
+        Integer iterationCount = numIterationsAccessor.evaluate(mutableRecord);
         if (iterationCount == null) {
             iterationCount = 0;
         }
@@ -130,9 +130,9 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
         } else {
             log.info("Record did {} iterations in Flare controller", iterationCount);
         }
-        List<String> tokens = tokensAccessor.evaluate(transformContext);
+        List<String> tokens = tokensAccessor.evaluate(mutableRecord);
         log.info("Flare: tokens: {}", tokens);
-        List<Double> logProbs = logsProbsAccessor.evaluate(transformContext);
+        List<Double> logProbs = logsProbsAccessor.evaluate(mutableRecord);
 
         List<String> logConfidenceSpans =
                 lowConfidenceSpans(tokens, logProbs, minProb, minTokenGap, numPadTokens);
@@ -149,14 +149,14 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
         }
         log.info("The LLM needs more content about these spans: {}", logConfidenceSpans);
 
-        transformContext.setResultField(
+        mutableRecord.setResultField(
                 logConfidenceSpans,
                 retrieveDocumentsField,
                 Schema.createArray(Schema.create(Schema.Type.STRING)),
                 avroKeySchemaCache,
                 avroValueSchemaCache);
 
-        Record forLoopTopic = transformContextToRecord(transformContext).orElseThrow();
+        Record forLoopTopic = mutableRecordToRecord(mutableRecord).orElseThrow();
 
         loopTopicProducer
                 .write(forLoopTopic)

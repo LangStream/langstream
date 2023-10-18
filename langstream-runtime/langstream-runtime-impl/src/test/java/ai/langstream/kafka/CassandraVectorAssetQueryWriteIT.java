@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -41,7 +40,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
+class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =

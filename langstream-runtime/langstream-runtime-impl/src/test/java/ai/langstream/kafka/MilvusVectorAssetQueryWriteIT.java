@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class MilvusVectorAssetQueryWriteIT extends AbstractApplicationRunner {
+class MilvusVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Test
     @Disabled() // "This test requires a running Milvus instance"

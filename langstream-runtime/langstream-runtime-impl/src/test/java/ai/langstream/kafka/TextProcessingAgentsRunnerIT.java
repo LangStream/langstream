@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
-class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
+class TextProcessingAgentsRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testFullLanguageProcessingPipeline() throws Exception {

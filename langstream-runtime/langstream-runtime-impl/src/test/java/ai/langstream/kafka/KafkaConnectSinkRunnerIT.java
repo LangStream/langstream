@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +34,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner {
+class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     @Disabled

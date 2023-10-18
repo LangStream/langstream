@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -30,7 +29,7 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
+class KafkaConnectSourceRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testRunKafkaConnectSource() throws Exception {

@@ -532,7 +532,21 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @SneakyThrows
             public void start() {
                 String topic = (String) configuration.remove("topic");
-                schema = (Schema<K>) configuration.remove("schema");
+                if (configuration.containsKey("valueSchema")) {
+                    SchemaDefinition valueSchemaDefinition =
+                            mapper.convertValue(
+                                    configuration.remove("valueSchema"), SchemaDefinition.class);
+                    Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                    if (configuration.containsKey("keySchema")) {
+                        SchemaDefinition keySchemaDefinition =
+                                mapper.convertValue(
+                                        configuration.remove("keySchema"), SchemaDefinition.class);
+                        Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                        schema = (Schema<K>) Schema.KeyValue(keySchema, valueSchema);
+                    } else {
+                        schema = (Schema<K>) valueSchema;
+                    }
+                }
                 if (schema == null) {
                     schema = (Schema) Schema.STRING;
                 }

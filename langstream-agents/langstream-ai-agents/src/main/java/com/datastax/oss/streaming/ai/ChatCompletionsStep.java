@@ -18,7 +18,7 @@ package com.datastax.oss.streaming.ai;
 import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.convertToMap;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -66,7 +66,7 @@ public class ChatCompletionsStep implements TransformStep {
                                 int index,
                                 String message,
                                 boolean last,
-                                TransformContext outputMessage) {
+                                MutableRecord outputMessage) {
                             log.info("index: {}, message: {}, last: {}", index, message, last);
                         }
                     };
@@ -112,8 +112,8 @@ public class ChatCompletionsStep implements TransformStep {
     }
 
     @Override
-    public CompletableFuture<?> processAsync(TransformContext transformContext) {
-        JsonRecord jsonRecord = transformContext.toJsonRecord();
+    public CompletableFuture<?> processAsync(MutableRecord mutableRecord) {
+        JsonRecord jsonRecord = mutableRecord.toJsonRecord();
 
         List<ChatMessage> messages =
                 config.getMessages().stream()
@@ -140,7 +140,7 @@ public class ChatCompletionsStep implements TransformStep {
                                 // we must copy the context because the same context is used for all
                                 // chunks
                                 // and also for the final answer
-                                TransformContext copy = transformContext.copy();
+                                MutableRecord copy = mutableRecord.copy();
 
                                 copy.getProperties().put("stream-id", answerId);
                                 copy.getProperties().put("stream-index", index + "");
@@ -157,7 +157,7 @@ public class ChatCompletionsStep implements TransformStep {
         return chatCompletionsHandle.thenApply(
                 chatCompletions -> {
                     ChatChoice chatChoice = chatCompletions.getChoices().get(0);
-                    applyResultFieldToContext(transformContext, chatChoice.content(), false);
+                    applyResultFieldToContext(mutableRecord, chatChoice.content(), false);
 
                     String logField = config.getLogField();
                     if (logField != null && !logField.isEmpty()) {
@@ -165,8 +165,8 @@ public class ChatCompletionsStep implements TransformStep {
                         logMap.put("model", config.getModel());
                         logMap.put("options", options);
                         logMap.put("messages", messages);
-                        transformContext.setResultField(
-                                TransformContext.toJson(logMap),
+                        mutableRecord.setResultField(
+                                MutableRecord.toJson(logMap),
                                 logField,
                                 org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING),
                                 avroKeySchemaCache,
@@ -177,7 +177,7 @@ public class ChatCompletionsStep implements TransformStep {
     }
 
     private void applyResultFieldToContext(
-            TransformContext transformContext, String content, boolean streamingAnswer) {
+            MutableRecord mutableRecord, String content, boolean streamingAnswer) {
         String fieldName = config.getFieldName();
 
         // maybe we want a different field in the streaming answer
@@ -187,7 +187,7 @@ public class ChatCompletionsStep implements TransformStep {
                 && !config.getStreamResponseCompletionField().isEmpty()) {
             fieldName = config.getStreamResponseCompletionField();
         }
-        transformContext.setResultField(
+        mutableRecord.setResultField(
                 content,
                 fieldName,
                 Schema.create(Schema.Type.STRING),

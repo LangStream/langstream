@@ -15,13 +15,13 @@
  */
 package ai.langstream.ai.agents.commons.jstl.predicate;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import java.util.function.Predicate;
 
 /**
- * A predicate functional interface that applies to {@link TransformContext}. Implementations of
- * this interface should respect the current record encapsulated in the {@link TransformContext}
- * when evaluating the predicate.
+ * A predicate functional interface that applies to {@link MutableRecord}. Implementations of this
+ * interface should respect the current record encapsulated in the {@link MutableRecord} when
+ * evaluating the predicate.
  */
 @FunctionalInterface
-public interface TransformPredicate extends Predicate<TransformContext> {}
+public interface TransformPredicate extends Predicate<MutableRecord> {}

@@ -15,10 +15,10 @@
  */
 package ai.langstream.ai.agents;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
-import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.mutableRecordToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.ai.agents.services.ServiceProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
@@ -98,15 +98,14 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         if (log.isDebugEnabled()) {
             log.debug("Processing {}", record);
         }
-        TransformContext context =
-                recordToTransformContext(record, config.isAttemptJsonConversion());
+        MutableRecord context = recordToMutableRecord(record, config.isAttemptJsonConversion());
 
         CompletableFuture<?> handle = processStep(context, step);
         return handle.thenApply(
                 ___ -> {
                     try {
                         context.convertMapToStringOrBytes();
-                        Optional<Record> recordResult = transformContextToRecord(context);
+                        Optional<Record> recordResult = mutableRecordToRecord(context);
                         if (log.isDebugEnabled()) {
                             log.debug("Result {}", recordResult);
                         }
@@ -119,11 +118,11 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     private static CompletableFuture<?> processStep(
-            TransformContext transformContext, StepPredicatePair pair) {
+            MutableRecord mutableRecord, StepPredicatePair pair) {
         TransformStep step = pair.getTransformStep();
-        Predicate<TransformContext> predicate = pair.getPredicate();
-        if (predicate == null || predicate.test(transformContext)) {
-            return step.processAsync(transformContext);
+        Predicate<MutableRecord> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(mutableRecord)) {
+            return step.processAsync(mutableRecord);
         } else {
             return CompletableFuture.completedFuture(null);
         }
@@ -208,8 +207,8 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
 
         @Override
         public void streamAnswerChunk(
-                int index, String message, boolean last, TransformContext outputMessage) {
-            Optional<Record> record = transformContextToRecord(outputMessage);
+                int index, String message, boolean last, MutableRecord outputMessage) {
+            Optional<Record> record = mutableRecordToRecord(outputMessage);
             if (record.isPresent()) {
                 if (log.isDebugEnabled()) {
                     log.debug(

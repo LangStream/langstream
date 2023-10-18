@@ -19,7 +19,7 @@ import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.datastax.oss.streaming.ai.Utils;
 import java.util.HashMap;
@@ -41,10 +41,10 @@ public class JstlPredicateTest {
 
         Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
 
-        assertEquals(predicate.test(transformContext), match);
+        assertEquals(predicate.test(mutableRecord), match);
     }
 
     @Test
@@ -61,14 +61,14 @@ public class JstlPredicateTest {
 
     @ParameterizedTest
     @MethodSource("primitiveKeyValuePredicates")
-    void testPrimitiveKeyValueAvro(String when, TransformContext context, boolean match) {
+    void testPrimitiveKeyValueAvro(String when, MutableRecord context, boolean match) {
         JstlPredicate predicate = new JstlPredicate(when);
         assertEquals(predicate.test(context), match);
     }
 
     @ParameterizedTest
     @MethodSource("primitivePredicates")
-    void testPrimitiveValueAvro(String when, TransformContext context, boolean match) {
+    void testPrimitiveValueAvro(String when, MutableRecord context, boolean match) {
         JstlPredicate predicate = new JstlPredicate(when);
         assertEquals(predicate.test(context), match);
     }
@@ -82,7 +82,7 @@ public class JstlPredicateTest {
 
         KeyValue<String, Integer> keyValue = new KeyValue<>("key", 42);
 
-        TransformContext primitiveKVContext =
+        MutableRecord primitiveKVContext =
                 Utils.createContextWithPrimitiveRecord(keyValueSchema, keyValue, "");
 
         return new Object[][] {
@@ -101,11 +101,11 @@ public class JstlPredicateTest {
                 Schema.KeyValue(Schema.STRING, Schema.INT32, KeyValueEncodingType.SEPARATED);
         KeyValue<String, Integer> keyValue = new KeyValue<>("key", 42);
 
-        TransformContext primitiveStringContext =
+        MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "header-key");
-        TransformContext primitiveIntContext =
+        MutableRecord primitiveIntContext =
                 Utils.createContextWithPrimitiveRecord(Schema.INT32, 33, "header-key");
-        TransformContext primitiveKVContext =
+        MutableRecord primitiveKVContext =
                 Utils.createContextWithPrimitiveRecord(keyValueSchema, keyValue, "header-key");
 
         return new Object[][] {

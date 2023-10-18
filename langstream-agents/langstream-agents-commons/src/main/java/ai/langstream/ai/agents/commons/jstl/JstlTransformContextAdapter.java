@@ -16,7 +16,7 @@
 package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.AvroUtil;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,11 +36,11 @@ import org.apache.commons.collections4.Transformer;
 import org.apache.commons.collections4.map.LazyMap;
 
 /**
- * A java bean that adapts the underlying {@link TransformContext} to be ready for jstl expression
+ * A java bean that adapts the underlying {@link MutableRecord} to be ready for jstl expression
  * language binding.
  */
 public class JstlTransformContextAdapter {
-    private TransformContext transformContext;
+    private MutableRecord mutableRecord;
 
     /**
      * A key transformer backing the lazy key map. It transforms top level key fields to either a
@@ -48,7 +48,7 @@ public class JstlTransformContextAdapter {
      */
     private final Transformer<String, Object> keyTransformer =
             (fieldName) -> {
-                Object keyObject = this.transformContext.getKeyObject();
+                Object keyObject = this.mutableRecord.getKeyObject();
                 if (keyObject instanceof GenericRecord) {
                     GenericRecord genericRecord = (GenericRecord) keyObject;
                     GenericRecordTransformer transformer =
@@ -57,7 +57,7 @@ public class JstlTransformContextAdapter {
                 }
                 if (keyObject instanceof JsonNode) {
                     JsonNode jsonNode = (JsonNode) keyObject;
-                    Schema schema = (Schema) this.transformContext.getKeyNativeSchema();
+                    Schema schema = (Schema) this.mutableRecord.getKeyNativeSchema();
                     JsonNodeTransformer transformer = new JsonNodeTransformer(jsonNode, schema);
                     return transformer.transform(fieldName);
                 }
@@ -72,7 +72,7 @@ public class JstlTransformContextAdapter {
      */
     private final Transformer<String, Object> valueTransformer =
             (fieldName) -> {
-                Object valueObject = this.transformContext.getValueObject();
+                Object valueObject = this.mutableRecord.getValueObject();
                 if (valueObject instanceof GenericRecord) {
                     GenericRecord genericRecord = (GenericRecord) valueObject;
                     GenericRecordTransformer transformer =
@@ -81,7 +81,7 @@ public class JstlTransformContextAdapter {
                 }
                 if (valueObject instanceof JsonNode) {
                     JsonNode jsonNode = (JsonNode) valueObject;
-                    Schema schema = (Schema) this.transformContext.getValueNativeSchema();
+                    Schema schema = (Schema) this.mutableRecord.getValueNativeSchema();
                     JsonNodeTransformer transformer = new JsonNodeTransformer(jsonNode, schema);
                     return transformer.transform(fieldName);
                 }
@@ -97,15 +97,15 @@ public class JstlTransformContextAdapter {
                 // Allow list message headers in the expression
                 switch (fieldName) {
                     case "messageKey":
-                        return transformContext.getKey();
+                        return mutableRecord.getKey();
                     case "topicName":
-                        return transformContext.getInputTopic();
+                        return mutableRecord.getInputTopic();
                     case "destinationTopic":
-                        return transformContext.getOutputTopic();
+                        return mutableRecord.getOutputTopic();
                     case "eventTime":
-                        return transformContext.getEventTime();
+                        return mutableRecord.getEventTime();
                     case "properties":
-                        return transformContext.getProperties();
+                        return mutableRecord.getProperties();
                     default:
                         return null;
                 }
@@ -114,8 +114,8 @@ public class JstlTransformContextAdapter {
     private final Map<String, Object> lazyHeader =
             LazyMap.lazyMap(new HashMap<>(), headerTransformer);
 
-    public JstlTransformContextAdapter(TransformContext transformContext) {
-        this.transformContext = transformContext;
+    public JstlTransformContextAdapter(MutableRecord mutableRecord) {
+        this.mutableRecord = mutableRecord;
     }
 
     /**
@@ -123,9 +123,9 @@ public class JstlTransformContextAdapter {
      *     object, or the primitive type itself.
      */
     public Object getKey() {
-        Object keyObject = this.transformContext.getKeyObject();
+        Object keyObject = this.mutableRecord.getKeyObject();
         if (keyObject == null) {
-            return transformContext.getKey();
+            return mutableRecord.getKey();
         }
         return keyObject instanceof GenericRecord || keyObject instanceof JsonNode
                 ? lazyKey
@@ -137,14 +137,14 @@ public class JstlTransformContextAdapter {
      *     object, or the primitive type itself.
      */
     public Object adaptValue() {
-        Object valueObject = this.transformContext.getValueObject();
+        Object valueObject = this.mutableRecord.getValueObject();
         return valueObject instanceof GenericRecord || valueObject instanceof JsonNode
                 ? lazyValue
                 : valueObject;
     }
 
     public Object adaptRecord() {
-        return transformContext.getRecordObject();
+        return mutableRecord.getRecordObject();
     }
 
     public Map<String, Object> getHeader() {

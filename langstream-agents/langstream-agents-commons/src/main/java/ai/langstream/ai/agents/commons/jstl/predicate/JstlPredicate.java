@@ -15,7 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.jstl.predicate;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import jakarta.el.ELException;
 import jakarta.el.PropertyNotFoundException;
@@ -36,9 +36,9 @@ public class JstlPredicate implements TransformPredicate {
     }
 
     @Override
-    public boolean test(TransformContext transformContext) {
+    public boolean test(MutableRecord mutableRecord) {
         try {
-            return this.evaluator.evaluate(transformContext);
+            return this.evaluator.evaluate(mutableRecord);
         } catch (PropertyNotFoundException ex) {
             log.warn("a property in the when expression was not found in the message", ex);
             return false;

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -113,7 +114,9 @@ public abstract class AbstractKafkaApplicationRunner extends AbstractApplication
         producer.flush();
     }
 
-    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
+    protected List<ConsumerRecord> waitForMessages(
+            KafkaConsumer consumer,
+            BiConsumer<List<ConsumerRecord>, List<Object>> assertionOnReceivedMessages) {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
@@ -131,23 +134,31 @@ public abstract class AbstractKafkaApplicationRunner extends AbstractApplication
                             log.info("Result:  {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
 
-                            assertEquals(expected.size(), received.size());
-                            for (int i = 0; i < expected.size(); i++) {
-                                Object expectedValue = expected.get(i);
-                                Object actualValue = received.get(i);
-                                if (expectedValue instanceof Consumer fn) {
-                                    fn.accept(actualValue);
-                                } else if (expectedValue instanceof byte[]) {
-                                    assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
-                                } else {
-                                    log.info("expected: {}", expectedValue);
-                                    log.info("got: {}", actualValue);
-                                    assertEquals(expectedValue, actualValue);
-                                }
-                            }
+                            assertionOnReceivedMessages.accept(result, received);
                         });
 
         return result;
+    }
+
+    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
+        return waitForMessages(
+                consumer,
+                (result, received) -> {
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof Consumer fn) {
+                            fn.accept(actualValue);
+                        } else if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            log.info("expected: {}", expectedValue);
+                            log.info("got: {}", actualValue);
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
+                });
     }
 
     protected List<ConsumerRecord> waitForMessagesInAnyOrder(

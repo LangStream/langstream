@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +35,10 @@ public class DropFieldStep implements TransformStep {
             new ConcurrentHashMap<>();
 
     @Override
-    public void process(TransformContext transformContext) {
-        if (transformContext.getKeyObject() != null) {
-            transformContext.dropKeyFields(keyFields, keySchemaCache);
+    public void process(MutableRecord mutableRecord) {
+        if (mutableRecord.getKeyObject() != null) {
+            mutableRecord.dropKeyFields(keyFields, keySchemaCache);
         }
-        transformContext.dropValueFields(valueFields, valueSchemaCache);
+        mutableRecord.dropValueFields(valueFields, valueSchemaCache);
     }
 }

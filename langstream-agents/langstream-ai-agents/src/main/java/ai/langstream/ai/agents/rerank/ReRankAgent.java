@@ -15,10 +15,10 @@
  */
 package ai.langstream.ai.agents.rerank;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
-import static ai.langstream.ai.agents.commons.TransformContext.transformContextToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.mutableRecordToRecord;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
@@ -101,18 +101,18 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
         if (record == null) {
             return List.of();
         }
-        TransformContext transformContext = recordToTransformContext(record, true).copy();
+        MutableRecord mutableRecord = recordToMutableRecord(record, true).copy();
 
-        List<Object> currentList = (List<Object>) fieldAccessor.evaluate(transformContext);
+        List<Object> currentList = (List<Object>) fieldAccessor.evaluate(mutableRecord);
 
         TextWithEmbeddings query =
                 new TextWithEmbeddings(
-                        queryAccessor.evaluate(transformContext),
-                        toArrayOfFloat(queryEmbeddingsAccessor.evaluate(transformContext)));
+                        queryAccessor.evaluate(mutableRecord),
+                        toArrayOfFloat(queryEmbeddingsAccessor.evaluate(mutableRecord)));
 
         Function<Object, TextWithEmbeddings> recordExtractor =
                 (Object o) -> {
-                    TransformContext context = new TransformContext();
+                    MutableRecord context = new MutableRecord();
                     context.setRecordObject(o);
                     String text = recordTextAccessor.evaluate(context);
                     float[] embeddings = toArrayOfFloat(recordEmbeddingsAccessor.evaluate(context));
@@ -123,10 +123,10 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
                     return new TextWithEmbeddings(text, embeddings);
                 };
         List<Object> result = rerank(currentList, query, recordExtractor);
-        transformContext.setResultField(
+        mutableRecord.setResultField(
                 result, outputField, null, avroKeySchemaCache, avroValueSchemaCache);
-        transformContext.convertMapToStringOrBytes();
-        Optional<Record> recordResult = transformContextToRecord(transformContext);
+        mutableRecord.convertMapToStringOrBytes();
+        Optional<Record> recordResult = mutableRecordToRecord(mutableRecord);
         return recordResult.map(List::of).orElse(List.of());
     }
 

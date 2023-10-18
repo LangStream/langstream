@@ -17,7 +17,7 @@ package com.datastax.oss.streaming.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -82,18 +82,19 @@ public class QueryStepTest {
                                         "test-input-topic",
                                         42L);
                         assertEquals(params, expectedParams);
-                        return List.of(Map.of());
+                        return List.of(Map.of("foo", "bar"));
                     }
                 };
         QueryStep queryStep =
                 QueryStep.builder()
                         .dataSource(dataSource)
-                        .outputFieldName("value.result")
+                        .outputFieldName("value")
                         .query("select 1")
                         .fields(fields)
                         .build();
 
-        Utils.process(record, queryStep);
+        Record<Object> result = Utils.process(record, queryStep);
+        assertEquals(List.of(Map.of("foo", "bar")), result.getValue());
     }
 
     @Test
@@ -414,12 +415,12 @@ public class QueryStepTest {
                         .build();
         queryStep.start();
 
-        TransformContext context =
-                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+        MutableRecord context =
+                MutableRecord.recordToMutableRecord(SimpleRecord.of(null, value), true);
 
         queryStep.process(context);
         ai.langstream.api.runner.code.Record record =
-                TransformContext.transformContextToRecord(context).orElseThrow();
+                MutableRecord.mutableRecordToRecord(context).orElseThrow();
         Map<String, Object> result = (Map<String, Object>) record.value();
         log.info("Result: {}", result);
 
@@ -471,12 +472,12 @@ public class QueryStepTest {
                         .build();
         queryStep.start();
 
-        TransformContext context =
-                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+        MutableRecord context =
+                MutableRecord.recordToMutableRecord(SimpleRecord.of(null, value), true);
 
         queryStep.process(context);
         ai.langstream.api.runner.code.Record record =
-                TransformContext.transformContextToRecord(context).orElseThrow();
+                MutableRecord.mutableRecordToRecord(context).orElseThrow();
         Map<String, Object> result = (Map<String, Object>) record.value();
         log.info("Result: {}", result);
 
@@ -538,12 +539,12 @@ public class QueryStepTest {
                         .build();
         queryStep.start();
 
-        TransformContext context =
-                TransformContext.recordToTransformContext(SimpleRecord.of(null, value), true);
+        MutableRecord context =
+                MutableRecord.recordToMutableRecord(SimpleRecord.of(null, value), true);
 
         queryStep.process(context);
         ai.langstream.api.runner.code.Record record =
-                TransformContext.transformContextToRecord(context).orElseThrow();
+                MutableRecord.mutableRecordToRecord(context).orElseThrow();
         Map<String, Object> result = (Map<String, Object>) record.value();
         log.info("Result: {}", result);
 

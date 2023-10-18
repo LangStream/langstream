@@ -16,7 +16,7 @@
 package ai.langstream.agents.azureblobstorage.source;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
@@ -134,7 +134,7 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
 
     public void processRecord(Record record, RecordSink recordSink) {
         try {
-            TransformContext context = TransformContext.recordToTransformContext(record, true);
+            MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
             final JsonRecord jsonRecord = context.toJsonRecord();
 
             final URI uri = URI.create(url + computeQueryString(jsonRecord));
@@ -174,7 +174,7 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
                                             avroKeySchemaCache,
                                             avroValueSchemaCache);
                                     Optional<Record> recordResult =
-                                            TransformContext.transformContextToRecord(context);
+                                            MutableRecord.mutableRecordToRecord(context);
                                     if (log.isDebugEnabled()) {
                                         log.debug("recordResult {}", recordResult);
                                     }

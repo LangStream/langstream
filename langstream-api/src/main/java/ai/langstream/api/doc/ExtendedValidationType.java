@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai;
+package ai.langstream.api.doc;
 
-import ai.langstream.ai.agents.commons.MutableRecord;
+public enum ExtendedValidationType {
+    EL_EXPRESSION("el-expression"),
+    NONE("");
 
-/**
- * Drops a message from further processing. Works in conjunctions with predicates to selectively
- * choose which messages to drop
- */
-public class DropStep implements TransformStep {
-    @Override
-    public void process(MutableRecord mutableRecord) throws Exception {
-        mutableRecord.setDropCurrentRecord(true);
+    private final String name;
+
+    ExtendedValidationType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
     }
 }

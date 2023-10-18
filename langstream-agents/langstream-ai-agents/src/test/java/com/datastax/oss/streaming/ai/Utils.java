@@ -15,14 +15,14 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import static ai.langstream.ai.agents.commons.TransformContext.attemptJsonConversion;
+import static ai.langstream.ai.agents.commons.MutableRecord.attemptJsonConversion;
 import static com.datastax.oss.streaming.ai.FlattenStep.AVRO_READ_OFFSET_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import com.datastax.oss.pulsar.functions.transforms.JsonNodeSchema;
 import java.io.ByteArrayOutputStream;
@@ -83,14 +83,14 @@ public class Utils {
     @SneakyThrows
     public static <T> Record<T> process(Record<GenericObject> record, TransformStep step) {
         Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        TransformContext transformContext =
+        MutableRecord mutableRecord =
                 newTransformContext(context, record.getValue().getNativeObject());
         try {
-            step.processAsync(transformContext).get();
+            step.processAsync(mutableRecord).get();
         } catch (ExecutionException error) {
             throw error.getCause();
         }
-        return send(context, transformContext);
+        return send(context, mutableRecord);
     }
 
     public static GenericData.Record getRecord(Schema<?> schema, byte[] value) throws IOException {
@@ -340,7 +340,7 @@ public class Utils {
         return new GenericAvroRecord(new byte[0], nextLevelSchema, pulsarFields, nextLevelRecord);
     }
 
-    public static TransformContext createContextWithPrimitiveRecord(
+    public static MutableRecord createContextWithPrimitiveRecord(
             Schema<?> schema, Object value, String key) {
         Record<GenericObject> record =
                 new Utils.TestRecord<>(
@@ -384,22 +384,22 @@ public class Utils {
         assertEquals(record.get(fieldName), expectedValue);
     }
 
-    public static TransformContext newTransformContext(Context context, Object value) {
+    public static MutableRecord newTransformContext(Context context, Object value) {
         return newTransformContext(context, value, true);
     }
 
-    public static TransformContext newTransformContext(
+    public static MutableRecord newTransformContext(
             Context context, Object value, boolean attemptJsonConversion) {
         Record<?> currentRecord = context.getCurrentRecord();
-        TransformContext transformContext = new TransformContext();
-        transformContext.setProperties(new HashMap<>());
-        transformContext.setInputTopic(currentRecord.getTopicName().orElse(null));
-        transformContext.setOutputTopic(currentRecord.getDestinationTopic().orElse(null));
-        transformContext.setKey(currentRecord.getKey().orElse(null));
-        transformContext.setEventTime(currentRecord.getEventTime().orElse(null));
+        MutableRecord mutableRecord = new MutableRecord();
+        mutableRecord.setProperties(new HashMap<>());
+        mutableRecord.setInputTopic(currentRecord.getTopicName().orElse(null));
+        mutableRecord.setOutputTopic(currentRecord.getDestinationTopic().orElse(null));
+        mutableRecord.setKey(currentRecord.getKey().orElse(null));
+        mutableRecord.setEventTime(currentRecord.getEventTime().orElse(null));
 
         if (currentRecord.getProperties() != null) {
-            transformContext.setProperties(new HashMap<>(currentRecord.getProperties()));
+            mutableRecord.setProperties(new HashMap<>(currentRecord.getProperties()));
         }
 
         Schema<?> schema = currentRecord.getSchema();
@@ -408,32 +408,31 @@ public class Utils {
             KeyValue<?, ?> kv = (KeyValue<?, ?>) value;
             Schema<?> keySchema = kvSchema.getKeySchema();
             Schema<?> valueSchema = kvSchema.getValueSchema();
-            transformContext.setKeySchemaType(pulsarSchemaToTransformSchemaType(keySchema));
-            transformContext.setKeyNativeSchema(getNativeSchema(keySchema));
-            transformContext.setKeyObject(
+            mutableRecord.setKeySchemaType(pulsarSchemaToTransformSchemaType(keySchema));
+            mutableRecord.setKeyNativeSchema(getNativeSchema(keySchema));
+            mutableRecord.setKeyObject(
                     keySchema.getSchemaInfo().getType().isStruct()
                             ? ((GenericObject) kv.getKey()).getNativeObject()
                             : kv.getKey());
-            transformContext.setValueSchemaType(pulsarSchemaToTransformSchemaType(valueSchema));
-            transformContext.setValueNativeSchema(getNativeSchema(valueSchema));
-            transformContext.setValueObject(
+            mutableRecord.setValueSchemaType(pulsarSchemaToTransformSchemaType(valueSchema));
+            mutableRecord.setValueNativeSchema(getNativeSchema(valueSchema));
+            mutableRecord.setValueObject(
                     valueSchema.getSchemaInfo().getType().isStruct()
                             ? ((GenericObject) kv.getValue()).getNativeObject()
                             : kv.getValue());
-            transformContext
+            mutableRecord
                     .getCustomContext()
                     .put("keyValueEncodingType", kvSchema.getKeyValueEncodingType());
         } else {
-            transformContext.setValueSchemaType(pulsarSchemaToTransformSchemaType(schema));
-            transformContext.setValueNativeSchema(getNativeSchema(schema));
-            transformContext.setValueObject(value);
+            mutableRecord.setValueSchemaType(pulsarSchemaToTransformSchemaType(schema));
+            mutableRecord.setValueNativeSchema(getNativeSchema(schema));
+            mutableRecord.setValueObject(value);
         }
         if (attemptJsonConversion) {
-            transformContext.setKeyObject(attemptJsonConversion(transformContext.getKeyObject()));
-            transformContext.setValueObject(
-                    attemptJsonConversion(transformContext.getValueObject()));
+            mutableRecord.setKeyObject(attemptJsonConversion(mutableRecord.getKeyObject()));
+            mutableRecord.setValueObject(attemptJsonConversion(mutableRecord.getValueObject()));
         }
-        return transformContext;
+        return mutableRecord;
     }
 
     private static Object getNativeSchema(Schema<?> schema) {
@@ -492,40 +491,40 @@ public class Utils {
         }
     }
 
-    public static <T> Record<T> send(Context context, TransformContext transformContext)
+    public static <T> Record<T> send(Context context, MutableRecord mutableRecord)
             throws IOException {
-        if (transformContext.isDropCurrentRecord()) {
+        if (mutableRecord.isDropCurrentRecord()) {
             return null;
         }
-        transformContext.convertAvroToBytes();
-        transformContext.convertMapToStringOrBytes();
+        mutableRecord.convertAvroToBytes();
+        mutableRecord.convertMapToStringOrBytes();
 
         Schema outputSchema;
         Object outputObject;
-        if (transformContext.getKeySchemaType() != null) {
+        if (mutableRecord.getKeySchemaType() != null) {
             KeyValueEncodingType keyValueEncodingType =
                     (KeyValueEncodingType)
-                            transformContext.getCustomContext().get("keyValueEncodingType");
+                            mutableRecord.getCustomContext().get("keyValueEncodingType");
             outputSchema =
                     Schema.KeyValue(
                             buildSchema(
-                                    transformContext.getKeySchemaType(),
-                                    transformContext.getKeyNativeSchema()),
+                                    mutableRecord.getKeySchemaType(),
+                                    mutableRecord.getKeyNativeSchema()),
                             buildSchema(
-                                    transformContext.getValueSchemaType(),
-                                    transformContext.getValueNativeSchema()),
+                                    mutableRecord.getValueSchemaType(),
+                                    mutableRecord.getValueNativeSchema()),
                             keyValueEncodingType != null
                                     ? keyValueEncodingType
                                     : KeyValueEncodingType.INLINE);
-            Object outputKeyObject = transformContext.getKeyObject();
-            Object outputValueObject = transformContext.getValueObject();
+            Object outputKeyObject = mutableRecord.getKeyObject();
+            Object outputValueObject = mutableRecord.getValueObject();
             outputObject = new KeyValue<>(outputKeyObject, outputValueObject);
         } else {
             outputSchema =
                     buildSchema(
-                            transformContext.getValueSchemaType(),
-                            transformContext.getValueNativeSchema());
-            outputObject = transformContext.getValueObject();
+                            mutableRecord.getValueSchemaType(),
+                            mutableRecord.getValueNativeSchema());
+            outputObject = mutableRecord.getValueObject();
         }
 
         if (log.isDebugEnabled()) {
@@ -534,12 +533,12 @@ public class Utils {
 
         FunctionRecord.FunctionRecordBuilder<T> recordBuilder =
                 context.newOutputRecordBuilder(outputSchema)
-                        .destinationTopic(transformContext.getOutputTopic())
+                        .destinationTopic(mutableRecord.getOutputTopic())
                         .value(outputObject)
-                        .properties(transformContext.getProperties());
+                        .properties(mutableRecord.getProperties());
 
-        if (transformContext.getKeySchemaType() == null && transformContext.getKey() != null) {
-            recordBuilder.key(transformContext.getKey());
+        if (mutableRecord.getKeySchemaType() == null && mutableRecord.getKey() != null) {
+            recordBuilder.key(mutableRecord.getKey());
         }
 
         return recordBuilder.build();

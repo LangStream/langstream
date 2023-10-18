@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -24,9 +24,9 @@ public interface TransformStep extends AutoCloseable {
 
     default void start() throws Exception {}
 
-    default void process(TransformContext transformContext) throws Exception {
+    default void process(MutableRecord mutableRecord) throws Exception {
         try {
-            processAsync(transformContext).get();
+            processAsync(mutableRecord).get();
         } catch (ExecutionException err) {
             if (err.getCause() instanceof Exception) {
                 throw (Exception) err.getCause();
@@ -36,9 +36,9 @@ public interface TransformStep extends AutoCloseable {
         }
     }
 
-    default CompletableFuture<?> processAsync(TransformContext transformContext) {
+    default CompletableFuture<?> processAsync(MutableRecord mutableRecord) {
         try {
-            process(transformContext);
+            process(mutableRecord);
             return CompletableFuture.completedFuture(null);
         } catch (Throwable error) {
             return CompletableFuture.failedFuture(error);

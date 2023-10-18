@@ -48,12 +48,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
+    private static final int DEDAULT_NUM_LOOPS = 5;
     public static final Path agentsDirectory;
 
     static {
@@ -67,14 +69,16 @@ public abstract class AbstractApplicationRunner {
     private static NarFileHandler narFileHandler;
     private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
 
-    private Path codeDirectory;
+    private static Path codeDirectory;
 
-    public Path getCodeDirectory() {
-        return codeDirectory;
+    private int maxNumLoops = DEDAULT_NUM_LOOPS;
+
+    public int getMaxNumLoops() {
+        return maxNumLoops;
     }
 
-    public void setCodeDirectory(Path codeDirectory) {
-        this.codeDirectory = codeDirectory;
+    public void setMaxNumLoops(int maxNumLoops) {
+        this.maxNumLoops = maxNumLoops;
     }
 
     protected record ApplicationRuntime(
@@ -140,7 +144,7 @@ public abstract class AbstractApplicationRunner {
 
     @BeforeAll
     public static void setup() throws Exception {
-        Path codeDirectory = Paths.get("target/test-jdbc-drivers");
+        codeDirectory = Paths.get("target/test-jdbc-drivers");
         narFileHandler =
                 new NarFileHandler(
                         agentsDirectory,
@@ -212,8 +216,9 @@ public abstract class AbstractApplicationRunner {
                                         agentsDirectory,
                                         agentInfo,
                                         () -> {
-                                            log.info("Num loops {}", numLoops.get());
-                                            return numLoops.incrementAndGet() <= 10;
+                                            log.info(
+                                                    "Num loops {}/{}", numLoops.get(), maxNumLoops);
+                                            return numLoops.incrementAndGet() <= maxNumLoops;
                                         },
                                         () -> validateAgentInfoBeforeStop(agentInfo),
                                         false,
@@ -265,6 +270,11 @@ public abstract class AbstractApplicationRunner {
     }
 
     protected void validateAgentInfoBeforeStop(AgentInfo agentInfo) {}
+
+    @AfterEach
+    public void resetNumLoops() {
+        setMaxNumLoops(DEDAULT_NUM_LOOPS);
+    }
 
     @AfterAll
     public static void teardown() {

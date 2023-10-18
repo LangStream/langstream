@@ -18,7 +18,7 @@ package com.datastax.oss.streaming.ai;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.embeddings.MockEmbeddingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -173,10 +173,10 @@ public class ComputeAIEmbeddingsTest {
                 }
                 """);
 
-        TransformContext transformContext = TransformContext.recordToTransformContext(record, true);
-        step.process(transformContext);
+        MutableRecord mutableRecord = MutableRecord.recordToMutableRecord(record, true);
+        step.process(mutableRecord);
         ai.langstream.api.runner.code.Record result =
-                TransformContext.transformContextToRecord(transformContext).orElseThrow();
+                MutableRecord.mutableRecordToRecord(mutableRecord).orElseThrow();
 
         Object value = result.value();
 

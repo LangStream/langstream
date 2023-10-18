@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.vector.jdbc;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.datasource.impl.JdbcDataSourceProvider;
 import ai.langstream.api.database.VectorDatabaseWriter;
@@ -141,10 +141,10 @@ public class JdbcWriter implements VectorDatabaseWriterProvider {
                 Record record, Map<String, Object> context) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext = recordToTransformContext(record, true);
+                MutableRecord mutableRecord = recordToMutableRecord(record, true);
 
-                List<Object> primaryKeyValues = prepareValueList(transformContext, primaryKey);
-                List<Object> otherValues = prepareValueList(transformContext, columns);
+                List<Object> primaryKeyValues = prepareValueList(mutableRecord, primaryKey);
+                List<Object> otherValues = prepareValueList(mutableRecord, columns);
                 if (record.value() != null) {
                     int i = 1;
                     for (Object value : otherValues) {
@@ -179,11 +179,11 @@ public class JdbcWriter implements VectorDatabaseWriterProvider {
         }
 
         private List<Object> prepareValueList(
-                TransformContext transformContext, Map<String, JstlEvaluator> primaryKey) {
+                MutableRecord mutableRecord, Map<String, JstlEvaluator> primaryKey) {
             List<Object> result = new ArrayList<>();
             primaryKey.forEach(
                     (name, evaluator) -> {
-                        Object value = evaluator.evaluate(transformContext);
+                        Object value = evaluator.evaluate(mutableRecord);
                         if (log.isDebugEnabled()) {
                             log.debug(
                                     "setting value {} ({}) for field {}",

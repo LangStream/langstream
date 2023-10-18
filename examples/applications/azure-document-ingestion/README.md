@@ -1,4 +1,6 @@
 
+## FYI: This Readme is a Work in progress. 
+
 ## Azure Blob Storage Ingestion
 This sample application shows how to create a continuous PDF document ingestion pipeline that ingests documents from an Azure blob storage container.
 

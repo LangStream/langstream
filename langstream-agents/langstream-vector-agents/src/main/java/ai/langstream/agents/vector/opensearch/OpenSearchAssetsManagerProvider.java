@@ -73,9 +73,7 @@ public class OpenSearchAssetsManagerProvider implements AssetManagerProvider {
         }
 
         private String getIndexName() {
-            String tableName =
-                    ConfigurationUtils.getString("index-name", null, assetDefinition.getConfig());
-            return tableName;
+            return datasource.getClientConfig().getIndexName();
         }
 
         @Override

@@ -20,6 +20,7 @@ import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,10 +33,12 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.core5.http.HttpHost;
+import org.jetbrains.annotations.NotNull;
 import org.opensearch.client.json.JsonData;
 import org.opensearch.client.json.JsonpDeserializer;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
@@ -74,6 +77,8 @@ public class OpenSearchDataSource implements DataSourceProvider {
         // BASIC AUTH
         private String username;
         private String password;
+        @JsonProperty("index-name")
+        private String indexName;
     }
 
     @Override
@@ -147,12 +152,10 @@ public class OpenSearchDataSource implements DataSourceProvider {
         }
 
         @Override
+        @SneakyThrows
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
-                final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
-                final SearchRequest searchRequest =
-                        OpenSearchDataSource.parseOpenSearchRequestBodyJson(
-                                asMap, SearchRequest._DESERIALIZER);
+                final SearchRequest searchRequest = convertSearchRequest(query, params, clientConfig.getIndexName());
 
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
                 return result.hits().hits().stream()
@@ -188,6 +191,16 @@ public class OpenSearchDataSource implements DataSourceProvider {
                 log.error(errMessage, e);
                 throw new RuntimeException(errMessage, e);
             }
+        }
+
+        @NotNull
+        static SearchRequest convertSearchRequest(String query, List<Object> params, String indexName) throws IllegalAccessException {
+            final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
+            final SearchRequest searchRequest =
+                    OpenSearchDataSource.parseOpenSearchRequestBodyJson(
+                            asMap, SearchRequest._DESERIALIZER);
+            FieldUtils.writeField(searchRequest, "index", List.of(indexName), true);
+            return searchRequest;
         }
 
         @Override

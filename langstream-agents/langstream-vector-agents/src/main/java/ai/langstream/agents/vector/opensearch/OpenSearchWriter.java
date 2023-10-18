@@ -111,7 +111,7 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
             dataSource.initialize(null);
-            indexName = (String) agentConfiguration.get("index-name");
+            indexName = dataSource.getClientConfig().getIndexName();
             List<Map<String, Object>> fields =
                     (List<Map<String, Object>>)
                             agentConfiguration.getOrDefault("fields", List.of());

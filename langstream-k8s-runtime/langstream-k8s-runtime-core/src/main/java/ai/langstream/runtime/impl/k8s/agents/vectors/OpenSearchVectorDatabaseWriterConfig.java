@@ -108,12 +108,6 @@ public class OpenSearchVectorDatabaseWriterConfig
         String waitForActiveShards;
     }
 
-    @ConfigProperty(
-            description = "The name of the index to write to. The index must already exist.",
-            required = true)
-    @JsonProperty("index-name")
-    String indexName;
-
     @ConfigProperty(description = "Index fields definition.", required = true)
     List<IndexField> fields;
 

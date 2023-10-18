@@ -57,14 +57,6 @@ public class OpenSearchAssetsProvider extends AbstractAssetProvider {
         private String datasource;
 
         @ConfigProperty(
-                description = """
-                       Index name.
-                       """,
-                required = true)
-        @JsonProperty("index-name")
-        private String indexName;
-
-        @ConfigProperty(
                 description =
                         """
                        JSON containing index mappings configuration.

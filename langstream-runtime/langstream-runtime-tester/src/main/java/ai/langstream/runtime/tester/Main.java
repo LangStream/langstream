@@ -176,6 +176,7 @@ public class Main {
 
         } catch (Throwable error) {
             error.printStackTrace();
+            System.exit(1);
         }
     }
 

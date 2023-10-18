@@ -35,5 +35,8 @@
     <!-- shutdown noisy loggers -->
     <logger name="org.apache.kafka.clients" level="WARN"/>
     <logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" />
+    <logger name="ai.langstream.webservice.LangStreamControlPlaneWebApplication" level="WARN" />
+    <logger name="ai.langstream.apigateway.LangStreamApiGateway" level="WARN" />
+
 
 </configuration>

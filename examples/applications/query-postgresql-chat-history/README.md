@@ -10,7 +10,7 @@ This sample application shows how to perform queries against a JDBC database usi
 Start PostGreSQL using docker
 
 ```
-docker run -p 5432:5432  -d name postgresql -e POSTGRES_PASSWORD=password ankane/pgvector
+docker run -p 5432:5432  -d -e POSTGRES_PASSWORD=password ankane/pgvector
 ```
 
 ## Configure you OpenAI API Key

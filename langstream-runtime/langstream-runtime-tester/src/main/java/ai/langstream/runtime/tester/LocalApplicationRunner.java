@@ -44,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -187,7 +186,7 @@ public class LocalApplicationRunner
 
             // execute all the pods
             ExecutorService executorService = Executors.newCachedThreadPool();
-            List<CompletableFuture> futures = new ArrayList<>();
+            List<CompletableFuture<?>> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
                 persistPodConfiguration(podConfiguration);
                 CompletableFuture<?> handle = new CompletableFuture<>();
@@ -240,16 +239,20 @@ public class LocalApplicationRunner
                         });
             }
             try {
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-            } catch (ExecutionException executionException) {
+                CompletionWaiter waiter = new CompletionWaiter(futures);
+                waiter.awaitCompletion(Integer.MAX_VALUE, TimeUnit.SECONDS);
+            } catch (Throwable executionException) {
                 log.error(
                         "Some error occurred while executing the agent",
                         executionException.getCause());
                 // unwrap the exception in order to easily perform assertions
-                if (executionException.getCause() instanceof Exception) {
-                    throw (Exception) executionException.getCause();
+                if (executionException instanceof RuntimeException re) {
+                    throw re;
+                }
+                if (executionException instanceof Exception e) {
+                    throw e;
                 } else {
-                    throw executionException;
+                    throw new RuntimeException(executionException);
                 }
             }
             executorService.shutdown();

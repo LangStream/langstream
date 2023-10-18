@@ -77,6 +77,7 @@ public class OpenSearchDataSource implements DataSourceProvider {
         // BASIC AUTH
         private String username;
         private String password;
+
         @JsonProperty("index-name")
         private String indexName;
     }
@@ -155,7 +156,8 @@ public class OpenSearchDataSource implements DataSourceProvider {
         @SneakyThrows
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
-                final SearchRequest searchRequest = convertSearchRequest(query, params, clientConfig.getIndexName());
+                final SearchRequest searchRequest =
+                        convertSearchRequest(query, params, clientConfig.getIndexName());
 
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
                 return result.hits().hits().stream()
@@ -194,7 +196,8 @@ public class OpenSearchDataSource implements DataSourceProvider {
         }
 
         @NotNull
-        static SearchRequest convertSearchRequest(String query, List<Object> params, String indexName) throws IllegalAccessException {
+        static SearchRequest convertSearchRequest(
+                String query, List<Object> params, String indexName) throws IllegalAccessException {
             final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
             final SearchRequest searchRequest =
                     OpenSearchDataSource.parseOpenSearchRequestBodyJson(

@@ -54,7 +54,8 @@ class OpenSearchDataSourceTest {
                 "admin",
                 "password",
                 "admin",
-                "index-name", indexName);
+                "index-name",
+                indexName);
     }
 
     @Test
@@ -102,9 +103,7 @@ class OpenSearchDataSourceTest {
     void testWriteBasicData() throws Exception {
         final String indexName = "test-index-000";
         final Map<String, Object> assetConfig =
-                Map.of(
-                        "datasource",
-                        Map.of("configuration", getDatasourceConfig(indexName)));
+                Map.of("datasource", Map.of("configuration", getDatasourceConfig(indexName)));
         createAssetManager(assetConfig).deleteAssetIfExists();
         createAssetManager(assetConfig).deployAsset();
         try (final OpenSearchWriter.OpenSearchVectorDatabaseWriter writer =

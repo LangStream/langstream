@@ -18,7 +18,6 @@ package ai.langstream.impl.assets;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

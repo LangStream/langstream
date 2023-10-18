@@ -78,6 +78,7 @@ public class KafkaTopicConnectionsRuntime implements TopicConnectionsRuntime {
         applyDefaultConfiguration(streamingCluster, copy);
         applyConsumerConfiguration(agentId, copy);
         String topicName = (String) copy.remove("topic");
+        copy.remove("deadLetterTopicProducer");
 
         return new KafkaConsumerWrapper(copy, topicName);
     }

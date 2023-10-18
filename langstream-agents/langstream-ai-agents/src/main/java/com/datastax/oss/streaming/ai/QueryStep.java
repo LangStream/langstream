@@ -70,10 +70,12 @@ public class QueryStep implements TransformStep {
         this.dataSource = dataSource;
         this.loopOver = loopOver;
         this.loopOverAccessor = loopOverAccessor;
-        this.fields.forEach(
-                field -> {
-                    fieldsEvaluators.add(new JstlEvaluator<>("${" + field + "}", Object.class));
-                });
+        if (this.fields != null) {
+            this.fields.forEach(
+                    field -> {
+                        fieldsEvaluators.add(new JstlEvaluator<>("${" + field + "}", Object.class));
+                    });
+        }
         if (loopOver != null && !loopOver.isEmpty()) {
             this.loopOverAccessor = new JstlEvaluator<>("${" + loopOver + "}", List.class);
         } else {

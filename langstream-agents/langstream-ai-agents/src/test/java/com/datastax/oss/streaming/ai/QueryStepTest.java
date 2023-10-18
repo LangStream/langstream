@@ -552,4 +552,40 @@ public class QueryStepTest {
                 (List<Map<String, Object>>) result.get("command_results");
         assertEquals(List.of(Map.of("foo", "bar"), Map.of("foo", "bar2")), command_results);
     }
+
+    @Test
+    void testSetFieldWithDash() throws Exception {
+
+        String value = "{}";
+
+        QueryStepDataSource dataSource =
+                new QueryStepDataSource() {
+
+                    @Override
+                    public List<Map<String, Object>> fetchData(String query, List<Object> params) {
+                        return List.of(Map.of("foo", "bar"));
+                    }
+                };
+
+        QueryStep queryStep =
+                QueryStep.builder()
+                        .dataSource(dataSource)
+                        .outputFieldName("value.command-results")
+                        .query("select 1")
+                        .build();
+        queryStep.start();
+
+        MutableRecord context =
+                MutableRecord.recordToMutableRecord(SimpleRecord.of(null, value), true);
+
+        queryStep.process(context);
+        ai.langstream.api.runner.code.Record record =
+                MutableRecord.mutableRecordToRecord(context).orElseThrow();
+        Map<String, Object> result = (Map<String, Object>) record.value();
+        log.info("Result: {}", result);
+
+        List<Map<String, Object>> command_results =
+                (List<Map<String, Object>>) result.get("command-results");
+        assertEquals(List.of(Map.of("foo", "bar")), command_results);
+    }
 }

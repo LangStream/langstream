@@ -18,13 +18,19 @@
 configuration:
   resources:
     - type: "datasource"
-      name: "PGDataSource"
+      name: "JdbcDatasource"
       configuration:
         service: "jdbc"
         driverClass: "org.postgresql.Driver"
-        url: "jdbc:postgresql://postgresql.default.svc.cluster.local:5432/"
+        url: "jdbc:postgresql://host.docker.internal:5432/"
         user: "postgres"
-        password: "wkyoTbVriq"
+        password: "password"
+    - type: "open-ai-configuration"
+      name: "OpenAI Azure configuration"
+      configuration:
+        url: "${secrets.open-ai.url}"
+        access-key: "${secrets.open-ai.access-key}"
+        provider: "${secrets.open-ai.provider}"
   dependencies:
     - name: "PostGRES JDBC Driver"
       url: "https://jdbc.postgresql.org/download/postgresql-42.6.0.jar"

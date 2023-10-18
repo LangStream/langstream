@@ -262,7 +262,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                 defaultValue = "us-east-1")
         @JsonProperty("region")
         private String region;
-        
+
         @ConfigProperty(
                 description =
                         """

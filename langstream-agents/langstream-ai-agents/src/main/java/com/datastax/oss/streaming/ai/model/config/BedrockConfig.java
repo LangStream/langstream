@@ -32,6 +32,4 @@ public class BedrockConfig {
 
     @JsonProperty(value = "endpoint-override")
     private String endpointOverride;
-
-
 }

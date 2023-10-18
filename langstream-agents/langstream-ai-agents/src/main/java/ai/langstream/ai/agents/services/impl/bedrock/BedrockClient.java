@@ -18,30 +18,18 @@ package ai.langstream.ai.agents.services.impl.bedrock;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.zip.GZIPInputStream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.signer.Aws4Signer;
-import software.amazon.awssdk.auth.signer.params.Aws4SignerParams;
 import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.http.HttpExecuteRequest;
-import software.amazon.awssdk.http.HttpExecuteResponse;
-import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.SdkHttpFullRequest;
-import software.amazon.awssdk.http.SdkHttpMethod;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.bedrock.model.BedrockRequest;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
@@ -58,9 +46,10 @@ public class BedrockClient implements AutoCloseable {
 
     @SneakyThrows
     public BedrockClient(AwsCredentials credentials, String region, String endpointOverride) {
-        final BedrockRuntimeClientBuilder builder = BedrockRuntimeClient.builder()
-                .credentialsProvider(() -> credentials)
-                .region(Region.of(region));
+        final BedrockRuntimeClientBuilder builder =
+                BedrockRuntimeClient.builder()
+                        .credentialsProvider(() -> credentials)
+                        .region(Region.of(region));
         if (endpointOverride != null) {
             builder.endpointOverride(new URI(endpointOverride));
         }
@@ -90,15 +79,18 @@ public class BedrockClient implements AutoCloseable {
     }
 
     private CompletableFuture<InputStream> invokeModel(BaseInvokeModelRequest invokeModelRequest) {
-        return CompletableFuture
-                .supplyAsync(() -> {
-                    final InvokeModelRequest request = InvokeModelRequest.builder()
-                            .modelId(invokeModelRequest.getModelId())
-                            .body(SdkBytes.fromUtf8String(invokeModelRequest.generateJsonBody()))
-                            .build();
-                    return client.invokeModel(request)
-                            .body().asInputStream();
-                }, executorService);
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    final InvokeModelRequest request =
+                            InvokeModelRequest.builder()
+                                    .modelId(invokeModelRequest.getModelId())
+                                    .body(
+                                            SdkBytes.fromUtf8String(
+                                                    invokeModelRequest.generateJsonBody()))
+                                    .build();
+                    return client.invokeModel(request).body().asInputStream();
+                },
+                executorService);
     }
 
     @Override

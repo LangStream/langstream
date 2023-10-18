@@ -108,7 +108,7 @@ public class TextSplitterAgent extends SingleRecordAgentProcessor {
             chunkHeaders.add(
                     new SimpleRecord.SimpleHeader("chunk_num_tokens", String.valueOf(numTokens)));
             chunkHeaders.add(
-                    new SimpleRecord.SimpleHeader("chunk_num_chunks", String.valueOf(numChunks)));
+                    new SimpleRecord.SimpleHeader("text_num_chunks", String.valueOf(numChunks)));
 
             // here we are setting as key the original key
             // this is to ensure that all the chunks will be processed in order downstream

@@ -340,7 +340,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                     output: output-topic-chunks
                                     configuration:
                                       destination: side-topic
-                                      when: fn:toInt(properties.chunk_num_chunks) == (fn:toInt(properties.chunk_id) + 1)
+                                      when: fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)
                                       fields:
                                          - name: "properties.foo"
                                            expression: "'bar'"

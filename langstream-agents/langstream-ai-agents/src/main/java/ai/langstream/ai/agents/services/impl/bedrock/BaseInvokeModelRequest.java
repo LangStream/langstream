@@ -13,25 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.model.config;
+package ai.langstream.ai.agents.services.impl.bedrock;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
-import java.util.Map;
-import lombok.Getter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 
-@Getter
-public class TransformStepConfig {
-    @JsonProperty(required = true)
-    private List<StepConfig> steps;
+public abstract class BaseInvokeModelRequest<S> {
 
-    @JsonProperty private OpenAIConfig openai;
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @JsonProperty private HuggingFaceConfig huggingface;
+    @SneakyThrows
+    public String generateJsonBody() {
+        return MAPPER.writeValueAsString(getBodyObject());
+    }
 
-    @JsonProperty private BedrockConfig bedrock;
+    public abstract S getBodyObject();
 
-    @JsonProperty private Map<String, Object> datasource;
-
-    @JsonProperty private boolean attemptJsonConversion = true;
+    public abstract String getModelId();
 }

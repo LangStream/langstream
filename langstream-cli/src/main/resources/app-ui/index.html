@@ -73,6 +73,7 @@
                     Auto scroll
                 </label>
                 <input type="checkbox"
+                       checked
                        class="border rounded-l-lg mr-3"
                        id="auto-scroll-logs"/>
             
@@ -85,8 +86,8 @@
                        onchange="onChangeStopTailing()"
                 />
                 <div class="ml-auto flex items-center">
-                    <label for="log-filter" class="text-gray-700 text-xs mr-2">Filter by Severity:</label>
-                    <select id="log-filter" class="border rounded-lg p-2" onchange="filterLogs()">
+                    <label for="log-filter" class="text-gray-700 text-xs mr-2">Filter by severity</label>
+                    <select id="log-filter" class="border rounded-lg p-2 text-xs border rounded-lg focus:outline-none focus:ring focus:border-blue-300" onchange="filterLogs()">
                         <option value="ALL">ALL</option>
                         <option value="ERROR">ERROR</option>
                         <option value="WARN">WARN</option>
@@ -176,6 +177,7 @@
             window.mermaid.render('graphDiv', handler.applicationConfig.mermaidDefinition).then(result => {
                 document.getElementById('app-mermaid-box').innerHTML = result.svg;
             });
+
         } else {
             document.getElementById("tab-home").style.display = "none"
             document.getElementById("tab-connect").style.display = "flex"

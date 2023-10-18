@@ -22,6 +22,7 @@ import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
+import ai.langstream.api.doc.ConfigPropertyModel;
 import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.doc.ResourceConfigurationModel;
@@ -240,24 +241,7 @@ public class ClassConfigValidator {
                 agentConfigurationModel.getProperties(),
                 allowUnknownProperties);
 
-        try {
-            convertValidatedConfiguration(asMap, modelClazz);
-        } catch (IllegalArgumentException ex) {
-            if (ex.getCause() instanceof MismatchedInputException mismatchedInputException) {
-                final String property =
-                        mismatchedInputException.getPath().stream()
-                                .map(r -> r.getFieldName())
-                                .collect(Collectors.joining("."));
-                throw new IllegalArgumentException(
-                        formatErrString(
-                                entityRef,
-                                property,
-                                "has a wrong data type. Expected type: "
-                                        + mismatchedInputException.getTargetType().getName()));
-            } else {
-                throw ex;
-            }
-        }
+        validateConversion(asMap, modelClazz, entityRef);
     }
 
     public static String formatErrString(EntityRef entityRef, String property, String message) {
@@ -477,6 +461,64 @@ public class ClassConfigValidator {
         }
 
         return null;
+    }
+
+    @SneakyThrows
+    public static Map<String, Object> validateGenericClassAndApplyDefaults(
+            EntityRef entityRef,
+            Class modelClazz,
+            Map<String, Object> inputValue,
+            boolean allowUnknownProperties) {
+
+        final Map asMap =
+                validatorMapper.readValue(validatorMapper.writeValueAsBytes(inputValue), Map.class);
+
+        final Map<String, ai.langstream.api.doc.ConfigPropertyModel> properties =
+                readPropertiesFromClass(modelClazz);
+
+        validateProperties(entityRef, null, asMap, properties, allowUnknownProperties);
+
+        validateConversion(asMap, modelClazz, entityRef);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        properties
+                .entrySet()
+                .forEach(
+                        e -> {
+                            Object value = inputValue.get(e.getKey());
+                            if (value == null
+                                    && !e.getValue().isRequired()
+                                    && e.getValue().getDefaultValue() != null) {
+                                value = e.getValue().getDefaultValue();
+                            }
+                            if (value != null) {
+                                result.put(e.getKey(), value);
+                            }
+                        });
+        return result;
+    }
+
+    private static void validateConversion(
+            Map<String, Object> asMap, Class modelClazz, EntityRef entityRef) {
+        try {
+            convertValidatedConfiguration(asMap, modelClazz);
+        } catch (IllegalArgumentException ex) {
+            if (ex.getCause() instanceof MismatchedInputException mismatchedInputException) {
+                final String property =
+                        mismatchedInputException.getPath().stream()
+                                .map(r -> r.getFieldName())
+                                .collect(Collectors.joining("."));
+                throw new IllegalArgumentException(
+                        formatErrString(
+                                entityRef,
+                                property,
+                                "has a wrong data type. Expected type: "
+                                        + mismatchedInputException.getTargetType().getName()));
+            } else {
+                throw ex;
+            }
+        }
     }
 
     private static void validateExtendedValidationType(

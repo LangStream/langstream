@@ -55,6 +55,20 @@ pipeline:
       fields:
         - "value.embeddings_vector"
       output-field: "value.related_documents"
+  - name: "re-rank documents with MMR"
+    type: "re-rank"
+    configuration:
+      max: 5 # keep only the top 5 documents, because we have an hard limit on the prompt size
+      field: "value.related_documents"
+      query-text: "value.question"
+      query-embeddings: "value.embeddings_vector"
+      output-field: "value.related_documents"
+      text-field: "record.document.content"
+      embeddings-field: "record.document.embeddings"
+      algorithm: "MMR"
+      lambda: 0.5
+      k1: 1.2
+      b: 0.75
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
     configuration:

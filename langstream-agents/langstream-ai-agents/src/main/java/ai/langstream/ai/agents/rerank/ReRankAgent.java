@@ -116,9 +116,13 @@ public class ReRankAgent extends SingleRecordAgentProcessor {
                     context.setRecordObject(o);
                     String text = recordTextAccessor.evaluate(context);
                     float[] embeddings = toArrayOfFloat(recordEmbeddingsAccessor.evaluate(context));
-                    if (embeddings == null || text == null) {
+                    if (embeddings == null) {
                         throw new IllegalArgumentException(
-                                "Text or embeddings are null in record " + o);
+                                "Embeddings are null in record: " + o);
+                    }
+                    if (text == null) {
+                        throw new IllegalArgumentException(
+                                "Text is null in record: " + o);
                     }
                     return new TextWithEmbeddings(text, embeddings);
                 };

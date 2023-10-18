@@ -204,6 +204,10 @@ public class MutableRecord {
             addOrReplaceAvroValueFields(newFields, schemaCache);
         } else if (valueSchemaType == TransformSchemaType.JSON) {
             addOrReplaceJsonValueFields(newFields, schemaCache);
+        } else {
+            throw new IllegalArgumentException(
+                    "It is not possible to set fields on the value because the current value schema is "
+                            + valueSchemaType);
         }
     }
 
@@ -235,6 +239,10 @@ public class MutableRecord {
             addOrReplaceAvroKeyFields(newFields, schemaCache);
         } else if (keySchemaType == TransformSchemaType.JSON) {
             addOrReplaceJsonKeyFields(newFields, schemaCache);
+        } else {
+            throw new IllegalArgumentException(
+                    "It is not possible to set fields on the key because the current key schema is "
+                            + keySchemaType);
         }
     }
 
@@ -343,6 +351,11 @@ public class MutableRecord {
                         new Schema.Field(keyFieldName, fieldSchema, null, null);
                 addOrReplaceKeyFields(Map.of(fieldSchemaField, content), avroKeySchemaCache);
             }
+        } else {
+            throw new IllegalArgumentException(
+                    "Cannot set field "
+                            + fieldName
+                            + ": it does not refer to any part of the message");
         }
     }
 

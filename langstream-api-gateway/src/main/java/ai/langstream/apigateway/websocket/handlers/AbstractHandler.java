@@ -352,6 +352,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                         .getTopicConnectionsRuntime(streamingCluster)
                         .asTopicConnectionsRuntime();
 
+        topicConnectionsRuntime.init(streamingCluster);
+
         try (final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
                         "langstream-events",

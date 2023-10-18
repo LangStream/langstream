@@ -376,7 +376,7 @@ public class AgentRunner {
                             new PendingRecordsCounterSource(source, sink.handlesCommit());
 
                     statsScheduler.scheduleAtFixedRate(
-                            pendingRecordsCounterSource::dumpStats, 5, 5, TimeUnit.SECONDS);
+                            pendingRecordsCounterSource::dumpStats, 30, 30, TimeUnit.SECONDS);
 
                     runMainLoop(
                             pendingRecordsCounterSource,

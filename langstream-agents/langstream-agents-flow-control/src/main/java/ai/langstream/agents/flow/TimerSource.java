@@ -100,8 +100,12 @@ public class TimerSource extends AbstractAgentCode implements AgentSource {
     public List<Record> read() throws Exception {
         try {
             // this is a blocking operation, the main loop will be blocked until a record is
-            // available
-            Record taken = queue.take();
+            // available, but we want to let the agent shutdown gracefully in case there it nothing
+            // to serve
+            Record taken = queue.poll(500, TimeUnit.MILLISECONDS);
+            if (taken == null) {
+                return List.of();
+            }
             return List.of(taken);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

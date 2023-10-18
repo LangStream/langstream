@@ -15,22 +15,17 @@
  */
 package ai.langstream.api.doc;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+public enum ExtendedValidationType {
+    EL_EXPRESSION("el-expression"),
+    NONE("");
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ConfigPropertyModel {
-    private String description;
-    boolean required;
-    private String type;
-    private Map<String, ConfigPropertyModel> properties;
-    private ConfigPropertyModel items;
-    private Object defaultValue;
-    private ExtendedValidationType extendedValidationType;
+    private final String name;
+
+    ExtendedValidationType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 }

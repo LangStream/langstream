@@ -116,7 +116,6 @@ public class QueryStep implements TransformStep {
             default:
                 throw new IllegalStateException("Unknown mode " + mode);
         }
-
         mutableRecord.setResultField(
                 finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
     }

@@ -15,12 +15,14 @@
  */
 package ai.langstream.impl.uti;
 
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
+import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
@@ -49,8 +51,10 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 
+@Slf4j
 public class ClassConfigValidator {
 
     static final ObjectMapper jsonWriter =
@@ -322,6 +326,9 @@ public class ClassConfigValidator {
                     propertyValue.getProperties(),
                     false);
         }
+        if (propertyValue.getExtendedValidationType() != null) {
+            validateExtendedValidationType(propertyValue.getExtendedValidationType(), actualValue);
+        }
     }
 
     @Data
@@ -330,6 +337,7 @@ public class ClassConfigValidator {
         private boolean required;
         private String description;
         private String defaultValue;
+        private ExtendedValidationType extendedValidationType;
     }
 
     @Data
@@ -386,6 +394,7 @@ public class ClassConfigValidator {
             newProp.setDescription(
                     property.getDescription() == null ? null : property.getDescription().strip());
             newProp.setDefaultValue(property.getDefaultValue());
+            newProp.setExtendedValidationType(property.getExtendedValidationType());
         }
 
         if (value.getProperties() != null) {
@@ -439,6 +448,10 @@ public class ClassConfigValidator {
                                                 && !annotation.defaultValue().isEmpty()) {
                                             model.setDefaultValue(annotation.defaultValue());
                                         }
+                                        if (annotation.extendedValidationType() != null) {
+                                            model.setExtendedValidationType(
+                                                    annotation.extendedValidationType());
+                                        }
                                     }
                                 }
 
@@ -464,5 +477,17 @@ public class ClassConfigValidator {
         }
 
         return null;
+    }
+
+    private static void validateExtendedValidationType(
+            ExtendedValidationType extendedValidationType, Object actualValue) {
+        switch (extendedValidationType) {
+            case EL_EXPRESSION -> {
+                String expression = actualValue.toString();
+                log.info("Validating EL expression: {}", expression);
+                new JstlEvaluator(actualValue.toString(), Object.class);
+            }
+            case NONE -> {}
+        }
     }
 }

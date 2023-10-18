@@ -52,6 +52,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -63,12 +64,14 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
+    private static final int DEDAULT_NUM_LOOPS = 5;
     public static final Path agentsDirectory;
 
     static {
@@ -85,14 +88,16 @@ public abstract class AbstractApplicationRunner {
     private static NarFileHandler narFileHandler;
     private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
 
-    private Path codeDirectory;
+    private static Path codeDirectory;
 
-    public Path getCodeDirectory() {
-        return codeDirectory;
+    private int maxNumLoops = DEDAULT_NUM_LOOPS;
+
+    public int getMaxNumLoops() {
+        return maxNumLoops;
     }
 
-    public void setCodeDirectory(Path codeDirectory) {
-        this.codeDirectory = codeDirectory;
+    public void setMaxNumLoops(int maxNumLoops) {
+        this.maxNumLoops = maxNumLoops;
     }
 
     protected record ApplicationRuntime(
@@ -180,7 +185,7 @@ public abstract class AbstractApplicationRunner {
 
     @BeforeAll
     public static void setup() throws Exception {
-        Path codeDirectory = Paths.get("target/test-jdbc-drivers");
+        codeDirectory = Paths.get("target/test-jdbc-drivers");
         narFileHandler =
                 new NarFileHandler(
                         agentsDirectory,
@@ -232,7 +237,9 @@ public abstract class AbstractApplicationRunner {
         producer.flush();
     }
 
-    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
+    protected List<ConsumerRecord> waitForMessages(
+            KafkaConsumer consumer,
+            BiConsumer<List<ConsumerRecord>, List<Object>> assertionOnReceivedMessages) {
         List<ConsumerRecord> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
@@ -250,23 +257,31 @@ public abstract class AbstractApplicationRunner {
                             log.info("Result:  {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
 
-                            assertEquals(expected.size(), received.size());
-                            for (int i = 0; i < expected.size(); i++) {
-                                Object expectedValue = expected.get(i);
-                                Object actualValue = received.get(i);
-                                if (expectedValue instanceof Consumer fn) {
-                                    fn.accept(actualValue);
-                                } else if (expectedValue instanceof byte[]) {
-                                    assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
-                                } else {
-                                    log.info("expected: {}", expectedValue);
-                                    log.info("got: {}", actualValue);
-                                    assertEquals(expectedValue, actualValue);
-                                }
-                            }
+                            assertionOnReceivedMessages.accept(result, received);
                         });
 
         return result;
+    }
+
+    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
+        return waitForMessages(
+                consumer,
+                (result, received) -> {
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof Consumer fn) {
+                            fn.accept(actualValue);
+                        } else if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            log.info("expected: {}", expectedValue);
+                            log.info("got: {}", actualValue);
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
+                });
     }
 
     protected List<ConsumerRecord> waitForMessagesInAnyOrder(
@@ -367,8 +382,9 @@ public abstract class AbstractApplicationRunner {
                                         agentsDirectory,
                                         agentInfo,
                                         () -> {
-                                            log.info("Num loops {}", numLoops.get());
-                                            return numLoops.incrementAndGet() <= 10;
+                                            log.info(
+                                                    "Num loops {}/{}", numLoops.get(), maxNumLoops);
+                                            return numLoops.incrementAndGet() <= maxNumLoops;
                                         },
                                         () -> validateAgentInfoBeforeStop(agentInfo),
                                         false,
@@ -496,6 +512,11 @@ public abstract class AbstractApplicationRunner {
 
     protected static AdminClient getKafkaAdmin() {
         return kafkaContainer.getAdmin();
+    }
+
+    @AfterEach
+    public void resetNumLoops() {
+        setMaxNumLoops(DEDAULT_NUM_LOOPS);
     }
 
     @AfterAll

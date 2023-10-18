@@ -349,32 +349,37 @@ public class TransformFunctionUtil {
     }
 
     public static TransformStep newQuery(QueryConfig config, QueryStepDataSource dataSource) {
-        config.getFields()
-                .forEach(
-                        field -> {
-                            if (config.getLoopOver() != null && !config.getLoopOver().isEmpty()) {
-                                if (!field.contains("record.")) {
-                                    throw new IllegalArgumentException(
-                                            String.format(
-                                                    "Invalid field name for query step (with loop-over you must use record.xxx: %s",
-                                                    field));
+        if (config.getFields() != null) {
+            config.getFields()
+                    .forEach(
+                            field -> {
+                                if (config.getLoopOver() != null
+                                        && !config.getLoopOver().isEmpty()) {
+                                    if (!field.contains("record.")) {
+                                        throw new IllegalArgumentException(
+                                                String.format(
+                                                        "Invalid field name for query step (with loop-over you must use record.xxx: %s",
+                                                        field));
+                                    }
+                                } else {
+                                    if (!FIELD_NAMES.contains(field)
+                                            && !field.contains("value.")
+                                            && !field.contains("key.")
+                                            && !field.contains("properties.")) {
+                                        throw new IllegalArgumentException(
+                                                String.format(
+                                                        "Invalid field name for query step: %s",
+                                                        field));
+                                    }
                                 }
-                            } else {
-                                if (!FIELD_NAMES.contains(field)
-                                        && !field.contains("value.")
-                                        && !field.contains("key.")
-                                        && !field.contains("properties.")) {
-                                    throw new IllegalArgumentException(
-                                            String.format(
-                                                    "Invalid field name for query step: %s",
-                                                    field));
-                                }
-                            }
-                        });
+                            });
+        }
         return QueryStep.builder()
                 .outputFieldName(config.getOutputField())
                 .query(config.getQuery())
                 .loopOver(config.getLoopOver())
+                .generatedKeys(config.getGeneratedKeys())
+                .mode(config.getMode())
                 .onlyFirst(config.isOnlyFirst())
                 .fields(config.getFields())
                 .dataSource(dataSource)

@@ -66,6 +66,42 @@ public class JdbcDataSourceProvider implements DataSourceProvider {
 
         @Override
         @SneakyThrows
+        public Map<String, Object> executeStatement(
+                String query, List<String> generatedKeys, List<Object> params) {
+            PreparedStatement ps;
+            if (generatedKeys != null && !generatedKeys.isEmpty()) {
+                ps = connection.prepareStatement(query, generatedKeys.toArray(new String[0]));
+            } else {
+                ps = connection.prepareStatement(query);
+            }
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            long resultCount = ps.executeLargeUpdate();
+            Map<String, Object> generatedKeysValues = null;
+            if (generatedKeys != null && !generatedKeys.isEmpty()) {
+                try (ResultSet resultSet = ps.getGeneratedKeys(); ) {
+                    ResultSetMetaData metaData = resultSet.getMetaData();
+                    int numColumns = metaData.getColumnCount();
+                    generatedKeysValues = new HashMap<>();
+                    while (resultSet.next()) {
+
+                        for (int i = 1; i <= numColumns; i++) {
+                            Object value = resultSet.getObject(i);
+                            generatedKeysValues.put(metaData.getColumnName(i), value);
+                        }
+                    }
+                }
+            }
+            if (generatedKeysValues != null) {
+                return Map.of("count", resultCount, "generatedKeys", generatedKeysValues);
+            } else {
+                return Map.of("count", resultCount);
+            }
+        }
+
+        @Override
+        @SneakyThrows
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             PreparedStatement ps = connection.prepareStatement(query);
             for (int i = 0; i < params.size(); i++) {

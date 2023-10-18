@@ -27,12 +27,18 @@ public class QueryConfig extends StepConfig {
     @JsonProperty(value = "loop-over")
     private String loopOver;
 
-    @JsonProperty(value = "fields", required = false)
+    @JsonProperty(value = "fields")
     private List<String> fields;
 
     @JsonProperty(value = "output-field", required = true)
     private String outputField;
 
-    @JsonProperty(value = "only-first", required = false)
+    @JsonProperty(value = "only-first")
     private boolean onlyFirst;
+
+    @JsonProperty(value = "mode")
+    private String mode = "query";
+
+    @JsonProperty("generated-keys")
+    private List<String> generatedKeys;
 }

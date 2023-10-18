@@ -34,15 +34,21 @@ import org.apache.avro.Schema;
 @Slf4j
 public class QueryStep implements TransformStep {
 
+    public static final String MODE_QUERY = "query";
+    public static final String MODE_EXECUTE = "execute";
+    private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
+    private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
+    private final List<JstlEvaluator<Object>> fieldsEvaluators = new ArrayList<>();
+
     @Builder.Default private final List<String> fields;
     private final String outputFieldName;
     private final String query;
     private final boolean onlyFirst;
     private final QueryStepDataSource dataSource;
-    private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
-    private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
-    private final List<JstlEvaluator<Object>> fieldsEvaluators = new ArrayList<>();
     private final String loopOver;
+    private final List<String> generatedKeys;
+    private final String mode;
+
     private JstlEvaluator<List> loopOverAccessor;
 
     QueryStep(
@@ -52,8 +58,12 @@ public class QueryStep implements TransformStep {
             boolean onlyFirst,
             QueryStepDataSource dataSource,
             String loopOver,
+            List<String> generatedKeys,
+            String mode,
             JstlEvaluator<List> loopOverAccessor) {
         this.fields = fields;
+        this.mode = mode == null ? MODE_QUERY : mode;
+        this.generatedKeys = generatedKeys;
         this.outputFieldName = outputFieldName;
         this.query = query;
         this.onlyFirst = onlyFirst;
@@ -65,7 +75,7 @@ public class QueryStep implements TransformStep {
                     fieldsEvaluators.add(new JstlEvaluator<>("${" + field + "}", Object.class));
                 });
         if (loopOver != null && !loopOver.isEmpty()) {
-            this.loopOverAccessor = new JstlEvaluator<List>("${" + loopOver + "}", List.class);
+            this.loopOverAccessor = new JstlEvaluator<>("${" + loopOver + "}", List.class);
         } else {
             this.loopOverAccessor = null;
         }
@@ -73,6 +83,45 @@ public class QueryStep implements TransformStep {
 
     @Override
     public void process(TransformContext transformContext) {
+        Schema schema;
+        Object finalResult;
+
+        switch (mode) {
+            case MODE_QUERY:
+                List<Map<String, Object>> results = processQuery(transformContext);
+                if (onlyFirst) {
+                    schema = Schema.createMap(Schema.create(Schema.Type.STRING));
+                    if (results.isEmpty()) {
+                        finalResult = Map.of();
+                    } else {
+                        finalResult = results.get(0);
+                    }
+                } else {
+                    schema =
+                            Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING)));
+                    finalResult = results;
+                }
+                break;
+            case MODE_EXECUTE:
+                finalResult = processExecute(transformContext);
+                if (finalResult instanceof Map) {
+                    schema = Schema.createMap(Schema.create(Schema.Type.STRING));
+                } else if (finalResult instanceof List) {
+                    schema =
+                            Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING)));
+                } else {
+                    throw new IllegalStateException();
+                }
+                break;
+            default:
+                throw new IllegalStateException("Unknown mode " + mode);
+        }
+
+        transformContext.setResultField(
+                finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
+    }
+
+    private List<Map<String, Object>> processQuery(TransformContext transformContext) {
         List<Map<String, Object>> results;
         if (loopOverAccessor == null) {
             results = performQuery(transformContext);
@@ -89,22 +138,28 @@ public class QueryStep implements TransformStep {
                 results.addAll(resultsForDocument);
             }
         }
+        return results;
+    }
 
-        Object finalResult = results;
-        Schema schema;
-        if (onlyFirst) {
-            schema = Schema.createMap(Schema.create(Schema.Type.STRING));
-            if (results.isEmpty()) {
-                finalResult = Map.of();
-            } else {
-                finalResult = results.get(0);
-            }
+    private Object processExecute(TransformContext transformContext) {
+        Object res;
+        if (loopOverAccessor == null) {
+            res = executeStatement(transformContext);
         } else {
-            schema = Schema.createArray(Schema.createMap(Schema.create(Schema.Type.STRING)));
+            // loop over a list
+            // for each item we name if "record" and we perform the query
+            List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
+            List<Map<String, Object>> results = new ArrayList<>();
+            for (Object document : nestedRecords) {
+                TransformContext nestedRecordContext = new TransformContext();
+                nestedRecordContext.setRecordObject(document);
+                // set in the item the result
+                Map<String, Object> resultsForDocument = executeStatement(nestedRecordContext);
+                results.add(resultsForDocument);
+            }
+            res = results;
         }
-
-        transformContext.setResultField(
-                finalResult, outputFieldName, schema, avroKeySchemaCache, avroValueSchemaCache);
+        return res;
     }
 
     private List<Map<String, Object>> performQuery(TransformContext transformContext) {
@@ -127,6 +182,29 @@ public class QueryStep implements TransformStep {
         if (results == null) {
             results = List.of();
         }
+        if (log.isDebugEnabled()) {
+            log.debug("Result from datasource: {}", results);
+        }
+        return results;
+    }
+
+    private Map<String, Object> executeStatement(TransformContext transformContext) {
+        List<Object> params = new ArrayList<>();
+        fieldsEvaluators.forEach(
+                field -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Evaluating {}", field);
+                    }
+                    Object value = field.evaluate(transformContext);
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Result {} type {}",
+                                value,
+                                value != null ? value.getClass() : "null");
+                    }
+                    params.add(value);
+                });
+        Map<String, Object> results = dataSource.executeStatement(query, generatedKeys, params);
         if (log.isDebugEnabled()) {
             log.debug("Result from datasource: {}", results);
         }

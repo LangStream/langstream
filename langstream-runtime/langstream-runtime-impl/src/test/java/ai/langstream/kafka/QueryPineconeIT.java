@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-class QueryVectorDBIT extends AbstractApplicationRunner {
+class QueryPineconeIT extends AbstractApplicationRunner {
 
     @Test
     public void testQueryPinecone(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {

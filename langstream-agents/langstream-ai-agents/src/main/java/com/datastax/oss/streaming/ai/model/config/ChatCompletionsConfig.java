@@ -71,4 +71,7 @@ public class ChatCompletionsConfig extends StepConfig {
 
     @JsonProperty(value = "frequency-penalty")
     private Double frequencyPenalty;
+
+    @JsonProperty(value = "options")
+    private Map<String, Object> options;
 }

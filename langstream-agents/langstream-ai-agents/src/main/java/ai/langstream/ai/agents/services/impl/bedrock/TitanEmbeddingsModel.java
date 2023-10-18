@@ -13,25 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.streaming.ai.model.config;
+package ai.langstream.ai.agents.services.impl.bedrock;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import java.util.Map;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 
-@Getter
-public class TransformStepConfig {
-    @JsonProperty(required = true)
-    private List<StepConfig> steps;
+@Builder
+@Data
+public class TitanEmbeddingsModel extends BaseInvokeModelRequest<TitanEmbeddingsModel.RequestBody> {
 
-    @JsonProperty private OpenAIConfig openai;
+    private String modelId;
+    private String inputText;
 
-    @JsonProperty private HuggingFaceConfig huggingface;
+    public record RequestBody(String inputText) {}
 
-    @JsonProperty private BedrockConfig bedrock;
+    public record ResponseBody(List<Double> embedding) {}
 
-    @JsonProperty private Map<String, Object> datasource;
+    @Override
+    public String getModelId() {
+        return modelId;
+    }
 
-    @JsonProperty private boolean attemptJsonConversion = true;
+    @Override
+    public RequestBody getBodyObject() {
+        return new RequestBody(inputText);
+    }
 }

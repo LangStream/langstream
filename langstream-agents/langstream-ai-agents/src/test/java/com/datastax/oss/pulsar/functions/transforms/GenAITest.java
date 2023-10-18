@@ -289,7 +289,7 @@ public class GenAITest {
                         + "\"stream-to-topic\":null,\"stream-response-completion-field\":null,\"min-chunks-per-message\":20,"
                         + "\"completion-field\":\"value.completion\",\"stream\":true,\"log-field\":\"value.log\","
                         + "\"max-tokens\":null,\"temperature\":null,\"top-p\":null,\"logit-bias\":null,\"user\":null,"
-                        + "\"stop\":null,\"presence-penalty\":null,\"frequency-penalty\":null},"
+                        + "\"stop\":null,\"presence-penalty\":null,\"frequency-penalty\":null,\"options\":null},"
                         + "\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}",
                 valueAvroRecord.get("log").toString());
     }

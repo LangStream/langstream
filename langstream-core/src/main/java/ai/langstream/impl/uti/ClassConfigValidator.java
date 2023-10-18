@@ -378,7 +378,10 @@ public class ClassConfigValidator {
             newProp.setDescription(
                     property.getDescription() == null ? null : property.getDescription().strip());
             newProp.setDefaultValue(property.getDefaultValue());
-            newProp.setExtendedValidationType(property.getExtendedValidationType());
+            if (property.getExtendedValidationType() != null
+                    && property.getExtendedValidationType() != ExtendedValidationType.NONE) {
+                newProp.setExtendedValidationType(property.getExtendedValidationType());
+            }
         }
 
         if (value.getProperties() != null) {

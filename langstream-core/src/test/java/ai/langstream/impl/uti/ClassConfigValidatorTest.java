@@ -94,8 +94,7 @@ class ClassConfigValidatorTest {
                                     "description" : "my description",
                                     "required" : true,
                                     "type" : "integer",
-                                    "defaultValue" : "11",
-                                    "extendedValidationType" : "NONE"
+                                    "defaultValue" : "11"
                                   },
                                   "myclass2" : {
                                     "required" : false,
@@ -105,8 +104,7 @@ class ClassConfigValidatorTest {
                                         "description" : "my description",
                                         "required" : true,
                                         "type" : "string",
-                                        "defaultValue" : "110.1a",
-                                        "extendedValidationType" : "NONE"
+                                        "defaultValue" : "110.1a"
                                       },
                                       "inner" : {
                                         "required" : false,
@@ -125,22 +123,18 @@ class ClassConfigValidatorTest {
                                           "description" : "my description",
                                           "required" : true,
                                           "type" : "string",
-                                          "defaultValue" : "110.1a",
-                                          "extendedValidationType" : "NONE"
+                                          "defaultValue" : "110.1a"
                                         },
                                         "inner" : {
                                           "required" : false,
                                           "type" : "string"
                                         }
-                                      },
-                                      "extendedValidationType" : "NONE"
-                                    },
-                                    "extendedValidationType" : "NONE"
+                                      }
+                                    }
                                   },
                                   "theMap" : {
                                     "required" : true,
-                                    "type" : "object",
-                                    "extendedValidationType" : "NONE"
+                                    "type" : "object"
                                   }
                                 }
                               }""",

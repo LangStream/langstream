@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-class BedrockEmbeddingsCompletionsIT extends AbstractApplicationRunner {
+class BedrockCompletionsIT extends AbstractApplicationRunner {
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 
     @BeforeAll
@@ -91,7 +91,7 @@ class BedrockEmbeddingsCompletionsIT extends AbstractApplicationRunner {
                                     - type: "bedrock-configuration"
                                       name: "bedrock configuration"
                                       configuration:
-                                        url: "%s"
+                                        endpoint-override: "%s"
                                         access-key: "xx"
                                         secret-key: "yy"
                                 """

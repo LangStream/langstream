@@ -181,7 +181,7 @@ class ResourceNodeProviderTest {
                         VALID,
                         "bedrock-configuration",
                         Map.of(
-                                "url", "bedrock-runtime.us-west-2.amazonaws.com",
+                                "region", "us-west-2",
                                 "access-key", "xx",
                                 "secret-key", "yy")));
     }

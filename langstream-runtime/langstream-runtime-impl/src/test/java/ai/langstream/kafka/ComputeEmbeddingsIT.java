@@ -221,7 +221,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                                         - type: "bedrock-configuration"
                                           name: "bedrock configuration"
                                           configuration:
-                                            url: "%s"
+                                            endpoint-override: "%s"
                                             access-key: "xx"
                                             secret-key: "yy"
                                 """

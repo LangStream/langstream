@@ -257,18 +257,18 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         @ConfigProperty(
                 description =
                         """
-                        AWS endpoint url. You can find it in the AWS endpoints table. Example: bedrock-runtime.us-east-1.amazonaws.com
+                        AWS region for Bedrock endpoints.
                         """,
-                required = true)
-        private String url;
-
+                defaultValue = "us-east-1")
+        @JsonProperty("region")
+        private String region;
+        
         @ConfigProperty(
                 description =
                         """
-                        AWS region for signing the credentials.
-                        """,
-                defaultValue = "us-east-1")
-        @JsonProperty("signing-region")
-        private String signingRegion;
+                        Override default AWS endpoint. Useful for testing and debugging. If using AWS, please only set the region.
+                        """)
+        @JsonProperty("endpoint-override")
+        private String endpointOverride;
     }
 }

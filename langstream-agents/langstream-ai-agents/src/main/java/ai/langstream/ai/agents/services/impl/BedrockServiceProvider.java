@@ -54,14 +54,14 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
         Map<String, Object> config = (Map<String, Object>) agentConfiguration.get("bedrock");
         String accessKey = (String) config.get("access-key");
         String secretKey = (String) config.get("secret-key");
-        String url = (String) config.get("url");
-        String signingRegion = (String) config.getOrDefault("signing-region", "us-east-1");
+        String endpointOverride = (String) config.get("endpoint-override");
+        String region = (String) config.getOrDefault("region", "us-east-1");
         return new BedrockService(
                 () ->
                         new BedrockClient(
                                 AwsBasicCredentials.create(accessKey, secretKey),
-                                url,
-                                signingRegion));
+                                region,
+                                endpointOverride));
     }
 
     private static class BedrockService implements ServiceProvider {

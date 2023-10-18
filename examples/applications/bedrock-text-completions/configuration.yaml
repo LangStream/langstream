@@ -20,8 +20,7 @@ configuration:
     - type: "bedrock-configuration"
       name: "Bedrock configuration"
       configuration:
-        url: "${secrets.bedrock.url}"
         access-key: "${secrets.bedrock.access-key}"
         secret-key: "${secrets.bedrock.secret-key}"
-        signing-region: "${secrets.bedrock.signing-region}"
+        region: "${secrets.bedrock.region}"
 

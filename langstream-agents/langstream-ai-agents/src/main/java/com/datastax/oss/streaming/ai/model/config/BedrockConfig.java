@@ -27,9 +27,11 @@ public class BedrockConfig {
     @JsonProperty(value = "secret-key", required = true)
     private String secretKey;
 
-    @JsonProperty(value = "url", required = true)
-    private String url;
+    @JsonProperty(value = "region", required = true)
+    private String region;
 
-    @JsonProperty(value = "signing-region")
-    private String signingRegion;
+    @JsonProperty(value = "endpoint-override")
+    private String endpointOverride;
+
+
 }

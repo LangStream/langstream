@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -48,7 +47,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
-class ChatCompletionsIT extends AbstractApplicationRunner {
+class ChatCompletionsIT extends AbstractKafkaApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 

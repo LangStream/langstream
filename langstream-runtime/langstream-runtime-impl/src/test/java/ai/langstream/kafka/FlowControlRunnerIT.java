@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -36,7 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class FlowControlRunnerIT extends AbstractApplicationRunner {
+class FlowControlRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testDispatch() throws Exception {

@@ -19,7 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
@@ -38,7 +37,7 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 @Testcontainers
 @WireMockTest
-class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
+class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Container
     static GenericContainer database =

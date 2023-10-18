@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +31,7 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaRunnerDockerTest extends AbstractApplicationRunner {
+class KafkaRunnerDockerTest extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testConnectToTopics() throws Exception {
@@ -57,7 +56,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
                              output: "output-topic"
                         """);
 
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             Set<String> topics = getKafkaAdmin().listTopics().names().get();
@@ -97,7 +96,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
                                      input: "input-topic-with-retention"
                                 """);
 
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             Set<String> topics = getKafkaAdmin().listTopics().names().get();

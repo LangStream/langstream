@@ -17,7 +17,6 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -34,7 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class SolrAssetQueryWriteIT extends AbstractApplicationRunner {
+class SolrAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private GenericContainer solrCloudContainer =

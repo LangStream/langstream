@@ -54,7 +54,7 @@ import org.apache.kafka.common.serialization.UUIDSerializer;
 @Slf4j
 class KafkaProducerWrapper implements TopicProducer {
 
-    final Map<Class<?>, Serializer<?>> BASE_SERIALIZERS =
+    static final Map<Class<?>, Serializer<?>> BASE_SERIALIZERS =
             Map.ofEntries(
                     entry(String.class, new StringSerializer()),
                     entry(Boolean.class, new BooleanSerializer()),

@@ -16,6 +16,7 @@
 package ai.langstream.pulsar.runner;
 
 import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static java.util.Map.entry;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.SchemaDefinition;
@@ -37,8 +38,16 @@ import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -524,6 +533,26 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             Producer<K> producer;
             Schema<K> schema;
 
+            static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
+                    Map.ofEntries(
+                            entry(String.class, Schema.STRING),
+                            entry(Boolean.class, Schema.BOOL),
+                            entry(Byte.class, Schema.INT8),
+                            entry(Short.class, Schema.INT16),
+                            entry(Integer.class, Schema.INT32),
+                            entry(Long.class, Schema.INT64),
+                            entry(Float.class, Schema.FLOAT),
+                            entry(Double.class, Schema.DOUBLE),
+                            entry(byte[].class, Schema.BYTES),
+                            entry(Date.class, Schema.DATE),
+                            entry(Timestamp.class, Schema.TIMESTAMP),
+                            entry(Time.class, Schema.TIME),
+                            entry(LocalDate.class, Schema.LOCAL_DATE),
+                            entry(LocalTime.class, Schema.LOCAL_TIME),
+                            entry(LocalDateTime.class, Schema.LOCAL_DATE_TIME),
+                            entry(Instant.class, Schema.INSTANT),
+                            entry(ByteBuffer.class, Schema.BYTEBUFFER));
+
             public PulsarTopicProducer(Map<String, Object> configuration) {
                 this.configuration = configuration;
             }
@@ -531,12 +560,26 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
-                String topic = (String) configuration.remove("topic");
-                schema = (Schema<K>) configuration.remove("schema");
-                if (schema == null) {
-                    schema = (Schema) Schema.STRING;
+                if (configuration.containsKey("valueSchema")) {
+                    SchemaDefinition valueSchemaDefinition =
+                            mapper.convertValue(
+                                    configuration.remove("valueSchema"), SchemaDefinition.class);
+                    Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                    if (configuration.containsKey("keySchema")) {
+                        SchemaDefinition keySchemaDefinition =
+                                mapper.convertValue(
+                                        configuration.remove("keySchema"), SchemaDefinition.class);
+                        Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                        schema = (Schema<K>) Schema.KeyValue(keySchema, valueSchema);
+                    } else {
+                        schema = (Schema<K>) valueSchema;
+                    }
+                    producer =
+                            client.newProducer(schema)
+                                    .topic((String) configuration.remove("topic"))
+                                    .loadConf(configuration)
+                                    .create();
                 }
-                producer = client.newProducer(schema).topic(topic).loadConf(configuration).create();
             }
 
             @Override
@@ -552,9 +595,39 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
             }
 
+            private Schema<?> getSchema(Class<?> klass) {
+                Schema<?> schema = BASE_SCHEMAS.get(klass);
+                if (schema == null) {
+                    throw new IllegalArgumentException("Cannot infer schema for " + klass);
+                }
+                return schema;
+            }
+
             @Override
             public CompletableFuture<?> write(Record r) {
                 totalIn.addAndGet(1);
+                if (schema == null) {
+                    try {
+                        if (r.value() == null) {
+                            throw new IllegalStateException(
+                                    "Cannot infer schema because value is null");
+                        }
+                        Schema<?> valueSchema = getSchema(r.value().getClass());
+                        if (r.key() != null) {
+                            Schema<?> keySchema = getSchema(r.key().getClass());
+                            schema = (Schema<K>) Schema.KeyValue(keySchema, valueSchema);
+                        } else {
+                            schema = (Schema<K>) valueSchema;
+                        }
+                        producer =
+                                client.newProducer(schema)
+                                        .topic((String) configuration.remove("topic"))
+                                        .loadConf(configuration)
+                                        .create();
+                    } catch (Exception e) {
+                        return CompletableFuture.failedFuture(e);
+                    }
+                }
 
                 log.info("Writing message {}", r);
                 // TODO: handle KV

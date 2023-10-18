@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class OpenSearchVectorIT extends AbstractApplicationRunner {
+class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
     @Container
     static OpensearchContainer OPENSEARCH =
             new OpensearchContainer(DockerImageName.parse("opensearchproject/opensearch:2"))

@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -34,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
-class KafkaSchemaTest extends AbstractApplicationRunner {
+class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
 
     @RegisterExtension
     static KafkaRegistryContainerExtension registry =

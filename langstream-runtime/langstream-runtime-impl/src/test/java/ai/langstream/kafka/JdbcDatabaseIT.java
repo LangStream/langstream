@@ -17,7 +17,6 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +36,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class JdbcDatabaseIT extends AbstractApplicationRunner {
+class JdbcDatabaseIT extends AbstractKafkaApplicationRunner {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 

@@ -15,214 +15,162 @@
  */
 package ai.langstream.pulsar;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Connection;
-import ai.langstream.api.model.Module;
-import ai.langstream.api.model.TopicDefinition;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.Topic;
-import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
-import ai.langstream.impl.deploy.ApplicationDeployer;
-import ai.langstream.impl.k8s.tests.KubeTestServer;
-import ai.langstream.impl.nar.NarFileHandler;
-import ai.langstream.impl.parser.ModelBuilder;
-import ai.langstream.runtime.agent.AgentRunner;
-import ai.langstream.runtime.agent.api.AgentInfo;
-import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import io.fabric8.kubernetes.api.model.Secret;
-import java.time.Duration;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import lombok.Cleanup;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.containers.PulsarContainer;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
-class PulsarRunnerDockerTest {
+class PulsarRunnerDockerTest extends AbstractApplicationRunner {
 
-    private static final String IMAGE = "apachepulsar/pulsar:3.1.0";
-
-    private static PulsarContainer pulsarContainer;
-
-    @RegisterExtension static final KubeTestServer kubeServer = new KubeTestServer();
-
-    private static PulsarAdmin admin;
+    @RegisterExtension
+    static PulsarContainerExtension pulsarContainer = new PulsarContainerExtension();
 
     @Test
     public void testRunAITools() throws Exception {
-        final String appId = "application";
-        kubeServer.spyAgentCustomResources("tenant", appId + "-step1");
-        final Map<String, Secret> secrets =
-                kubeServer.spyAgentCustomResourcesSecrets("tenant", appId + "-step1");
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
 
-        Application applicationInstance =
-                ModelBuilder.buildApplicationInstance(
-                                Map.of(
-                                        "module.yaml",
-                                        """
-                                module: "module-1"
-                                id: "pipeline-1"
-                                topics:
-                                  - name: "input-topic"
-                                    creation-mode: create-if-not-exists
-                                  - name: "output-topic"
-                                    creation-mode: create-if-not-exists
-                                pipeline:
-                                  - name: "drop-description"
-                                    id: "step1"
-                                    type: "drop-fields"
-                                    input: "input-topic"
-                                    output: "output-topic"
-                                    configuration:
-                                      fields:
-                                        - "description"
-                                """),
-                                buildInstanceYaml(),
-                                null)
-                        .getApplication();
-
-        @Cleanup
-        NarFileHandler narFileHandler =
-                new NarFileHandler(
-                        AbstractApplicationRunner.agentsDirectory,
-                        List.of(),
-                        Thread.currentThread().getContextClassLoader());
-        narFileHandler.scan();
-
-        @Cleanup
-        ApplicationDeployer deployer =
-                ApplicationDeployer.builder()
-                        .registry(new ClusterRuntimeRegistry())
-                        .topicConnectionsRuntimeRegistry(
-                                new TopicConnectionsRuntimeRegistry()
-                                        .setPackageLoader(narFileHandler))
-                        .pluginsRegistry(new PluginsRegistry())
-                        .build();
-
-        Module module = applicationInstance.getModule("module-1");
-
-        ExecutionPlan implementation = deployer.createImplementation(appId, applicationInstance);
-        assertTrue(
-                implementation.getConnectionImplementation(
-                                module,
-                                Connection.fromTopic(TopicDefinition.fromName("input-topic")))
-                        instanceof Topic);
-        deployer.setup("tenant", implementation);
-        deployer.deploy("tenant", implementation, null);
-        assertEquals(1, secrets.size());
-        final Secret secret = secrets.values().iterator().next();
-        final RuntimePodConfiguration runtimePodConfiguration =
-                AgentResourcesFactory.readRuntimePodConfigurationFromSecret(secret);
-
-        try (PulsarClient client =
-                        PulsarClient.builder()
-                                .serviceUrl(pulsarContainer.getPulsarBrokerUrl())
-                                .build();
-                Producer<String> producer =
-                        client.newProducer(Schema.STRING).topic("input-topic").create();
-                org.apache.pulsar.client.api.Consumer<String> consumer =
-                        client.newConsumer(Schema.STRING)
-                                .topic("output-topic")
-                                .subscriptionName("test")
-                                .subscribe()) {
-
-            // produce one message to the input-topic
-            producer.newMessage()
-                    .value("{\"name\": \"some name\", \"description\": \"some description\"}")
-                    .key("key")
-                    .properties(Map.of("header-key", "header-value"))
-                    .send();
-            producer.flush();
-
-            AtomicInteger numLoops = new AtomicInteger();
-            AgentRunner.runAgent(
-                    runtimePodConfiguration,
-                    null,
-                    AbstractApplicationRunner.agentsDirectory,
-                    new AgentInfo(),
-                    () -> numLoops.incrementAndGet() <= 5,
-                    null,
-                    false,
-                    narFileHandler);
-
-            // receive one message from the output-topic (written by the PodJavaRuntime)
-            Message<String> record = consumer.receive();
-            assertEquals("{\"name\":\"some name\"}", record.getValue());
-            assertEquals("header-value", record.getProperties().get("header-key"));
-        }
-    }
-
-    private static String buildInstanceYaml() {
-        return """
-                instance:
-                  computeCluster:
-                    type: "kubernetes"
-                  streamingCluster:
-                    type: "pulsar"
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                module: "module-1"
+                id: "pipeline-1"
+                topics:
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                pipeline:
+                  - name: "drop-description"
+                    id: "step1"
+                    type: "drop-fields"
+                    input: "%s"
+                    output: "%s"
                     configuration:
-                      admin:
-                        serviceUrl: "%s"
-                      service:
-                        serviceUrl: "%s"
-                      defaultTenant: "public"
-                      defaultNamespace: "default"
+                      fields:
+                        - "description"
                 """
-                .formatted(
-                        "http://localhost:" + pulsarContainer.getMappedPort(8080),
-                        "pulsar://localhost:" + pulsarContainer.getMappedPort(6650));
-    }
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
 
-    @BeforeAll
-    public static void setup() throws Exception {
-        pulsarContainer =
-                new PulsarContainer(
-                                DockerImageName.parse(IMAGE)
-                                        .asCompatibleSubstituteFor("apachepulsar/pulsar"))
-                        .withStartupTimeout(
-                                Duration.ofSeconds(120)) // Mac M1 is slow with Intel docker images
-                        .withLogConsumer(
-                                outputFrame ->
-                                        log.info("pulsar> {}", outputFrame.getUtf8String().trim()));
-        // start Pulsar and wait for it to be ready to accept requests
-        pulsarContainer.start();
-        admin =
-                PulsarAdmin.builder()
-                        .serviceHttpUrl("http://localhost:" + pulsarContainer.getMappedPort(8080))
-                        .build();
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
 
-        try {
-            admin.namespaces().createNamespace("public/default");
-        } catch (PulsarAdminException.ConflictException exists) {
-            // ignore
+                producer.newMessage()
+                        .value("{\"name\": \"some name\", \"description\": \"some description\"}")
+                        .property("header-key", "header-value")
+                        .send();
+                producer.flush();
+
+                executeAgentRunners(applicationRuntime);
+
+                Message<GenericRecord> record = consumer.receive(30, TimeUnit.SECONDS);
+                assertEquals("{\"name\":\"some name\"}", record.getValue().getNativeObject());
+                assertEquals("header-value", record.getProperties().get("header-key"));
+            }
         }
     }
 
-    @AfterAll
-    public static void teardown() {
-        if (admin != null) {
-            admin.close();
+    @Test
+    public void testTopicSchema() throws Exception {
+        String tenant = "topic-schema";
+        String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                module: "module-1"
+                id: "pipeline-1"
+                topics:
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                    schema:
+                      type: "bytes"
+                pipeline:
+                  - name: "drop-description"
+                    id: "step1"
+                    type: "drop-fields"
+                    input: "%s"
+                    output: "%s"
+                    configuration:
+                      fields:
+                        - "description"
+                """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
+
+                producer.newMessage()
+                        .value("{\"name\": \"some name\", \"description\": \"some description\"}")
+                        .send();
+                producer.flush();
+
+                executeAgentRunners(applicationRuntime);
+
+                Message<GenericRecord> record = consumer.receive(30, TimeUnit.SECONDS);
+                assertArrayEquals(
+                        "{\"name\":\"some name\"}".getBytes(StandardCharsets.UTF_8),
+                        (byte[]) record.getValue().getNativeObject());
+            }
         }
-        if (pulsarContainer != null) {
-            pulsarContainer.close();
-        }
+    }
+
+    private String buildInstanceYaml() {
+        return """
+                     instance:
+                       streamingCluster:
+                         type: "pulsar"
+                         configuration:
+                           admin:
+                             serviceUrl: "%s"
+                           service:
+                             serviceUrl: "%s"
+                           defaultTenant: "public"
+                           defaultNamespace: "default"
+                       computeCluster:
+                         type: "kubernetes"
+                     """
+                .formatted(pulsarContainer.getHttpServiceUrl(), pulsarContainer.getBrokerUrl());
+    }
+
+    protected Producer<String> createProducer(String topic) throws PulsarClientException {
+        return pulsarContainer.getClient().newProducer(Schema.STRING).topic(topic).create();
+    }
+
+    protected Consumer<GenericRecord> createConsumer(String topic) throws PulsarClientException {
+        return pulsarContainer
+                .getClient()
+                .newConsumer(Schema.AUTO_CONSUME())
+                .topic(topic)
+                .subscriptionName("test-subscription")
+                .subscribe();
     }
 }

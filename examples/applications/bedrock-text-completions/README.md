@@ -14,7 +14,7 @@ export BEDROCK_COMPLETIONS_MODEL=ai21.j2-mid-v1
 
 ## Deploy the LangStream application
 ```
-langstream docker run test -app https://github.com/LangStream/langstream/examples/applications/bedrock-text-completions -s https://raw.githubusercontent.com/LangStream/langstream/main/examples/secrets/secrets.yaml 
+langstream docker run test -app https://github.com/LangStream/langstream/blob/main/examples/applications/bedrock-text-completions -s https://raw.githubusercontent.com/LangStream/langstream/main/examples/secrets/secrets.yaml 
 ```
 
 ## Chat with the model

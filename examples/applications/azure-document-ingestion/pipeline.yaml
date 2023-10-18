@@ -73,15 +73,15 @@ pipeline:
     configuration:
       text-field: text
       copy-properties: true
-  - name: "prepare-structure" # This step assumes that the filename for the doc follows the naming convention.
+  - name: "prepare-structure" # This step assumes that the filename for the doc follows a naming convention.
     type: "compute"
     configuration:
       fields:
         - name: "value.product_name"
-          expression: "fn:split(properties.filename, ' ')[0]"
+          expression: "fn:split(value.name, ' ')[0]"
           type: STRING
         - name: "value.product_version"
-          expression: "fn:split(properties.filename, ' ')[1]"
+          expression: "fn:split(value.name, ' ')[1]"
           type: STRING
   - name: "compute-embeddings"
     id: "step1"

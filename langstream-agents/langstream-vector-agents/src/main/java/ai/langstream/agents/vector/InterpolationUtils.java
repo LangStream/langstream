@@ -89,7 +89,9 @@ public class InterpolationUtils {
                 params.forEach(
                         param ->
                                 log.debug(
-                                        "Param {} {}", param, param != null ? param.getClass() : null));
+                                        "Param {} {}",
+                                        param,
+                                        param != null ? param.getClass() : null));
             }
             // interpolate the query
             json = interpolate(json, params);

@@ -43,4 +43,4 @@ User: Who am I ?
 Answer: You are John
 ```
 
-![Screenshot](./chatbot.jpg)
+![Screenshot](./chatbot.png)

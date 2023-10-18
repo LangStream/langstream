@@ -75,9 +75,15 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
 
         Map<String, Object> configuration = new HashMap<>();
-        // TODO: handle other configurations and schema
+        // TODO: handle other configurations
 
         configuration.put("topic", pulsarTopic.name().toPulsarName());
+        if (pulsarTopic.keySchema() != null) {
+            configuration.put("keySchema", pulsarTopic.keySchema());
+        }
+        if (pulsarTopic.valueSchema() != null) {
+            configuration.put("valueSchema", pulsarTopic.valueSchema());
+        }
         return configuration;
     }
 

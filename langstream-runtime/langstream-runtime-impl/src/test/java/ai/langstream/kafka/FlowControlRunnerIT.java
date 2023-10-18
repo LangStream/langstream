@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class FlowControlRunnerIT extends AbstractApplicationRunner {
+class FlowControlRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testSimpleFlowControl() throws Exception {

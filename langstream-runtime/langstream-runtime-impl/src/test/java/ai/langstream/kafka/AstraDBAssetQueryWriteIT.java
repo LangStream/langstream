@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @Disabled
-class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
+class AstraDBAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     static final String SECRETS_PATH = "";
 

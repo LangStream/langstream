@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class ErrorHandlingTest extends AbstractApplicationRunner {
+class ErrorHandlingTest extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testDiscardErrors() throws Exception {
@@ -71,7 +70,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
@@ -117,7 +116,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
@@ -176,7 +175,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
@@ -245,7 +244,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, inputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer(); ) {
@@ -301,7 +300,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, inputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer()) {
@@ -357,7 +356,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                                       fail-on-content: "fail-me"
                                 """
                                 .formatted(inputTopic, inputTopic));
-        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();

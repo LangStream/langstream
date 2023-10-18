@@ -17,9 +17,9 @@ package ai.langstream.assets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class DeployAssetsTest extends AbstractApplicationRunner {
+class DeployAssetsTest extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testDeployAsset() throws Exception {

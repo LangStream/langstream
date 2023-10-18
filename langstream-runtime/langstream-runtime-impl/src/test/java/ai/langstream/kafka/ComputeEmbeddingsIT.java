@@ -24,7 +24,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -56,7 +55,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
-class ComputeEmbeddingsIT extends AbstractApplicationRunner {
+class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
 
     @AllArgsConstructor
     private static class EmbeddingsConfig {

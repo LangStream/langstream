@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -42,7 +41,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-class TextCompletionsIT extends AbstractApplicationRunner {
+class TextCompletionsIT extends AbstractKafkaApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 

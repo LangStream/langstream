@@ -252,4 +252,99 @@ public class FlowControlAgentsTest {
             }
         }
     }
+
+    @Test
+    public void testTriggerEventProcessorStopProcessing() throws Exception {
+        try (TriggerEventProcessor processor = new TriggerEventProcessor(); ) {
+            processor.init(
+                    Map.of(
+                            "continue-processing",
+                            false,
+                            "destination",
+                            "other-topic",
+                            "fields",
+                            List.of(
+                                    Map.of(
+                                            "name",
+                                            "value.computed",
+                                            "expression",
+                                            "fn:uppercase(value.original)"),
+                                    Map.of(
+                                            "name",
+                                            "key.computed",
+                                            "expression",
+                                            "fn:lowercase(key.original)"),
+                                    Map.of(
+                                            "name",
+                                            "properties.computed",
+                                            "expression",
+                                            "fn:lowercase(properties.original)"))));
+
+            List<Record> emittedRecords = new CopyOnWriteArrayList<>();
+            TopicProducer dummyProducer =
+                    new TopicProducer() {
+                        @Override
+                        public long getTotalIn() {
+                            return 0;
+                        }
+
+                        @Override
+                        public CompletableFuture<?> write(Record record) {
+                            emittedRecords.add(record);
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    };
+            TopicConnectionProvider dummyProvider =
+                    new TopicConnectionProvider() {
+                        @Override
+                        public TopicProducer createProducer(
+                                String agentId, String topic, Map<String, Object> config) {
+                            return dummyProducer;
+                        }
+                    };
+            AgentContext context = mock(AgentContext.class);
+            when(context.getTopicConnectionProvider()).thenReturn(dummyProvider);
+            processor.setContext(context);
+            processor.start();
+
+            for (int i = 0; i < 10; i++) {
+                SimpleRecord someRecord =
+                        SimpleRecord.builder()
+                                .key(
+                                        """
+                        {"original": "Hello World %s"}
+                        """
+                                                .formatted(i))
+                                .value(
+                                        """
+                        {"original": "Hello Folks %s", "activator": %s}
+                        """
+                                                .formatted(i, i))
+                                .headers(
+                                        List.of(
+                                                new SimpleRecord.SimpleHeader(
+                                                        "original",
+                                                        "Some session id %s".formatted(i))))
+                                .build();
+
+                List<Record> read = new ArrayList<>();
+                processor.process(
+                        List.of(someRecord),
+                        (sourceRecordAndResult) ->
+                                read.addAll(sourceRecordAndResult.resultRecords()));
+                assertEquals(0, read.size());
+
+                assertEquals(1, emittedRecords.size());
+                Record r = emittedRecords.remove(0);
+                Map<String, Object> value = (Map<String, Object>) r.value();
+                assertEquals("Hello Folks %s".formatted(i).toUpperCase(), value.get("computed"));
+                Map<String, Object> key = (Map<String, Object>) r.key();
+                assertEquals("Hello World %s".formatted(i).toLowerCase(), key.get("computed"));
+
+                Header someprop = r.getHeader("computed");
+                assertNotNull(someprop);
+                assertEquals("Some session id %s".formatted(i).toLowerCase(), someprop.value());
+            }
+        }
+    }
 }

@@ -183,6 +183,17 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
         @ConfigProperty(
                 description =
                         """
+                        Whether to continue processing the record downstream after emitting the event.
+                        If the when condition is false, the record is passed downstream anyway.
+                        This flag allows you to stop processing system events and trigger a different pipeline.
+                                """,
+                defaultValue = "true")
+        @JsonProperty("continue-processing")
+        boolean continueProcessing;
+
+        @ConfigProperty(
+                description =
+                        """
                         Destination of the message.
                                 """,
                 defaultValue = "",

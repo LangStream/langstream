@@ -43,11 +43,15 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
     private JstlPredicate predicate;
     private AgentContext agentContext;
 
+    private boolean continueProcessing;
+
     @SuppressWarnings("unchecked")
     @Override
     public void init(Map<String, Object> configuration) {
         destination = ConfigurationUtils.getString("destination", "", configuration);
         String when = ConfigurationUtils.getString("when", "true", configuration);
+        continueProcessing =
+                ConfigurationUtils.getBoolean("continue-processing", true, configuration);
         predicate = new JstlPredicate(when);
         List<Map<String, Object>> fields =
                 (List<Map<String, Object>>) configuration.getOrDefault("fields", List.of());
@@ -120,9 +124,14 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
                                 log.error("Error while writing record to topic", e);
                                 recordSink.emitError(r, e);
                             } else {
-                                // pass the source record as the result
-                                // the new record has been written to the side topic
-                                recordSink.emitSingleResult(r, r);
+                                if (continueProcessing) {
+                                    // pass the source record as the result
+                                    // the new record has been written to the side topic
+                                    recordSink.emitSingleResult(r, r);
+                                } else {
+                                    // stop processing the message
+                                    recordSink.emitEmptyList(r);
+                                }
                             }
                         });
     }

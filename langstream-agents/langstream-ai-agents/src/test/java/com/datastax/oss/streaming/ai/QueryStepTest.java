@@ -82,18 +82,19 @@ public class QueryStepTest {
                                         "test-input-topic",
                                         42L);
                         assertEquals(params, expectedParams);
-                        return List.of(Map.of());
+                        return List.of(Map.of("foo", "bar"));
                     }
                 };
         QueryStep queryStep =
                 QueryStep.builder()
                         .dataSource(dataSource)
-                        .outputFieldName("value.result")
+                        .outputFieldName("value")
                         .query("select 1")
                         .fields(fields)
                         .build();
 
-        Utils.process(record, queryStep);
+        Record<Object> result = Utils.process(record, queryStep);
+        assertEquals(List.of(Map.of("foo", "bar")), result.getValue());
     }
 
     @Test

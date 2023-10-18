@@ -18,6 +18,7 @@ package ai.langstream.pulsar;
 import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.Topic;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,7 +29,8 @@ public record PulsarTopic(
         SchemaDefinition valueSchema,
         String createMode,
         String deleteMode,
-        boolean implicit)
+        boolean implicit,
+        Map<String, String> properties)
         implements ConnectionImplementation, Topic {
 
     @Override

@@ -26,6 +26,7 @@ import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -46,6 +47,11 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         String creationMode = topicDefinition.getCreationMode();
         String namespace = config.getDefaultNamespace();
         PulsarName topicName = new PulsarName(tenant, namespace, name);
+        Map<String, String> properties = topicDefinition.getConfig().entrySet().stream().filter(e -> e.getValue() != null)
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey,
+                    e -> e.getValue().toString()));
         return new PulsarTopic(
                 topicName,
                 topicDefinition.getPartitions(),
@@ -53,7 +59,8 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 valueSchema,
                 creationMode,
                 topicDefinition.getDeletionMode(),
-                topicDefinition.isImplicit());
+                topicDefinition.isImplicit(),
+                properties);
     }
 
     @Override

@@ -186,9 +186,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     if (!exists) {
                         log.info("Topic {} does not exist, creating", topicName);
                         if (topic.partitions() <= 0) {
-                            admin.topics().createNonPartitionedTopic(topicName);
+                            admin.topics().createNonPartitionedTopic(topicName, topic.properties());
                         } else {
-                            admin.topics().createPartitionedTopic(topicName, topic.partitions());
+                            admin.topics()
+                                    .createPartitionedTopic(
+                                            topicName, topic.partitions(), topic.properties());
                         }
                     }
                 }

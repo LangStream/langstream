@@ -116,6 +116,9 @@ pipeline:
       mode: "execute"
       query: "DELETE FROM documents WHERE filename = ? AND chunk_id > ?"
       output-field: "value.delete-results"
+      fields:
+        - "value.filename"
+        - "fn:toInt(value.chunk_id)"
   - name: "Write"
     type: "vector-db-sink"
     configuration:

@@ -43,11 +43,14 @@ pipeline:
     input: "chunks-topic"
     type: "query"
     configuration:
-      datasource: "JdbcDatasource"
+      datasource: "AstraDatasource"
       when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
       mode: "execute"
-      query: "DELETE FROM documents WHERE filename = ? AND chunk_id > ?"
+      query: "DELETE FROM documents.documents WHERE filename = ? AND chunk_id > ?"
       output-field: "value.delete-results"
+      fields:
+        - "value.filename"
+        - "fn:toInt(value.chunk_id)"
   - name: "Write to Astra"
     type: "vector-db-sink"
     resources:

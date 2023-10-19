@@ -187,14 +187,18 @@ public class WebCrawlerStatus {
     }
 
     public String nextUrl() {
-        log.info("PendingUrls: {} Uncommitted {}", pendingUrls.size(), remainingUrls.size());
+        if (log.isDebugEnabled()) {
+            log.debug("PendingUrls: {} Uncommitted {}", pendingUrls.size(), remainingUrls.size());
+        }
         return pendingUrls.poll();
     }
 
     public void urlProcessed(String url) {
         // this method is called on "commit()", then the page has been successfully processed
         // downstream (for instance stored in the Vector database)
-        log.info("Url {} completely processed", url);
+        if (log.isDebugEnabled()) {
+            log.debug("Url {} completely processed", url);
+        }
         remainingUrls.remove(url);
 
         // forget the errors about the page

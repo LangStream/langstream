@@ -62,10 +62,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
                                 + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
-                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "
-                                + "-v "
-                                + appDir
-                                + ":/code/application "));
+                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(
                 lastLine.contains(
                         "--add-host minio.minio-dev.svc.cluster.local:127.0.0.1 "
@@ -82,21 +79,19 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                     final String hostPath = volume.split(":")[0];
                     final File file = new File(hostPath);
                     assertTrue(file.exists());
-                    if (!Files.isDirectory(file.toPath())) {
-                        final Set<PosixFilePermission> posixFilePermissions;
-                        try {
-                            posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                            System.out.println(
-                                    "permissions: " + posixFilePermissions + " for " + file);
-                            assertTrue(
-                                    posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
-                            assertTrue(
-                                    posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
-                            assertTrue(
-                                    posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                    final Path langstreamTmp = Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+                    assertEquals(langstreamTmp, file.toPath().getParent());
+                    final Set<PosixFilePermission> posixFilePermissions;
+                    try {
+                        posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
+                        assertTrue(
+                                posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
+                        assertTrue(
+                                posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
+                        assertTrue(
+                                posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
                 });
 

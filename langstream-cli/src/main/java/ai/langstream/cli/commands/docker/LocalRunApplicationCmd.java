@@ -20,6 +20,7 @@ import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.http.GenericRetryExecution;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.NoRetryPolicy;
+import ai.langstream.cli.LangStreamCLI;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
@@ -31,12 +32,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import picocli.CommandLine;
@@ -45,6 +50,8 @@ import picocli.CommandLine;
 public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
+
+    private static final Set<Path> temporaryFiles = new HashSet<>();
 
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
@@ -169,8 +176,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
 
-        log("Tenant " + tenant);
-        log("Application " + applicationId);
+        log("Tenant: " + tenant);
+        log("Application: " + applicationId);
         log("Application directory: " + appDirectory.getAbsolutePath());
         if (singleAgentId != null && !singleAgentId.isEmpty()) {
             log("Filter agent: " + singleAgentId);
@@ -242,6 +249,17 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
         updateLocalDockerRunProfile(tenant);
 
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    log("Cleaning environment");
+                                    for (Path temporaryFile : temporaryFiles) {
+                                        debug("Deleting temporary file: " + temporaryFile);
+                                        FileUtils.deleteQuietly(temporaryFile.toFile());
+                                    }
+                                }));
+
         executeOnDocker(
                 tenant,
                 applicationId,
@@ -282,6 +300,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startDatabase,
             boolean dryRun)
             throws Exception {
+        final File appTmp = generateTempFile("app");
+        FileUtils.copyDirectory(appDirectory, appTmp);
+        makeDirOrFileReadable(appTmp);
         File tmpInstanceFile = createReadableTempFile("instance", instanceContents);
         File tmpSecretsFile = null;
         if (secretsContents != null) {
@@ -314,7 +335,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
 
         commandLine.add("-v");
-        commandLine.add(appDirectory.getAbsolutePath() + ":/code/application");
+        commandLine.add(appTmp.getAbsolutePath() + ":/code/application");
         commandLine.add("-v");
         commandLine.add(tmpInstanceFile.getAbsolutePath() + ":/code/instance.yaml");
         if (tmpSecretsFile != null) {
@@ -382,9 +403,33 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     private static File createReadableTempFile(String prefix, String instanceContents)
             throws IOException {
-        File tempFile = Files.createTempFile(prefix, ".yaml").toFile();
-        tempFile.setReadable(true, false);
+        File tempFile = generateTempFile(prefix);
         Files.write(tempFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
+        makeDirOrFileReadable(tempFile);
+        return tempFile;
+    }
+
+    private static void makeDirOrFileReadable(File file) throws IOException {
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                makeDirOrFileReadable(child);
+            }
+        }
+        Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
+    }
+
+    @SneakyThrows
+    private static File generateTempFile(String prefix) {
+        Path home = LangStreamCLI.getLangstreamCLIHomeDirectory();
+        final String generatedName = ".langstream_" + prefix + "_" + System.nanoTime();
+        if (home == null) {
+            home = new File(".").toPath();
+        } else {
+            home = home.resolve("tmp");
+            Files.createDirectories(home);
+        }
+        File tempFile = home.resolve(generatedName).toFile();
+        temporaryFiles.add(tempFile.toPath());
         return tempFile;
     }
 

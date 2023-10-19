@@ -144,8 +144,10 @@ class QueryVectorDBAgentProviderTest {
                                 "items" : {
                                   "description" : "Fields of the record to use as input parameters for the query.",
                                   "required" : false,
-                                  "type" : "string"
-                                }
+                                  "type" : "string",
+                                  "extendedValidationType" : "EL_EXPRESSION"
+                                },
+                                "extendedValidationType" : "EL_EXPRESSION"
                               },
                               "generated-keys" : {
                                 "description" : "List of fields to use as generated keys. The generated keys are returned in the output, depending on the database.",
@@ -160,7 +162,8 @@ class QueryVectorDBAgentProviderTest {
                               "loop-over" : {
                                 "description" : "Loop over a list of items taken from the record. For instance value.documents.\\nIt must refer to a list of maps. In this case the output-field parameter\\nbut be like \\"record.fieldname\\" in order to replace or set a field in each record\\nwith the results of the query. In the query parameters you can refer to the\\nrecord fields using \\"record.field\\".",
                                 "required" : false,
-                                "type" : "string"
+                                "type" : "string",
+                                "extendedValidationType" : "EL_EXPRESSION"
                               },
                               "mode" : {
                                 "description" : "Execution mode: query or execute. In query mode, the query is executed and the results are returned. In execute mode, the query is executed and the result is the number of rows affected (depending on the database).",

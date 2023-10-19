@@ -18,6 +18,8 @@ package ai.langstream.pulsar;
 import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import ai.langstream.api.runtime.Topic;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,8 +30,19 @@ public record PulsarTopic(
         SchemaDefinition valueSchema,
         String createMode,
         String deleteMode,
-        boolean implicit)
+        boolean implicit,
+        Map<String, Object> options)
         implements ConnectionImplementation, Topic {
+
+    public PulsarTopic {
+        // options must be a mutable map, because we can dynamically add options
+        // for instance the deadLetter configuration
+        if (options == null) {
+            options = new HashMap<>();
+        } else {
+            options = new HashMap<>(options);
+        }
+    }
 
     @Override
     public String topicName() {
@@ -41,8 +54,59 @@ public record PulsarTopic(
         return this.implicit;
     }
 
+    public Map<String, Object> createConsumerConfiguration() {
+        Map<String, Object> configuration = new HashMap<>();
+
+        // this is for the Agent
+        configuration.put("topic", name.toPulsarName());
+
+        if (options != null) {
+            options.forEach(
+                    (key, value) -> {
+                        if (key.startsWith("consumer.")) {
+                            configuration.put(key.substring("consumer.".length()), value);
+                        }
+                    });
+
+            Object deadLetterTopicProducer = options.get("deadLetterTopicProducer");
+            if (deadLetterTopicProducer != null) {
+                configuration.put("deadLetterTopicProducer", deadLetterTopicProducer);
+            }
+        }
+
+        return configuration;
+    }
+
+    public Map<String, Object> createProducerConfiguration() {
+        Map<String, Object> configuration = new HashMap<>();
+
+        // this is for the Agent
+        configuration.put("topic", name.toPulsarName());
+        if (keySchema != null) {
+            configuration.put("keySchema", keySchema);
+        }
+        if (valueSchema != null) {
+            configuration.put("valueSchema", valueSchema);
+        }
+
+        if (options != null) {
+            options.forEach(
+                    (key, value) -> {
+                        if (key.startsWith("producer.")) {
+                            configuration.put(key.substring("producer.".length()), value);
+                        }
+                    });
+        }
+
+        return configuration;
+    }
+
     @Override
     public void bindDeadletterTopic(Topic deadletterTopic) {
-        log.error("Error deadletter topic configuration on Pulsar: {}", deadletterTopic);
+        if (!(deadletterTopic instanceof PulsarTopic pulsarTopic)) {
+            throw new IllegalArgumentException();
+        }
+        log.info("Binding deadletter topic {} to topic {}", deadletterTopic, this.topicName());
+        options.put("deadLetterTopicProducer", pulsarTopic.createProducerConfiguration());
     }
 }

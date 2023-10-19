@@ -342,7 +342,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan physicalApplicationInstance) {
         // connecting two agents requires an intermediate topic
-        String name = connection.topicName() + "-deadletter";
+        String name = inputTopicDefinition.getName() + "-deadletter";
         log.info(
                 "Automatically creating deadletter topic {} for topic {}",
                 name,

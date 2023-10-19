@@ -24,7 +24,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,18 +52,17 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 valueSchema,
                 creationMode,
                 topicDefinition.getDeletionMode(),
-                topicDefinition.isImplicit());
+                topicDefinition.isImplicit(),
+                topicDefinition.getOptions());
     }
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
             AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
-        Map<String, Object> configuration = new HashMap<>();
+        Map<String, Object> configuration = pulsarTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
                 "subscriptionName", key -> "langstream-agent-" + agentImplementation.getId());
-
-        configuration.put("topic", pulsarTopic.name().toPulsarName());
         return configuration;
     }
 
@@ -73,18 +71,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
             AgentNode agentImplementation,
             ConnectionImplementation outputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
-
-        Map<String, Object> configuration = new HashMap<>();
-        // TODO: handle other configurations
-
-        configuration.put("topic", pulsarTopic.name().toPulsarName());
-        if (pulsarTopic.keySchema() != null) {
-            configuration.put("keySchema", pulsarTopic.keySchema());
-        }
-        if (pulsarTopic.valueSchema() != null) {
-            configuration.put("valueSchema", pulsarTopic.valueSchema());
-        }
-        return configuration;
+        return pulsarTopic.createProducerConfiguration();
     }
 
     public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(

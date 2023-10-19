@@ -123,6 +123,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
+            copy.remove("deadLetterTopicProducer");
             return new PulsarTopicConsumer(copy);
         }
 
@@ -133,6 +134,23 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             return new PulsarTopicProducer<>(copy);
+        }
+
+        @Override
+        public TopicProducer createDeadletterTopicProducer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
+            Map<String, Object> deadletterConfiguration =
+                    (Map<String, Object>) configuration.get("deadLetterTopicProducer");
+            if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {
+                return null;
+            }
+            log.info(
+                    "Creating deadletter topic producer for agent {} using configuration {}",
+                    agentId,
+                    configuration);
+            return createProducer(agentId, streamingCluster, deadletterConfiguration);
         }
 
         @Override

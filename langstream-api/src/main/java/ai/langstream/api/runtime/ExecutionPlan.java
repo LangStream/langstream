@@ -145,7 +145,7 @@ public final class ExecutionPlan {
 
     public TopicDefinition getTopicDefinitionByName(String name) {
         return topics.entrySet().stream()
-                .filter(e -> e.getKey().getName().equals(name))
+                .filter(e -> e.getValue().topicName().equals(name))
                 .findFirst()
                 .map(Map.Entry::getKey)
                 .orElse(null);

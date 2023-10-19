@@ -19,10 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -30,6 +34,7 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -143,6 +148,63 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         }
     }
 
+    @Test
+    public void testDeadLetter() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                        module: "module-1"
+                        id: "pipeline-1"
+                        topics:
+                          - name: "%s"
+                            creation-mode: create-if-not-exists
+                          - name: "%s"
+                            creation-mode: create-if-not-exists
+                        pipeline:
+                          - name: "some agent"
+                            id: "step1"
+                            type: "mock-failing-processor"
+                            input: "%s"
+                            output: "%s"
+                            errors:
+                                on-failure: dead-letter
+                            configuration:
+                              fail-on-content: "fail-me"
+                        """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
+        setMaxNumLoops(25);
+        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic);
+                    Consumer<GenericRecord> consumerDeadletter =
+                            createConsumer(inputTopic + "-deadletter")) {
+
+                List<Object> expectedMessages = new ArrayList<>();
+                List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                for (int i = 0; i < 10; i++) {
+                    producer.newMessage().value("fail-me-" + i).send();
+                    producer.newMessage().value("keep-me-" + i).send();
+                    expectedMessages.add("keep-me-" + i);
+                    expectedMessagesDeadletter.add("fail-me-" + i);
+                }
+                producer.flush();
+
+                executeAgentRunners(applicationRuntime);
+
+                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                waitForMessages(consumer, expectedMessages);
+            }
+        }
+    }
+
     private String buildInstanceYaml() {
         return """
                      instance:
@@ -172,5 +234,52 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
                 .topic(topic)
                 .subscriptionName("test-subscription")
                 .subscribe();
+    }
+
+    protected List<Message<GenericRecord>> waitForMessages(
+            Consumer<GenericRecord> consumer, List<?> expected) {
+        return waitForMessages(
+                consumer,
+                (result, received) -> {
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof java.util.function.Consumer fn) {
+                            fn.accept(actualValue);
+                        } else if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            log.info("expected: {}", expectedValue);
+                            log.info("got: {}", actualValue);
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
+                });
+    }
+
+    protected List<Message<GenericRecord>> waitForMessages(
+            Consumer<GenericRecord> consumer,
+            BiConsumer<List<Message<GenericRecord>>, List<Object>> assertionOnReceivedMessages) {
+        List<Message<GenericRecord>> result = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            Message<GenericRecord> message = consumer.receive(2, TimeUnit.SECONDS);
+                            if (message != null) {
+                                log.info("Received message {}", message);
+                                received.add(message.getValue().getNativeObject());
+                                result.add(message);
+                            }
+                            log.info("Result:  {}", received);
+                            received.forEach(r -> log.info("Received |{}|", r));
+
+                            assertionOnReceivedMessages.accept(result, received);
+                        });
+
+        return result;
     }
 }

@@ -38,9 +38,9 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                         Map.of("serviceUrl", pulsarContainer.getHttpServiceUrl()),
                         "service",
                         Map.of("serviceUrl", pulsarContainer.getBrokerUrl()),
-                        "defaultTenant",
+                        "default-tenant",
                         "public",
-                        "defaultNamespace",
+                        "default-namespace",
                         "default"));
     }
 
@@ -60,8 +60,8 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           defaultTenant: "public"
-                           defaultNamespace: "default"
+                           default-tenant: "public"
+                           default-namespace: "default"
                        computeCluster:
                          type: "none"
                      """

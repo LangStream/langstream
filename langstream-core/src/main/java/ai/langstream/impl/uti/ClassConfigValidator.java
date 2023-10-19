@@ -45,6 +45,7 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfig;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -528,9 +529,19 @@ public class ClassConfigValidator {
             ExtendedValidationType extendedValidationType, Object actualValue) {
         switch (extendedValidationType) {
             case EL_EXPRESSION -> {
-                String expression = actualValue.toString();
-                log.info("Validating EL expression: {}", expression);
-                new JstlEvaluator(actualValue.toString(), Object.class);
+                if (actualValue instanceof String expression) {
+                    log.info("Validating EL expression: {}", expression);
+                    new JstlEvaluator(actualValue.toString(), Object.class);
+                } else if (actualValue instanceof Collection collection) {
+                    log.info("Validating EL expressions {}", collection);
+                    for (Object o : collection) {
+                        if (o == null) {
+                            throw new IllegalArgumentException(
+                                    "A null value is not allowed in a list of EL expressions");
+                        }
+                        new JstlEvaluator(o.toString(), Object.class);
+                    }
+                }
             }
             case NONE -> {}
         }

@@ -19,9 +19,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.CommandTestBase;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
@@ -30,11 +38,21 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
     @Test
     void testArgs() throws Exception {
         final Path tempDir = Files.createTempDirectory(this.tempDir, "langstream");
+        final Path secrets = Files.createTempFile("langstream", ".yaml");
+        Files.write(secrets, "secrets: []".getBytes(StandardCharsets.UTF_8));
 
         final String appDir = tempDir.toFile().getAbsolutePath();
         CommandResult result =
                 executeCommand(
-                        "docker", "run", "my-app", "-app", appDir, "--docker-command", "echo");
+                        "docker",
+                        "run",
+                        "my-app",
+                        "-app",
+                        appDir,
+                        "-s",
+                        secrets.toFile().getAbsolutePath(),
+                        "--docker-command",
+                        "echo");
         assertEquals("", result.err());
         assertEquals(0, result.exitCode());
 
@@ -44,10 +62,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
                                 + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
-                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "
-                                + "-v "
-                                + appDir
-                                + ":/code/application "));
+                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(
                 lastLine.contains(
                         "--add-host minio.minio-dev.svc.cluster.local:127.0.0.1 "
@@ -57,10 +72,43 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "-p 8090:8090 "
                                 + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
+        final List<String> volumes = extractVolumes(lastLine);
+        assertEquals(3, volumes.size());
+        volumes.forEach(
+                volume -> {
+                    final String hostPath = volume.split(":")[0];
+                    final File file = new File(hostPath);
+                    assertTrue(file.exists());
+                    final Path langstreamTmp =
+                            Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+                    assertEquals(langstreamTmp, file.toPath().getParent());
+                    final Set<PosixFilePermission> posixFilePermissions;
+                    try {
+                        posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
         final NamedProfile namedProfile = getConfig().getProfiles().get("local-docker-run");
         assertNotNull(namedProfile);
         assertEquals("default", namedProfile.getTenant());
         assertEquals("http://localhost:8090", namedProfile.getWebServiceUrl());
         assertEquals("ws://localhost:8091", namedProfile.getApiGatewayUrl());
+    }
+
+    private static List<String> extractVolumes(String input) {
+        List<String> volumes = new ArrayList<>();
+        Pattern pattern = Pattern.compile("-v\\s+([^\\s]+)");
+        Matcher matcher = pattern.matcher(input);
+
+        while (matcher.find()) {
+            volumes.add(matcher.group(1));
+        }
+
+        return volumes;
     }
 }

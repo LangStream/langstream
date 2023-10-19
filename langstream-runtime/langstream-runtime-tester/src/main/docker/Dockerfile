@@ -31,6 +31,7 @@ RUN chmod -R g+w /kafka \
        && bin/kafka-storage.sh format -t $UUID -c config/kraft/server.properties \
        && mkdir -p /tmp/kraft-combined-logs \
        && chmod a+rwx /tmp/kraft-combined-logs \
+       && rm -rf /kafka/kafka.tgz \
        && chmod a+x /minio/minio \
        && chmod a+x /herddb \
        && cd /herddb \
@@ -38,6 +39,7 @@ RUN chmod -R g+w /kafka \
        && mv herddb-services-0.28.0 herddb \
        && chmod a+x /herddb/herddb \
        && chmod a+x /herddb/herddb/bin/* \
+       && rm -rf herddb-services-0.28.0.zip \
        && chown 10000:0 -R /herddb
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.

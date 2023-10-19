@@ -79,17 +79,15 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                     final String hostPath = volume.split(":")[0];
                     final File file = new File(hostPath);
                     assertTrue(file.exists());
-                    final Path langstreamTmp = Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+                    final Path langstreamTmp =
+                            Path.of(System.getProperty("user.home"), ".langstream", "tmp");
                     assertEquals(langstreamTmp, file.toPath().getParent());
                     final Set<PosixFilePermission> posixFilePermissions;
                     try {
                         posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                        assertTrue(
-                                posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
-                        assertTrue(
-                                posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
-                        assertTrue(
-                                posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
+                        assertTrue(posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

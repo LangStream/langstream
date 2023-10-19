@@ -287,7 +287,6 @@ class AgentService(AgentServiceServicer):
     def to_grpc_value(self, value) -> Tuple[Optional[Schema], Optional[Value]]:
         if value is None:
             return None, None
-        # TODO: define a python type for Avro
         grpc_value = Value()
         grpc_schema = None
         if isinstance(value, bytes):

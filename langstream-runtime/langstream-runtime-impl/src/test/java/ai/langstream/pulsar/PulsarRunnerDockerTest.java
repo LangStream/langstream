@@ -153,8 +153,8 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           defaultTenant: "public"
-                           defaultNamespace: "default"
+                           default-tenant: "public"
+                           default-namespace: "default"
                        computeCluster:
                          type: "kubernetes"
                      """

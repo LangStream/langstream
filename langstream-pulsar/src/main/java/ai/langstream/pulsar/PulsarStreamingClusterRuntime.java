@@ -42,9 +42,9 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         SchemaDefinition keySchema = topicDefinition.getKeySchema();
         SchemaDefinition valueSchema = topicDefinition.getValueSchema();
         String name = topicDefinition.getName();
-        String tenant = config.getDefaultTenant();
+        String tenant = config.defaultTenant();
         String creationMode = topicDefinition.getCreationMode();
-        String namespace = config.getDefaultNamespace();
+        String namespace = config.defaultNamespace();
         PulsarName topicName = new PulsarName(tenant, namespace, name);
         return new PulsarTopic(
                 topicName,

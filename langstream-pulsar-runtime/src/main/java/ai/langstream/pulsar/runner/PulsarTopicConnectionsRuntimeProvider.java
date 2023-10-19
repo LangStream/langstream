@@ -16,6 +16,7 @@
 package ai.langstream.pulsar.runner;
 
 import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static ai.langstream.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
 import static java.util.Map.entry;
 
 import ai.langstream.api.model.Application;
@@ -35,6 +36,7 @@ import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClientUtils;
+import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
 import ai.langstream.pulsar.PulsarTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -71,6 +73,7 @@ import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -147,12 +150,44 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         @SneakyThrows
         public void deploy(ExecutionPlan applicationInstance) {
             Application logicalInstance = applicationInstance.getApplication();
-            try (PulsarAdmin admin =
-                    buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+            PulsarClusterRuntimeConfiguration configuration =
+                    getPulsarClusterRuntimeConfiguration(
+                            logicalInstance.getInstance().streamingCluster());
+            try (PulsarAdmin admin = buildPulsarAdmin(configuration)) {
+                applyRetentionPolicies(
+                        admin,
+                        "%s/%s"
+                                .formatted(
+                                        configuration.defaultTenant(),
+                                        configuration.defaultNamespace()),
+                        configuration.defaultRetentionPolicies());
                 for (Topic topic : applicationInstance.getLogicalTopics()) {
                     deployTopic(admin, (PulsarTopic) topic);
                 }
             }
+        }
+
+        private static void applyRetentionPolicies(
+                PulsarAdmin admin,
+                String namespace,
+                PulsarClusterRuntimeConfiguration.RetentionPolicies policies)
+                throws PulsarAdminException {
+            if (policies == null) {
+                return;
+            }
+            if (policies.retentionSizeInMB() == null && policies.retentionTimeInMinutes() == null) {
+                return;
+            }
+            admin.namespaces()
+                    .setRetention(
+                            namespace,
+                            new RetentionPolicies(
+                                    policies.retentionTimeInMinutes() == null
+                                            ? -1
+                                            : policies.retentionTimeInMinutes(),
+                                    policies.retentionSizeInMB() == null
+                                            ? -1
+                                            : policies.retentionSizeInMB()));
         }
 
         private static void deployTopic(PulsarAdmin admin, PulsarTopic topic)

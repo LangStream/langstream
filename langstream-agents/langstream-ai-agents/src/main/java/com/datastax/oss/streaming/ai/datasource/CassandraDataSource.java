@@ -151,8 +151,12 @@ public class CassandraDataSource implements QueryStepDataSource {
         ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
         List<Object> adaptedParameters = new ArrayList<>();
         if (variableDefinitions.size() != params.size()) {
-            throw new IllegalArgumentException("Wrong number of parameters, your query needs "
-                    + variableDefinitions.size() + " parameters but you provided " + params.size() + " fields in the agent definition");
+            throw new IllegalArgumentException(
+                    "Wrong number of parameters, your query needs "
+                            + variableDefinitions.size()
+                            + " parameters but you provided "
+                            + params.size()
+                            + " fields in the agent definition");
         }
         for (int i = 0; i < variableDefinitions.size(); i++) {
             Object value = params.get(i);

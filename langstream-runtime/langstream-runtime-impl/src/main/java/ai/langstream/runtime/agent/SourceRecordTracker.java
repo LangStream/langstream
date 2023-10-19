@@ -67,7 +67,10 @@ class SourceRecordTracker {
                 sourceRecordsToCommit.add(record);
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("record {} still has {} sink records to commit", record, remaining.get());
+                    log.debug(
+                            "record {} still has {} sink records to commit",
+                            record,
+                            remaining.get());
                 }
                 break;
             }

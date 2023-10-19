@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -420,11 +418,6 @@ class QueryVectorDBAgentProviderTest {
                               "id" : {
                                 "description" : "JSTL Expression to compute the index _id field. Leave it empty to let OpenSearch auto-generate the _id field.",
                                 "required" : false,
-                                "type" : "string"
-                              },
-                              "index-name" : {
-                                "description" : "The name of the index to write to. The index must already exist.",
-                                "required" : true,
                                 "type" : "string"
                               }
                             }

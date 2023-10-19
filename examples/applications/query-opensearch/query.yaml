@@ -40,7 +40,7 @@ pipeline:
       datasource: "opensearch-datasource"
       query: |
         {
-          "index": "langstream-index",
+          "size": 1,
           "query": {
             "knn": {
               "embeddings": {

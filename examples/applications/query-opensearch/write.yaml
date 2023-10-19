@@ -23,7 +23,6 @@ assets:
     asset-type: "opensearch-index"
     creation-mode: create-if-not-exists
     config:
-      index-name: "langstream-index"
       datasource: "opensearch-datasource"
       settings: |
         {
@@ -64,9 +63,8 @@ pipeline:
     type: "vector-db-sink"
     configuration:
       datasource: "opensearch-datasource"
-      index-name: langstream-index
       bulk-parameters:
-        refresh: "wait_for"
+        refresh: "wait_for" # this is not compatible with AWS OpenSearch, set to false if using AWS OpenSearch
       fields:
         - name: "embeddings"
           expression: "value.embeddings"

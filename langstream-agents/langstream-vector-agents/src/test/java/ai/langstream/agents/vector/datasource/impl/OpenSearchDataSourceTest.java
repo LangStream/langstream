@@ -42,7 +42,7 @@ class OpenSearchDataSourceTest {
             new OpensearchContainer(DockerImageName.parse("opensearchproject/opensearch:2"))
                     .withEnv("discovery.type", "single-node");
 
-    private static Map<String, Object> getDatasourceConfig() {
+    private static Map<String, Object> getDatasourceConfig(String indexName) {
         return Map.of(
                 "https",
                 false,
@@ -53,15 +53,15 @@ class OpenSearchDataSourceTest {
                 "username",
                 "admin",
                 "password",
-                "admin");
+                "admin",
+                "index-name",
+                indexName);
     }
 
     @Test
     void testAsset() throws Exception {
         final Map<String, Object> assetConfig =
                 Map.of(
-                        "index-name",
-                        "test-index",
                         "settings",
                         """
                        {
@@ -82,7 +82,7 @@ class OpenSearchDataSourceTest {
                         }
                         """,
                         "datasource",
-                        Map.of("configuration", getDatasourceConfig()));
+                        Map.of("configuration", getDatasourceConfig("test-index")));
         final AssetManager instance = createAssetManager(assetConfig);
 
         instance.deployAsset();
@@ -103,15 +103,11 @@ class OpenSearchDataSourceTest {
     void testWriteBasicData() throws Exception {
         final String indexName = "test-index-000";
         final Map<String, Object> assetConfig =
-                Map.of(
-                        "index-name",
-                        indexName,
-                        "datasource",
-                        Map.of("configuration", getDatasourceConfig()));
+                Map.of("datasource", Map.of("configuration", getDatasourceConfig(indexName)));
         createAssetManager(assetConfig).deleteAssetIfExists();
         createAssetManager(assetConfig).deployAsset();
         try (final OpenSearchWriter.OpenSearchVectorDatabaseWriter writer =
-                new OpenSearchWriter().createImplementation(getDatasourceConfig()); ) {
+                new OpenSearchWriter().createImplementation(getDatasourceConfig(indexName)); ) {
 
             writer.initialise(
                     Map.of(
@@ -208,8 +204,6 @@ class OpenSearchDataSourceTest {
         final String indexName = "test-index-000";
         final Map<String, Object> assetConfig =
                 Map.of(
-                        "index-name",
-                        indexName,
                         "settings",
                         """
                         {
@@ -241,11 +235,11 @@ class OpenSearchDataSourceTest {
 
                         """,
                         "datasource",
-                        Map.of("configuration", getDatasourceConfig()));
+                        Map.of("configuration", getDatasourceConfig(indexName)));
         createAssetManager(assetConfig).deleteAssetIfExists();
         createAssetManager(assetConfig).deployAsset();
         try (final OpenSearchWriter.OpenSearchVectorDatabaseWriter writer =
-                new OpenSearchWriter().createImplementation(getDatasourceConfig()); ) {
+                new OpenSearchWriter().createImplementation(getDatasourceConfig(indexName)); ) {
 
             writer.initialise(
                     Map.of(

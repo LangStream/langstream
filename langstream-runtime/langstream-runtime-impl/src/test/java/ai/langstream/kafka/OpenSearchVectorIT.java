@@ -51,6 +51,7 @@ class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
                                 host: "localhost"
                                 username: "admin"
                                 password: "admin"
+                                index-name: "my-index-1"
                         """
                                 .formatted(OPENSEARCH.getMappedPort(9200)),
                         "pipeline-write.yaml",
@@ -63,7 +64,6 @@ class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
                                     asset-type: "opensearch-index"
                                     creation-mode: create-if-not-exists
                                     config:
-                                       index-name: "my-index-1"
                                        datasource: "OSDatasource"
                                        settings: |
                                            {
@@ -91,7 +91,6 @@ class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
                                     input: "insert-topic"
                                     configuration:
                                       datasource: "OSDatasource"
-                                      index-name: "my-index-1"
                                       bulk-parameters:
                                         refresh: "true"
                                       id: "key"

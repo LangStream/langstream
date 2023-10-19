@@ -20,6 +20,7 @@ import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.model.Resource;
 import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
@@ -93,4 +94,13 @@ public class OpenSearchDatasourceConfig extends BaseDatasourceConfig {
                     In case of AWS OpenSearch Service/Serverless, this is the secret key.
                     """)
     private String password;
+
+    @ConfigProperty(
+            description =
+                    """
+                    Name of the index to to connect to.
+                    """,
+            required = true)
+    @JsonProperty("index-name")
+    private String indexName;
 }

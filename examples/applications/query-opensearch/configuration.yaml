@@ -33,3 +33,4 @@ configuration:
         port: "${secrets.opensearch.port}"
         https: "${secrets.opensearch.https}"
         region: "${secrets.opensearch.region}"
+        index-name: "langstream-index"

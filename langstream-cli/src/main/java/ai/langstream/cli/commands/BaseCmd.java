@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -83,12 +84,12 @@ public abstract class BaseCmd implements Runnable {
 
     @AllArgsConstructor
     static final class CLILoggerImpl implements CLILogger {
-        private final RootCmd rootCmd;
-        protected CommandLine.Model.CommandSpec command;
+        private final Supplier<RootCmd> rootCmd;
+        protected Supplier<CommandLine.Model.CommandSpec> command;
 
         @Override
         public void log(Object message) {
-            command.commandLine().getOut().println(message);
+            command.get().commandLine().getOut().println(message);
         }
 
         @Override
@@ -100,12 +101,12 @@ public abstract class BaseCmd implements Runnable {
             if (error.isBlank()) {
                 return;
             }
-            System.err.println(command.commandLine().getColorScheme().errorText(error));
+            System.err.println(command.get().commandLine().getColorScheme().errorText(error));
         }
 
         @Override
         public boolean isDebugEnabled() {
-            return rootCmd.isVerbose();
+            return rootCmd.get().isVerbose();
         }
 
         @Override
@@ -117,7 +118,7 @@ public abstract class BaseCmd implements Runnable {
     }
 
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
-    private final CLILogger logger = new CLILoggerImpl(getRootCmd(), command);
+    private final CLILogger logger = new CLILoggerImpl(() -> getRootCmd(), () -> command);
     private final GithubRepositoryDownloader githubRepositoryDownloader =
             new GithubRepositoryDownloader(
                     new JGitClient(), logger, LangStreamCLI.getLangstreamCLIHomeDirectory());

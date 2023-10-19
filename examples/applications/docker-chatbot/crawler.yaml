@@ -112,6 +112,15 @@ pipeline:
       text: "{{ value.text }}"
       batch-size: 10
       flush-interval: 500
+  - name: "Delete stale chunks"
+    input: "chunks-topic"
+    type: "query"
+    configuration:
+      datasource: "JdbcDatasource"
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      mode: "execute"
+      query: "DELETE FROM documents WHERE filename = ? AND chunk_id > ?"
+      output-field: "value.delete-results"
   - name: "Write"
     type: "vector-db-sink"
     input: chunks-topic

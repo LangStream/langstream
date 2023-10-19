@@ -192,6 +192,13 @@ public class JstlEvaluator<T> {
                 .getFunctionMapper()
                 .mapFunction(
                         "fn",
+                        "toSQLTimestamp",
+                        JstlFunctions.class.getMethod(
+                                "toSQLTimestamp", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
                         "decimalFromUnscaled",
                         JstlFunctions.class.getMethod("toBigDecimal", Object.class, Object.class));
 

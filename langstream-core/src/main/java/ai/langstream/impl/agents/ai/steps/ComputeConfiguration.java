@@ -17,6 +17,7 @@ package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
+import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import java.util.List;
 import lombok.Data;
@@ -54,7 +55,7 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                                 It is evaluated at runtime and the result of the evaluation is assigned to the field.
                                 Refer to the language expression documentation for more information on the expression syntax.
                                 """,
-                required = true)
+                required = true, extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
         private String expression;
 
         @ConfigProperty(

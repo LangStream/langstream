@@ -39,9 +39,17 @@ assets:
         - |
           CREATE CUSTOM INDEX IF NOT EXISTS documents_ann_index ON documents.documents(embeddings_vector) USING 'StorageAttachedIndex';
 pipeline:
+  - name: "Delete stale chunks"
+    input: "chunks-topic"
+    type: "query"
+    configuration:
+      datasource: "JdbcDatasource"
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      mode: "execute"
+      query: "DELETE FROM documents WHERE filename = ? AND chunk_id > ?"
+      output-field: "value.delete-results"
   - name: "Write to Astra"
     type: "vector-db-sink"
-    input: "chunks-topic"
     resources:
       size: 2
     configuration:

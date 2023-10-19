@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -333,6 +334,23 @@ public class JstlFunctions {
         }
         Integer maxValue = (Integer) toInt(max);
         return ThreadLocalRandom.current().nextInt(maxValue);
+    }
+
+    public static java.sql.Timestamp toSQLTimestamp(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof java.sql.Timestamp t) {
+            return t;
+        } else if (input instanceof Instant i) {
+            return java.sql.Timestamp.from(i);
+        } else if (input instanceof String s) {
+            return java.sql.Timestamp.valueOf(s);
+        } else if (input instanceof Number) {
+            return new java.sql.Timestamp(((Number) input).longValue());
+        } else {
+            throw new IllegalArgumentException("Cannot convert "+input+" ("+input.getClass()+") to a java.sql.Timestamp");
+        }
     }
 
     public static Instant timestampAdd(Object input, Object delta, Object unit) {

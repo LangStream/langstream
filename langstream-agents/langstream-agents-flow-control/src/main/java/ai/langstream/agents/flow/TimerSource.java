@@ -85,7 +85,7 @@ public class TimerSource extends AbstractAgentCode implements AgentSource {
             Record record = MutableRecord.mutableRecordToRecord(mutableRecord).orElseThrow();
             queue.put(record);
             if (log.isDebugEnabled()) {
-                log.info("Generated record {}", record);
+                log.debug("Generated record {}", record);
             }
         } catch (Throwable e) {
             log.error("Error while emitting record", e);

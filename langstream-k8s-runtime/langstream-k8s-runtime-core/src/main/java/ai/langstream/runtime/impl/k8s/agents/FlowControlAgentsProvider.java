@@ -163,7 +163,7 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
             name = "Log an event",
             description =
                     """
-            Emits a record on a side destination when a record is received.
+            Log a line in the agent logs when a record is received.
             """)
     @Data
     public static class LogEventProcessorConfig {

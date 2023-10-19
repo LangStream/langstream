@@ -26,6 +26,7 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +70,8 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
         if (fields.isEmpty()) {
             log.info("{}", originalRecord);
         } else {
-            Map<String, Object> values = new HashMap<>();
+            // using LinkedHashMap in order to keep the order
+            Map<String, Object> values = new LinkedHashMap<>();
             for (FieldDefinition field : fields) {
                 values.put(field.name, field.expressionEvaluator.evaluate(mutableRecord));
             }

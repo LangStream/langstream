@@ -99,7 +99,7 @@ pipeline:
       messages:
         - role: system
           content: |
-              You are a conversational intepreter for a converstation between a user and 
+              You are a conversational interpreter for a conversation between a user and 
               a bot who is an expert on ${globals.assistantType}.
               
               The user will give you a question without context. You will reformulate the question
@@ -111,7 +111,7 @@ pipeline:
               
               When reformulating the question give higher value to the latest question and response
               in the Chat History. The chat history is in reverse chronological order, so the most 
-              recent exhange is at the top.
+              recent exchange is at the top.
 
               Only respond with the reformulated question. If there is no chat history, then respond 
               only with the question unchanged.

@@ -66,27 +66,27 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
         if (!predicate.test(mutableRecord)) {
             return;
         }
-        Map<String, Object> values = new HashMap<>();
-        for (FieldDefinition field : fields) {
-            values.put(field.name, field.expressionEvaluator.evaluate(mutableRecord));
+        if (fields.isEmpty()) {
+            log.info("{}", originalRecord);
+        } else {
+            Map<String, Object> values = new HashMap<>();
+            for (FieldDefinition field : fields) {
+                values.put(field.name, field.expressionEvaluator.evaluate(mutableRecord));
+            }
+            log.info("{}", values);
         }
-        log.info("{}", values);
     }
 
     @Override
     public void process(List<Record> records, RecordSink recordSink) {
         for (Record r : records) {
-            processRecordAsync(r, recordSink);
-        }
-    }
-
-    private void processRecordAsync(Record r, RecordSink recordSink) {
-        try {
-            logRecord(r);
-        } catch (RuntimeException error) {
-            log.error("Error while processing record {}", r, error);
-        } finally {
-            recordSink.emitSingleResult(r, r);
+            try {
+                logRecord(r);
+            } catch (RuntimeException error) {
+                log.error("Error while processing record {}", r, error);
+            } finally {
+                recordSink.emitSingleResult(r, r);
+            }
         }
     }
 }

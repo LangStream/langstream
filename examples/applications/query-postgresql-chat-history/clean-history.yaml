@@ -34,5 +34,5 @@ pipeline:
   - type: "log-event"
     configuration:
       fields:
-        - name: "results"
+        - name: "deleted chat history records"
           expression: "value.command_results"

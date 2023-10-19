@@ -19,9 +19,23 @@ import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.cli.commands.RootCmd;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import lombok.SneakyThrows;
 import picocli.CommandLine;
 
 public class LangStreamCLI {
+
+    @SneakyThrows
+    public static Path getLangstreamCLIHomeDirectory() {
+        final String userHome = System.getProperty("user.home");
+        if (!userHome.isBlank() && !"?".equals(userHome)) {
+            final Path langstreamDir = Path.of(userHome, ".langstream");
+            Files.createDirectories(langstreamDir);
+            return langstreamDir;
+        }
+        return null;
+    }
 
     public static void main(String... args) {
         int exitCode = execute(args);

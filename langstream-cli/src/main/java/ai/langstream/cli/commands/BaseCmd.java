@@ -20,6 +20,7 @@ import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.admin.client.http.HttpClientFacade;
+import ai.langstream.cli.LangStreamCLI;
 import ai.langstream.cli.LangStreamCLIConfig;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.GithubRepositoryDownloader;
@@ -194,11 +195,9 @@ public abstract class BaseCmd implements Runnable {
 
     @SneakyThrows
     private File computeRootConfigFile() {
-        final String userHome = System.getProperty("user.home");
-        if (!userHome.isBlank() && !"?".equals(userHome)) {
-            final Path langstreamDir = Path.of(userHome, ".langstream");
-            Files.createDirectories(langstreamDir);
-            final Path configFile = langstreamDir.resolve("config");
+        final Path langstreamCLIHomeDirectory = LangStreamCLI.getLangstreamCLIHomeDirectory();
+        if (langstreamCLIHomeDirectory != null) {
+            final Path configFile = langstreamCLIHomeDirectory.resolve("config");
             debug(String.format("Using config file %s", configFile));
             if (!Files.exists(configFile)) {
                 debug(String.format("Init config file %s", configFile));

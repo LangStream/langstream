@@ -15,9 +15,6 @@
 #
 
 name: "Crawl a website"
-topics:
-  - name: "chunks-topic"
-    creation-mode: create-if-not-exists
 assets:
   - name: "documents-table"
     asset-type: "jdbc-table"
@@ -105,7 +102,6 @@ pipeline:
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: chunks-topic
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings_vector"
@@ -113,7 +109,6 @@ pipeline:
       batch-size: 10
       flush-interval: 500
   - name: "Delete stale chunks"
-    input: "chunks-topic"
     type: "query"
     configuration:
       datasource: "JdbcDatasource"
@@ -123,7 +118,6 @@ pipeline:
       output-field: "value.delete-results"
   - name: "Write"
     type: "vector-db-sink"
-    input: chunks-topic
     configuration:
       datasource: "JdbcDatasource"
       table-name: "documents"

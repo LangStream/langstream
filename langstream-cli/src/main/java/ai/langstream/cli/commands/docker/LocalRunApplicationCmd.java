@@ -35,10 +35,10 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
@@ -51,7 +51,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
 
-    private static final Set<Path> temporaryFiles = new HashSet<>();
+    private static final Set<Path> temporaryFiles = ConcurrentHashMap.newKeySet();
 
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
@@ -249,16 +249,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
         updateLocalDockerRunProfile(tenant);
 
-        Runtime.getRuntime()
-                .addShutdownHook(
-                        new Thread(
-                                () -> {
-                                    log("Cleaning environment");
-                                    for (Path temporaryFile : temporaryFiles) {
-                                        debug("Deleting temporary file: " + temporaryFile);
-                                        FileUtils.deleteQuietly(temporaryFile.toFile());
-                                    }
-                                }));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::cleanEnvironment));
 
         executeOnDocker(
                 tenant,
@@ -272,6 +263,17 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 startWebservices,
                 startDatabase,
                 dryRun);
+    }
+
+    private void cleanEnvironment() {
+        if (temporaryFiles.isEmpty()) {
+            return;
+        }
+        log("Cleaning environment");
+        for (Path temporaryFile : temporaryFiles) {
+            debug("Deleting temporary file: " + temporaryFile);
+            FileUtils.deleteQuietly(temporaryFile.toFile());
+        }
     }
 
     private void updateLocalDockerRunProfile(String tenant) {

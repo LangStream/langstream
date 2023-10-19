@@ -20,11 +20,14 @@ import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.admin.client.http.HttpClientFacade;
+import ai.langstream.cli.CLILogger;
 import ai.langstream.cli.LangStreamCLI;
 import ai.langstream.cli.LangStreamCLIConfig;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.GithubRepositoryDownloader;
 import ai.langstream.cli.commands.profiles.BaseProfileCmd;
+import ai.langstream.cli.util.GitClient;
+import ai.langstream.cli.util.git.JGitClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -79,7 +82,47 @@ public abstract class BaseCmd implements Runnable {
 
     protected static final ObjectWriter jsonBodyWriter = new ObjectMapper().writer();
 
+
+
+    @AllArgsConstructor
+    static final class CLILoggerImpl implements CLILogger {
+        private final RootCmd rootCmd;
+        protected CommandLine.Model.CommandSpec command;
+
+        @Override
+        public void log(Object message) {
+            command.commandLine().getOut().println(message);
+        }
+
+        @Override
+        public void error(Object message) {
+            if (message == null) {
+                return;
+            }
+            final String error = message.toString();
+            if (error.isBlank()) {
+                return;
+            }
+            System.err.println(command.commandLine().getColorScheme().errorText(error));
+        }
+
+        @Override
+        public boolean isDebugEnabled() {
+            return rootCmd.isVerbose();
+        }
+
+        @Override
+        public void debug(Object message) {
+            if (isDebugEnabled()) {
+                log(message);
+            }
+
+        }
+    }
+
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
+    private final CLILogger logger = new CLILoggerImpl(getRootCmd(), command);
+    private final GithubRepositoryDownloader githubRepositoryDownloader = new GithubRepositoryDownloader(new JGitClient(), logger, LangStreamCLI.getLangstreamCLIHomeDirectory());
     private AdminClient client;
     private LangStreamCLIConfig config;
     private Map<String, String> applicationDescriptions = new HashMap<>();
@@ -247,7 +290,8 @@ public abstract class BaseCmd implements Runnable {
     }
 
     protected void log(Object log) {
-        command.commandLine().getOut().println(log);
+        logger.log(log);
+
     }
 
     protected void logNoNewline(Object log) {
@@ -255,17 +299,12 @@ public abstract class BaseCmd implements Runnable {
     }
 
     protected void err(Object log) {
-        final String error = log.toString();
-        if (error.isBlank()) {
-            return;
-        }
-        System.err.println(command.commandLine().getColorScheme().errorText(error));
+        logger.error(log);
+
     }
 
     protected void debug(Object log) {
-        if (getRootCmd().isVerbose()) {
-            log(log);
-        }
+        logger.debug(log);
     }
 
     @SneakyThrows
@@ -399,7 +438,9 @@ public abstract class BaseCmd implements Runnable {
             throw new IllegalArgumentException("http is not supported. Please use https instead.");
         }
         if (path.startsWith("https://")) {
-            return downloadHttpsFile(path, getClient().getHttpClientFacade(), this::log);
+            return downloadHttpsFile(path, getClient().getHttpClientFacade(), logger,
+                    githubRepositoryDownloader,
+                    !getRootCmd().isDisableLocalRepositoriesCache());
         }
         if (path.startsWith("file://")) {
             path = path.substring("file://".length());
@@ -412,11 +453,15 @@ public abstract class BaseCmd implements Runnable {
     }
 
     public static File downloadHttpsFile(
-            String path, HttpClientFacade client, Consumer<String> logger)
+            String path,
+            HttpClientFacade client,
+            CLILogger logger,
+            GithubRepositoryDownloader githubRepositoryDownloader,
+            boolean useLocalGithubRepos)
             throws IOException, HttpRequestFailedException {
         final URI uri = URI.create(path);
         if ("github.com".equals(uri.getHost())) {
-            return downloadFromGithub(uri, logger);
+            return githubRepositoryDownloader.downloadGithubRepository(uri, useLocalGithubRepos);
         }
 
         final HttpRequest request =
@@ -441,12 +486,8 @@ public abstract class BaseCmd implements Runnable {
         }
         Files.write(tempFile, response.body());
         final long time = (System.currentTimeMillis() - start) / 1000;
-        logger.accept(String.format("downloaded remote file %s (%d s)", path, time));
+        logger.log(String.format("downloaded remote file %s (%d s)", path, time));
         return tempFile.toFile();
-    }
-
-    private static File downloadFromGithub(URI uri, Consumer<String> logger) {
-        return GithubRepositoryDownloader.downloadGithubRepository(uri, logger);
     }
 
     @AllArgsConstructor

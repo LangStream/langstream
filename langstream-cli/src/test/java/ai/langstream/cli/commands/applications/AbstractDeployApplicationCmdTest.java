@@ -21,6 +21,7 @@ import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.admin.client.http.HttpClientFacade;
+import ai.langstream.cli.CLILogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -58,12 +59,14 @@ class AbstractDeployApplicationCmdTest {
                 AbstractDeployApplicationCmd.downloadHttpsFile(
                         wireMockBaseUrl + "/my-remote-dir/my-remote-file",
                         client,
-                        log -> System.out.println(log));
+                        new CLILogger.SystemCliLogger(),
+                        null,
+                        false);
         assertEquals("content!", Files.readString(file.toPath()));
 
         try {
             AbstractDeployApplicationCmd.downloadHttpsFile(
-                    wireMockBaseUrl + "/unknown", client, log -> System.out.println(log));
+                    wireMockBaseUrl + "/unknown", client, new CLILogger.SystemCliLogger(), null, false);
             fail();
         } catch (HttpRequestFailedException ex) {
             assertEquals(404, ex.getResponse().statusCode());

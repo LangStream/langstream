@@ -16,6 +16,8 @@
 package ai.langstream.cli.commands.applications;
 
 import ai.langstream.cli.LangStreamCLI;
+import ai.langstream.cli.CLILogger;
+import ai.langstream.cli.util.GitClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -24,14 +26,11 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ResetCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.RefSpec;
 
+@AllArgsConstructor
 public class GithubRepositoryDownloader {
 
     @Data
@@ -55,48 +54,79 @@ public class GithubRepositoryDownloader {
         }
     }
 
+    private final GitClient client;
+    private final CLILogger logger;
+    private final Path cliHomeDirectory;
     /**
      * This cache avoids cloning/updating the same repository multiple times in the same process.
      * For example passing secrets and applications from the same repository in the same command.
      */
-    static Map<RepoRef, Path> clonedUpdatedRepos = new HashMap<>();
+    private final Map<RepoRef, Path> clonedUpdatedRepos = new HashMap<>();
 
     @SneakyThrows
-    public static File downloadGithubRepository(URI uri, Consumer<String> logger) {
+    public File downloadGithubRepository(URI uri, boolean useLocalGithubRepos) {
         final RequestedDirectory requestedDirectory = parseRequest(uri);
         Path cloneToDirectory;
 
         final RepoRef repoRef = new RepoRef(requestedDirectory);
         final boolean upToDate = clonedUpdatedRepos.containsKey(repoRef);
-        if (!upToDate) {
+        if (!upToDate || !useLocalGithubRepos) {
             final long start = System.currentTimeMillis();
-            final Path langstreamCLIHomeDirectory = LangStreamCLI.getLangstreamCLIHomeDirectory();
-            if (langstreamCLIHomeDirectory != null) {
-                cloneToDirectory =
-                        cloneOrUpdateFromGithubReposCache(
-                                uri, logger, requestedDirectory, start, langstreamCLIHomeDirectory);
+            if (useLocalGithubRepos && cliHomeDirectory != null) {
+                try {
+                    cloneToDirectory =
+                            cloneOrUpdateFromGithubReposCache(
+                                    uri, requestedDirectory, start);
+                } catch (IOException ioException) {
+                    logger.log(
+                            String.format(
+                                    "Failed to update local GitHub repository %s, falling back to cloning to a temporary directory",
+                                    uri));
+                    final Path githubReposPath = resolveGithubReposPath(cliHomeDirectory);
+                    try {
+                        deleteDirectory(githubReposPath);
+                    } catch (IOException e) {
+                        logger.log(
+                                String.format(
+                                        "Failed to delete local GitHub repository cache, please remove manually at path: %s, error: %s", githubReposPath, e.getMessage()));
+                    }
+                    cloneToDirectory = Files.createTempDirectory("langstream");
+                    cloneRepository(uri, requestedDirectory, cloneToDirectory);
+                }
             } else {
                 cloneToDirectory = Files.createTempDirectory("langstream");
-                cloneRepository(uri, logger, requestedDirectory, cloneToDirectory);
+                cloneRepository(uri, requestedDirectory, cloneToDirectory);
             }
             clonedUpdatedRepos.put(repoRef, cloneToDirectory);
         } else {
-            logger.accept(String.format("Using cached GitHub repository %s", uri));
             cloneToDirectory = clonedUpdatedRepos.get(repoRef);
+            logger.log(String.format("Using cached GitHub repository %s", cloneToDirectory));
         }
         final Path result = cloneToDirectory.resolve(requestedDirectory.getDirectory());
         return result.toFile();
     }
 
-    private static Path cloneOrUpdateFromGithubReposCache(
+    private void deleteDirectory(Path githubReposPath) throws IOException {
+        if (githubReposPath.toFile().isDirectory()) {
+            final File[] listFiles = githubReposPath.toFile().listFiles();
+            for (File listFile : listFiles) {
+                deleteDirectory(listFile.toPath());
+            }
+        }
+        Files.deleteIfExists(githubReposPath);
+    }
+
+    private static Path resolveGithubReposPath(Path langstreamCLIHomeDirectory) {
+        return langstreamCLIHomeDirectory.resolve("ghrepos");
+    }
+
+    private Path cloneOrUpdateFromGithubReposCache(
             URI uri,
-            Consumer<String> logger,
             RequestedDirectory requestedDirectory,
-            long start,
-            Path langstreamCLIHomeDirectory)
-            throws GitAPIException, IOException {
+            long start)
+            throws IOException {
         Path cloneToDirectory;
-        final Path repos = langstreamCLIHomeDirectory.resolve("ghrepos");
+        final Path repos = resolveGithubReposPath(cliHomeDirectory);
         cloneToDirectory =
                 repos.resolve(
                         Path.of(
@@ -104,47 +134,30 @@ public class GithubRepositoryDownloader {
                                 requestedDirectory.getRepository(),
                                 requestedDirectory.getBranch()));
         if (cloneToDirectory.toFile().exists()) {
-            logger.accept(String.format("Updating local GitHub repository %s", uri));
-            try (final Git open = Git.open(cloneToDirectory.toFile()); ) {
-                open.fetch()
-                        .setRefSpecs(new RefSpec("refs/heads/" + requestedDirectory.getBranch()))
-                        .call();
-                open.reset()
-                        .setMode(ResetCommand.ResetType.HARD)
-                        .setRef("origin/" + requestedDirectory.getBranch())
-                        .call();
-                final RevCommit revCommit = open.log().setMaxCount(1).call().iterator().next();
-                final String sha = revCommit.getId().abbreviate(8).name();
-                final long time = (System.currentTimeMillis() - start) / 1000;
-                logger.accept(
-                        String.format("Updated local GitHub repository to %s (%d s)", sha, time));
-            }
+            logger.log(String.format("Updating local GitHub repository %s", cloneToDirectory));
+            final String sha = client.updateRepository(cloneToDirectory, requestedDirectory.getBranch());
+            final long time = (System.currentTimeMillis() - start) / 1000;
+            logger.log(String.format("Updated local GitHub repository to %s (%d s)", sha, time));
         } else {
             Files.createDirectories(cloneToDirectory);
-            cloneRepository(uri, logger, requestedDirectory, cloneToDirectory);
+            cloneRepository(uri, requestedDirectory, cloneToDirectory);
         }
         return cloneToDirectory;
     }
 
-    private static void cloneRepository(
+    private void cloneRepository(
             URI uri,
-            Consumer<String> logger,
             RequestedDirectory requestedDirectory,
             Path cloneToDirectory)
-            throws GitAPIException {
+            throws IOException {
         final long start = System.currentTimeMillis();
-        logger.accept(String.format("Cloning GitHub repository %s locally", uri));
-        Git.cloneRepository()
-                .setURI(
-                        String.format(
-                                "https://github.com/%s/%s.git",
-                                requestedDirectory.getOwner(), requestedDirectory.getRepository()))
-                .setDirectory(cloneToDirectory.toFile())
-                .setBranch(requestedDirectory.getBranch())
-                .setDepth(1)
-                .call();
+        logger.log(String.format("Cloning GitHub repository %s locally", uri));
+        final String githubUri = String.format(
+                "https://github.com/%s/%s.git",
+                requestedDirectory.getOwner(), requestedDirectory.getRepository());
+        client.cloneRepository(cloneToDirectory, githubUri, requestedDirectory.getBranch());
         final long time = (System.currentTimeMillis() - start) / 1000;
-        logger.accept(String.format("Downloaded GitHub repository (%d s)", time));
+        logger.log(String.format("Downloaded GitHub repository (%d s)", time));
     }
 
     static RequestedDirectory parseRequest(URI uri) {

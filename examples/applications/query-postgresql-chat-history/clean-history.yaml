@@ -28,11 +28,11 @@ pipeline:
       datasource: "JdbcDatasource"
       mode: "execute"
       query: "DELETE FROM chat_history WHERE TIMESTAMP <= ?"
-      output-field: "value.command-results"
+      output-field: "value.command_results"
       fields:
         - "fn:toSQLTimestamp(fn:timestampAdd(fn:now(), -1, 'hours'))"
   - type: "log-event"
     configuration:
       fields:
-        - name: "current results"
-          expression: "value.command-results"
+        - name: "results"
+          expression: "value.command_results"

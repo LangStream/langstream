@@ -193,8 +193,7 @@ public class JstlEvaluator<T> {
                 .mapFunction(
                         "fn",
                         "toSQLTimestamp",
-                        JstlFunctions.class.getMethod(
-                                "toSQLTimestamp", Object.class));
+                        JstlFunctions.class.getMethod("toSQLTimestamp", Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(

@@ -45,7 +45,6 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfig;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
-
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -537,7 +536,8 @@ public class ClassConfigValidator {
                     log.info("Validating EL expressions {}", collection);
                     for (Object o : collection) {
                         if (o == null) {
-                            throw new IllegalArgumentException("A null value is not allowed in a list of EL expressions");
+                            throw new IllegalArgumentException(
+                                    "A null value is not allowed in a list of EL expressions");
                         }
                         new JstlEvaluator(o.toString(), Object.class);
                     }

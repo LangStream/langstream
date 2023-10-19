@@ -84,7 +84,8 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    but be like "record.fieldname" in order to replace or set a field in each record
                    with the results of the query. In the query parameters you can refer to the
                    record fields using "record.field".
-                   """, extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
+                   """,
+            extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
     @JsonProperty("loop-over")
     private String loopOver;
 
@@ -92,7 +93,8 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
             description =
                     """
                    Fields of the record to use as input parameters for the query.
-                   """, extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
+                   """,
+            extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
     private List<String> fields;
 
     @ConfigProperty(

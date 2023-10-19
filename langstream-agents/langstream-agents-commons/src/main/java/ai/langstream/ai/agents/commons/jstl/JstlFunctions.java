@@ -24,7 +24,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -349,7 +348,12 @@ public class JstlFunctions {
         } else if (input instanceof Number) {
             return new java.sql.Timestamp(((Number) input).longValue());
         } else {
-            throw new IllegalArgumentException("Cannot convert "+input+" ("+input.getClass()+") to a java.sql.Timestamp");
+            throw new IllegalArgumentException(
+                    "Cannot convert "
+                            + input
+                            + " ("
+                            + input.getClass()
+                            + ") to a java.sql.Timestamp");
         }
     }
 

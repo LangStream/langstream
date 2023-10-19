@@ -183,7 +183,6 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
                 extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
         @JsonProperty("when")
         String when;
-
     }
 
     @AgentConfig(

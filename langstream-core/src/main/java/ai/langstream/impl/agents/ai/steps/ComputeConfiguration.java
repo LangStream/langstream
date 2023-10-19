@@ -55,7 +55,8 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                                 It is evaluated at runtime and the result of the evaluation is assigned to the field.
                                 Refer to the language expression documentation for more information on the expression syntax.
                                 """,
-                required = true, extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
+                required = true,
+                extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
         private String expression;
 
         @ConfigProperty(

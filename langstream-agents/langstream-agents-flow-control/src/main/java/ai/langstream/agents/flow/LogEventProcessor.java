@@ -19,19 +19,16 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
-import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LogEventProcessor extends AbstractAgentCode implements AgentProcessor {
@@ -65,8 +62,7 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
     }
 
     private void logRecord(Record originalRecord) {
-        MutableRecord mutableRecord =
-                MutableRecord.recordToMutableRecord(originalRecord, true);
+        MutableRecord mutableRecord = MutableRecord.recordToMutableRecord(originalRecord, true);
         if (!predicate.test(mutableRecord)) {
             return;
         }
@@ -92,6 +88,5 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
         } finally {
             recordSink.emitSingleResult(r, r);
         }
-
     }
 }

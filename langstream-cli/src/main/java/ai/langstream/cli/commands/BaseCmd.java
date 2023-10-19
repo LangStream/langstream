@@ -26,7 +26,6 @@ import ai.langstream.cli.LangStreamCLIConfig;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.GithubRepositoryDownloader;
 import ai.langstream.cli.commands.profiles.BaseProfileCmd;
-import ai.langstream.cli.util.GitClient;
 import ai.langstream.cli.util.git.JGitClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -82,8 +81,6 @@ public abstract class BaseCmd implements Runnable {
 
     protected static final ObjectWriter jsonBodyWriter = new ObjectMapper().writer();
 
-
-
     @AllArgsConstructor
     static final class CLILoggerImpl implements CLILogger {
         private final RootCmd rootCmd;
@@ -116,13 +113,14 @@ public abstract class BaseCmd implements Runnable {
             if (isDebugEnabled()) {
                 log(message);
             }
-
         }
     }
 
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
     private final CLILogger logger = new CLILoggerImpl(getRootCmd(), command);
-    private final GithubRepositoryDownloader githubRepositoryDownloader = new GithubRepositoryDownloader(new JGitClient(), logger, LangStreamCLI.getLangstreamCLIHomeDirectory());
+    private final GithubRepositoryDownloader githubRepositoryDownloader =
+            new GithubRepositoryDownloader(
+                    new JGitClient(), logger, LangStreamCLI.getLangstreamCLIHomeDirectory());
     private AdminClient client;
     private LangStreamCLIConfig config;
     private Map<String, String> applicationDescriptions = new HashMap<>();
@@ -291,7 +289,6 @@ public abstract class BaseCmd implements Runnable {
 
     protected void log(Object log) {
         logger.log(log);
-
     }
 
     protected void logNoNewline(Object log) {
@@ -300,7 +297,6 @@ public abstract class BaseCmd implements Runnable {
 
     protected void err(Object log) {
         logger.error(log);
-
     }
 
     protected void debug(Object log) {
@@ -438,7 +434,10 @@ public abstract class BaseCmd implements Runnable {
             throw new IllegalArgumentException("http is not supported. Please use https instead.");
         }
         if (path.startsWith("https://")) {
-            return downloadHttpsFile(path, getClient().getHttpClientFacade(), logger,
+            return downloadHttpsFile(
+                    path,
+                    getClient().getHttpClientFacade(),
+                    logger,
                     githubRepositoryDownloader,
                     !getRootCmd().isDisableLocalRepositoriesCache());
         }

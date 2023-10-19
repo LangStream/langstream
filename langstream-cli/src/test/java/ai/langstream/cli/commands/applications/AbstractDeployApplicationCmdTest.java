@@ -66,7 +66,11 @@ class AbstractDeployApplicationCmdTest {
 
         try {
             AbstractDeployApplicationCmd.downloadHttpsFile(
-                    wireMockBaseUrl + "/unknown", client, new CLILogger.SystemCliLogger(), null, false);
+                    wireMockBaseUrl + "/unknown",
+                    client,
+                    new CLILogger.SystemCliLogger(),
+                    null,
+                    false);
             fail();
         } catch (HttpRequestFailedException ex) {
             assertEquals(404, ex.getResponse().statusCode());

@@ -20,8 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.CommandTestBase;
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -31,6 +29,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.Test;
 
 class LocalRunApplicationCmdTest extends CommandTestBase {
@@ -38,8 +37,11 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
     @Test
     void testArgs() throws Exception {
         final Path tempDir = Files.createTempDirectory(this.tempDir, "langstream");
+        final Path appConfigFile = Files.createTempFile(tempDir, "configuration", ".yaml");
+        Files.writeString(appConfigFile, "configuration: {}");
+
         final Path secrets = Files.createTempFile("langstream", ".yaml");
-        Files.write(secrets, "secrets: []".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(secrets, "secrets: []");
 
         final String appDir = tempDir.toFile().getAbsolutePath();
         CommandResult result =
@@ -74,30 +76,60 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
 
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());
-        volumes.forEach(
-                volume -> {
-                    final String hostPath = volume.split(":")[0];
-                    final File file = new File(hostPath);
-                    assertTrue(file.exists());
-                    final Path langstreamTmp =
-                            Path.of(System.getProperty("user.home"), ".langstream", "tmp");
-                    assertEquals(langstreamTmp, file.toPath().getParent());
-                    final Set<PosixFilePermission> posixFilePermissions;
-                    try {
-                        posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        for (String volume : volumes) {
 
+            final String hostPath = volume.split(":")[0];
+            final File file = new File(hostPath);
+            assertTrue(file.exists());
+            final Path langstreamTmp =
+                    Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+
+            final Set<PosixFilePermission> posixFilePermissions =
+                    Files.getPosixFilePermissions(file.toPath());
+            if (file.isDirectory()) {
+                if (SystemUtils.IS_OS_MAC) {
+                    assertNotEquals(langstreamTmp, file.toPath().getParent());
+                } else {
+                    assertEquals(langstreamTmp, file.toPath().getParent());
+                    assertEquals(
+                            Set.of(
+                                    PosixFilePermission.OWNER_READ,
+                                    PosixFilePermission.OWNER_WRITE,
+                                    PosixFilePermission.GROUP_READ,
+                                    PosixFilePermission.OTHERS_READ,
+                                    PosixFilePermission.OWNER_EXECUTE,
+                                    PosixFilePermission.GROUP_EXECUTE,
+                                    PosixFilePermission.OTHERS_EXECUTE),
+                            posixFilePermissions);
+                }
+                final String[] children = file.list();
+                assertEquals(1, children.length);
+                if (!SystemUtils.IS_OS_MAC) {
+                    assertFileReadable(
+                            Files.getPosixFilePermissions(
+                                    Path.of(file.getAbsolutePath(), children[0])));
+                }
+
+            } else {
+                assertEquals(langstreamTmp, file.toPath().getParent());
+                assertFileReadable(posixFilePermissions);
+            }
+        }
         final NamedProfile namedProfile = getConfig().getProfiles().get("local-docker-run");
         assertNotNull(namedProfile);
         assertEquals("default", namedProfile.getTenant());
         assertEquals("http://localhost:8090", namedProfile.getWebServiceUrl());
         assertEquals("ws://localhost:8091", namedProfile.getApiGatewayUrl());
+    }
+
+    private void assertFileReadable(Set<PosixFilePermission> posixFilePermissions) {
+        assertEquals(
+                Set.of(
+                        PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_WRITE,
+                        PosixFilePermission.GROUP_READ,
+                        PosixFilePermission.OTHERS_READ),
+                posixFilePermissions);
     }
 
     private static List<String> extractVolumes(String input) {

@@ -132,7 +132,8 @@ public class CLIDockerRunIT {
         allArgs.add(configFile);
         allArgs.add("-v");
         allArgs.addAll(Arrays.stream(args.split(" ")).toList());
-        final String fullCommand = allArgs.stream().filter(s -> !s.isBlank()).collect(Collectors.joining(" "));
+        final String fullCommand =
+                allArgs.stream().filter(s -> !s.isBlank()).collect(Collectors.joining(" "));
 
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(

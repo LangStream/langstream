@@ -1,8 +1,24 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.tests.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
+
 import ai.langstream.tests.util.SystemOrEnv;
 import ai.langstream.tests.util.TestSuites;
 import java.net.URI;
@@ -47,13 +63,14 @@ public class CLIDockerRunIT {
         } else {
             binaryLocation = binary;
         }
-
     }
 
     @BeforeEach
     public void setupTest() throws Exception {
         final Path configFile = Files.createTempFile("langstream", ".yaml");
-        Files.writeString(configFile, """
+        Files.writeString(
+                configFile,
+                """
                 ---
                 webServiceUrl: "http://localhost:8090"
                 apiGatewayUrl: "ws://localhost:8091"
@@ -66,7 +83,6 @@ public class CLIDockerRunIT {
                     name: "local-docker-run"
                 """);
         this.configFile = configFile.toFile().getAbsolutePath();
-
     }
 
     public void killProcess(ProcessHandle process) {
@@ -74,12 +90,14 @@ public class CLIDockerRunIT {
         process.children().forEach(p -> p.destroy());
         process.destroy();
     }
+
     @AfterEach
     public void afterEach() {
-        processes.forEach(p -> {
-            log.info("destroy process {}", p);
-            killProcess(p.toHandle());
-        });
+        processes.forEach(
+                p -> {
+                    log.info("destroy process {}", p);
+                    killProcess(p.toHandle());
+                });
         processes.clear();
         tasks.forEach(t -> t.cancel(true));
         tasks.clear();
@@ -114,27 +132,31 @@ public class CLIDockerRunIT {
         allArgs.addAll(Arrays.stream(args.split(" ")).toList());
         final String fullCommand = allArgs.stream().collect(Collectors.joining(" "));
 
-        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            try {
-                log.info("running command: {}", fullCommand);
-                final Process process = new ProcessBuilder("bash", "-c", fullCommand)
-                        .inheritIO()
-                        .start();
-                processes.add(process);
-                try {
-                    final int i = process.waitFor();
-                    if (i != 0) {
-                        throw new RuntimeException("command failed: " + fullCommand);
-                    }
-                }  catch (InterruptedException interruptedException) {
-                    log.info("interrupted");
-                    process.destroyForcibly();
-                    throw interruptedException;
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        final CompletableFuture<Void> future =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                log.info("running command: {}", fullCommand);
+                                final Process process =
+                                        new ProcessBuilder("bash", "-c", fullCommand)
+                                                .inheritIO()
+                                                .start();
+                                processes.add(process);
+                                try {
+                                    final int i = process.waitFor();
+                                    if (i != 0) {
+                                        throw new RuntimeException(
+                                                "command failed: " + fullCommand);
+                                    }
+                                } catch (InterruptedException interruptedException) {
+                                    log.info("interrupted");
+                                    process.destroyForcibly();
+                                    throw interruptedException;
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
         tasks.add(future);
         return future;
     }
@@ -144,39 +166,49 @@ public class CLIDockerRunIT {
     }
 
     public static String localSecret() {
-        return Path.of("src", "test", "resources", "secrets", "secret1.yaml").toFile().getAbsolutePath();
+        return Path.of("src", "test", "resources", "secrets", "secret1.yaml")
+                .toFile()
+                .getAbsolutePath();
     }
-
 
     @Test
     public void test() throws Exception {
         final CompletableFuture<Void> future =
-                runCli("docker run my-app -app %s -s %s --start-ui=false".formatted(localApp("python-processor"),
-                        localSecret()), Map.of(
-                        "SECRET1_VK", "super secret value"
-                ));
+                runCli(
+                        "docker run my-app -app %s -s %s --start-ui=false"
+                                .formatted(localApp("python-processor"), localSecret()),
+                        Map.of("SECRET1_VK", "super secret value"));
 
         final HttpClient client = HttpClient.newHttpClient();
 
         Awaitility.await()
                 .pollInterval(1, TimeUnit.SECONDS)
                 .atMost(30, TimeUnit.SECONDS)
-                .untilAsserted(() -> {
-            final HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8090/api/applications/default/my-app?stats=false"))
-                    .GET()
-                    .build();
-            try {
-                final HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
-                assertEquals(200, response.statusCode());
-            } catch (Exception e) {
-                log.info(e.getMessage());
-                fail(e);
-            }
-        });
-        runCli("gateway produce my-app produce-input -v my-value --connect-timeout 30 -p sessionId=s1").get();
-        runCli("gateway consume my-app consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s1").get();
+                .untilAsserted(
+                        () -> {
+                            final HttpRequest request =
+                                    HttpRequest.newBuilder()
+                                            .uri(
+                                                    URI.create(
+                                                            "http://localhost:8090/api/applications/default/my-app?stats=false"))
+                                            .GET()
+                                            .build();
+                            try {
+                                final HttpResponse<Void> response =
+                                        client.send(
+                                                request, HttpResponse.BodyHandlers.discarding());
+                                assertEquals(200, response.statusCode());
+                            } catch (Exception e) {
+                                log.info(e.getMessage());
+                                fail(e);
+                            }
+                        });
+        runCli(
+                        "gateway produce my-app produce-input -v my-value --connect-timeout 30 -p sessionId=s1")
+                .get();
+        runCli(
+                        "gateway consume my-app consume-output --position earliest -n 1 --connect-timeout 30 -p sessionId=s1")
+                .get();
         assertFalse(future.isDone());
     }
-
 }

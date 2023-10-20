@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.Tailer;
@@ -53,6 +54,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
 
     private static final Set<Path> temporaryFiles = ConcurrentHashMap.newKeySet();
+    private static final AtomicReference<ProcessHandle> dockerProcess = new AtomicReference<>();
 
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
@@ -267,6 +269,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     }
 
     private void cleanEnvironment() {
+        if (dockerProcess.get() != null) {
+            dockerProcess.get().destroyForcibly();
+        }
         if (temporaryFiles.isEmpty()) {
             return;
         }
@@ -384,6 +389,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                         .redirectErrorStream(true)
                         .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
+        dockerProcess.set(process.toHandle());
         CompletableFuture.runAsync(
                 () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
 

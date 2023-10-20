@@ -43,8 +43,10 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
     protected static final String DISPATCH = "dispatch";
     protected static final String TIMER_SOURCE = "timer-source";
     protected static final String TRIGGER_EVENT = "trigger-event";
+
+    protected static final String LOG_EVENT = "log-event";
     private static final Set<String> SUPPORTED_AGENT_TYPES =
-            Set.of(DISPATCH, TIMER_SOURCE, TRIGGER_EVENT);
+            Set.of(DISPATCH, TIMER_SOURCE, TRIGGER_EVENT, LOG_EVENT);
 
     public FlowControlAgentsProvider() {
         super(SUPPORTED_AGENT_TYPES, List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
@@ -56,6 +58,7 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
             case DISPATCH -> ComponentType.PROCESSOR;
             case TIMER_SOURCE -> ComponentType.SOURCE;
             case TRIGGER_EVENT -> ComponentType.PROCESSOR;
+            case LOG_EVENT -> ComponentType.PROCESSOR;
             default -> throw new IllegalArgumentException(
                     "Unsupported agent type: " + agentConfiguration.getType());
         };
@@ -126,6 +129,7 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
             case DISPATCH -> DispatchConfig.class;
             case TIMER_SOURCE -> TimeSourceConfig.class;
             case TRIGGER_EVENT -> TriggerEventProcessorConfig.class;
+            case LOG_EVENT -> LogEventProcessorConfig.class;
             default -> throw new IllegalArgumentException("Unsupported agent type: " + type);
         };
     }
@@ -153,6 +157,32 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
                 defaultValue = "60")
         @JsonProperty("period-seconds")
         int periodInSeconds;
+    }
+
+    @AgentConfig(
+            name = "Log an event",
+            description =
+                    """
+            Log a line in the agent logs when a record is received.
+            """)
+    @Data
+    public static class LogEventProcessorConfig {
+        @ConfigProperty(
+                description =
+                        """
+                        Fields to log.
+                                """)
+        List<FieldConfiguration> fields;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Condition to trigger the operation. This is a standard EL expression.
+                                """,
+                defaultValue = "true",
+                extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
+        @JsonProperty("when")
+        String when;
     }
 
     @AgentConfig(

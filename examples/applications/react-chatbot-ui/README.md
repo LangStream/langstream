@@ -22,6 +22,24 @@ export REACT_APP_CREDENTIALS=..
 ```
 or add your app details to `config.ts`
 
+You can use a helper script to get the environment variable settings from the langstream CLI output. To get some of the env vars from the current profile, use this command:
+
+```
+langstream profiles get `langstream profiles get-current` -o yaml | ./get-env-vars-from-profile.sh
+```
+
+You can copy and paste the results into your terminal.
+
+To get some of the env vars from the application, use this command:
+
+```
+langstream apps get <app-name> -o yaml | ./get-env-vars-from-app.sh
+```
+
+Again, copy and paste the results in your terminal.
+
+These scripts will give you commands for all environment variables except `REACT_APP_CREDENTIALS`. You will have to set that manually.
+
 ## Run
 
 ```

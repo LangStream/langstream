@@ -335,6 +335,28 @@ public class JstlFunctions {
         return ThreadLocalRandom.current().nextInt(maxValue);
     }
 
+    public static java.sql.Timestamp toSQLTimestamp(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof java.sql.Timestamp t) {
+            return t;
+        } else if (input instanceof Instant i) {
+            return java.sql.Timestamp.from(i);
+        } else if (input instanceof String s) {
+            return java.sql.Timestamp.valueOf(s);
+        } else if (input instanceof Number) {
+            return new java.sql.Timestamp(((Number) input).longValue());
+        } else {
+            throw new IllegalArgumentException(
+                    "Cannot convert "
+                            + input
+                            + " ("
+                            + input.getClass()
+                            + ") to a java.sql.Timestamp");
+        }
+    }
+
     public static Instant timestampAdd(Object input, Object delta, Object unit) {
         if (input == null || unit == null) {
             throw new ELException(MessageFactory.get("error.method.notypes"));

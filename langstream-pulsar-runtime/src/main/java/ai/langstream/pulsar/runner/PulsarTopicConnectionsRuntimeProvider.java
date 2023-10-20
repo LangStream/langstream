@@ -70,7 +70,9 @@ import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
@@ -623,7 +625,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                 mapper.convertValue(
                                         configuration.remove("keySchema"), SchemaDefinition.class);
                         Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
-                        schema = (Schema<K>) Schema.KeyValue(keySchema, valueSchema);
+                        schema =
+                                (Schema<K>)
+                                        Schema.KeyValue(
+                                                keySchema,
+                                                valueSchema,
+                                                KeyValueEncodingType.SEPARATED);
                     } else {
                         schema = (Schema<K>) valueSchema;
                     }
@@ -668,7 +675,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         Schema<?> valueSchema = getSchema(r.value().getClass());
                         if (r.key() != null) {
                             Schema<?> keySchema = getSchema(r.key().getClass());
-                            schema = (Schema<K>) Schema.KeyValue(keySchema, valueSchema);
+                            schema =
+                                    (Schema<K>)
+                                            Schema.KeyValue(
+                                                    keySchema,
+                                                    valueSchema,
+                                                    KeyValueEncodingType.SEPARATED);
                         } else {
                             schema = (Schema<K>) valueSchema;
                         }
@@ -683,36 +695,48 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
 
                 log.info("Writing message {}", r);
-                // TODO: handle KV
 
-                return producer.newMessage()
-                        .key(r.key() != null ? r.key().toString() : null)
-                        .value(convertValue(r))
-                        .properties(
-                                r.headers().stream()
-                                        .collect(
-                                                Collectors.toMap(
-                                                        Header::key,
-                                                        h ->
-                                                                h.value() != null
-                                                                        ? h.value().toString()
-                                                                        : null)))
-                        .sendAsync();
+                TypedMessageBuilder<K> message =
+                        producer.newMessage()
+                                .properties(
+                                        r.headers().stream()
+                                                .collect(
+                                                        Collectors.toMap(
+                                                                Header::key,
+                                                                h ->
+                                                                        h.value() != null
+                                                                                ? h.value()
+                                                                                        .toString()
+                                                                                : null)));
+
+                if (schema instanceof KeyValueSchema<?, ?> keyValueSchema) {
+                    KeyValue<?, ?> keyValue =
+                            new KeyValue<>(
+                                    convertValue(r.key(), keyValueSchema.getKeySchema()),
+                                    convertValue(r.value(), keyValueSchema.getValueSchema()));
+                    message.value((K) keyValue);
+                } else {
+                    if (r.key() != null) {
+                        message.key(r.key().toString());
+                    }
+                    message.value((K) convertValue(r.value(), schema));
+                }
+
+                return message.sendAsync();
             }
 
-            private K convertValue(Record r) {
-                Object value = r.value();
+            private Object convertValue(Object value, Schema<?> schema) {
                 if (value == null) {
                     return null;
                 }
                 switch (schema.getSchemaInfo().getType()) {
                     case BYTES:
                         if (value instanceof byte[]) {
-                            return (K) value;
+                            return value;
                         }
-                        return (K) value.toString().getBytes(StandardCharsets.UTF_8);
+                        return value.toString().getBytes(StandardCharsets.UTF_8);
                     case STRING:
-                        return (K) value.toString();
+                        return value.toString();
                     default:
                         throw new IllegalArgumentException(
                                 "Unsupported output schema type " + schema);

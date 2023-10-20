@@ -29,7 +29,9 @@ public class FlowControlAgentsCodeProvider implements AgentCodeProvider {
                     "trigger-event",
                     TriggerEventProcessor::new,
                     "timer-source",
-                    TimerSource::new);
+                    TimerSource::new,
+                    "log-event",
+                    LogEventProcessor::new);
 
     @Override
     public boolean supports(String agentType) {

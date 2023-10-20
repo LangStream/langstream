@@ -349,4 +349,42 @@ public class FlowControlAgentsTest {
             }
         }
     }
+
+    @Test
+    public void testLogEvent() throws Exception {
+        try (LogEventProcessor processor = new LogEventProcessor(); ) {
+            processor.init(
+                    Map.of(
+                            "fields",
+                            List.of(
+                                    Map.of(
+                                            "name",
+                                            "value.computed",
+                                            "expression",
+                                            "fn:uppercase(value.original)"))));
+            processor.start();
+
+            for (int i = 0; i < 10; i++) {
+                SimpleRecord someRecord =
+                        SimpleRecord.builder()
+                                .value(
+                                        """
+                        {"original": "Hello Folks %s", "activator": %s}
+                        """
+                                                .formatted(i, i))
+                                .build();
+
+                List<Record> read = new ArrayList<>();
+                processor.process(
+                        List.of(someRecord),
+                        (sourceRecordAndResult) ->
+                                read.addAll(sourceRecordAndResult.resultRecords()));
+                assertEquals(1, read.size());
+                Record emittedToDownstream = read.get(0);
+                // the processor must pass downstream the original record
+                assertSame(emittedToDownstream, someRecord);
+                log.info("Received record {}", emittedToDownstream);
+            }
+        }
+    }
 }

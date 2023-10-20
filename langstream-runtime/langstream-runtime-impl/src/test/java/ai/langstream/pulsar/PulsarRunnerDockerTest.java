@@ -17,6 +17,7 @@ package ai.langstream.pulsar;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.AbstractKafkaApplicationRunner;
@@ -34,6 +35,8 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.common.schema.KeyValue;
+import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -149,6 +152,66 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
     }
 
     @Test
+    public void testKeyValueSchema() throws Exception {
+        String tenant = "topic-schema";
+        String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+        module: "module-1"
+        id: "pipeline-1"
+        topics:
+          - name: "%s"
+            creation-mode: create-if-not-exists
+            schema:
+              type: "string"
+            keySchema:
+              type: "string"
+          - name: "%s"
+            creation-mode: create-if-not-exists
+            schema:
+              type: "string"
+            keySchema:
+              type: "string"
+        pipeline:
+          - id: "step1"
+            type: "identity"
+            input: "%s"
+            output: "%s"
+        """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (Producer<KeyValue<String, String>> producer =
+                            createProducer(
+                                    inputTopic,
+                                    Schema.KeyValue(
+                                            Schema.STRING,
+                                            Schema.STRING,
+                                            KeyValueEncodingType.SEPARATED));
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
+
+                producer.newMessage().value(new KeyValue<>("key", "value")).send();
+                producer.flush();
+
+                executeAgentRunners(applicationRuntime);
+
+                Message<GenericRecord> record = consumer.receive(30, TimeUnit.SECONDS);
+                Object value = record.getValue().getNativeObject();
+                assertInstanceOf(KeyValue.class, value);
+                assertEquals("key", ((KeyValue<?, ?>) value).getKey());
+                assertEquals("value", ((KeyValue<?, ?>) value).getValue());
+            }
+        }
+    }
+
+    @Test
     public void testDeadLetter() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
@@ -224,7 +287,12 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
     }
 
     protected Producer<String> createProducer(String topic) throws PulsarClientException {
-        return pulsarContainer.getClient().newProducer(Schema.STRING).topic(topic).create();
+        return createProducer(topic, Schema.STRING);
+    }
+
+    protected <T> Producer<T> createProducer(String topic, Schema<T> schema)
+            throws PulsarClientException {
+        return pulsarContainer.getClient().newProducer(schema).topic(topic).create();
     }
 
     protected Consumer<GenericRecord> createConsumer(String topic) throws PulsarClientException {

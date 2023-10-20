@@ -28,5 +28,5 @@ pipeline:
     configuration:
       url: "${globals.slack.url}${secrets.slack.token}"
       body: '{"text":"{{ value.text }}"}'
-      output-field: "field"
+      output-field: "value.response"
       method: "POST"

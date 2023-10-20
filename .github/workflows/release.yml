@@ -71,3 +71,33 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
           prerelease: false
+
+
+  homebrew-release:
+    needs: [ 'release' ]
+    name: Bump Homebrew CLI and Homebrew mini-langstream formulae
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set output
+        id: vars
+        run: |
+          echo "tag=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_OUTPUT
+
+      - uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: Langstream
+          formula-path: langstream.rb
+          download-url: https://github.com/LangStream/langstream/releases/download/${{ steps.vars.outputs.tag }}/langstream-cli-${{ steps.vars.outputs.version }}.zip
+          homebrew-tap: LangStream/homebrew-langstream
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+
+      - uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: MiniLangstream
+          formula-path: mini-langstream.rb
+          download-url: https://github.com/LangStream/langstream/releases/download/${{ steps.vars.outputs.tag }}/mini-langstream-${{ steps.vars.outputs.version }}.zip
+          homebrew-tap: LangStream/homebrew-langstream
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}

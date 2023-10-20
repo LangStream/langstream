@@ -140,6 +140,7 @@ public class CLIDockerRunIT {
                                 final Process process =
                                         new ProcessBuilder("bash", "-c", fullCommand)
                                                 .inheritIO()
+                                                .redirectErrorStream(true)
                                                 .start();
                                 processes.add(process);
                                 try {

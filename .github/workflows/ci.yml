@@ -189,8 +189,6 @@ jobs:
         include:
           - name: Linux
             os: ubuntu-latest
-          - name: Windows
-            os: windows-latest
           - name: MacOS
             os: macos-latest
     timeout-minutes: 45
@@ -202,13 +200,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17.x'
+      - uses: docker-practice/actions-setup-docker@master
 
       - name: Run tests
         run: |
-          ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests -Dspotless.skip -Dlicense.skip
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            SET LANGSTREAM_TESTS_CLI_BIN=%CD%\langstream-cli\target\cli\bin\langstream.bat
-          else
-            export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
-          fi
+          ./docker/build.sh runtime-base-docker-image && ./docker/build.sh runtime && ./docker/build.sh runtime-tester 
+          ./mvnw -ntp install -pl langstream-e2e-tests -DskipTests -Dspotless.skip -Dlicense.skip
+          export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
           ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="cli"

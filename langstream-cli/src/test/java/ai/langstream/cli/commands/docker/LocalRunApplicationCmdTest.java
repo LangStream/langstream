@@ -38,8 +38,11 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
     @Test
     void testArgs() throws Exception {
         final Path tempDir = Files.createTempDirectory(this.tempDir, "langstream");
+        final Path appConfigFile = Files.createTempFile(tempDir, "configuration", ".yaml");
+        Files.writeString(appConfigFile, "configuration: {}");
+
         final Path secrets = Files.createTempFile("langstream", ".yaml");
-        Files.write(secrets, "secrets: []".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(secrets, "secrets: []");
 
         final String appDir = tempDir.toFile().getAbsolutePath();
         CommandResult result =
@@ -85,9 +88,24 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                     final Set<PosixFilePermission> posixFilePermissions;
                     try {
                         posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OTHERS_READ));
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.OWNER_READ));
-                        assertTrue(posixFilePermissions.contains(PosixFilePermission.GROUP_READ));
+                        if (file.getName().contains("app")) {
+                            assertEquals(Set.of(
+                                    PosixFilePermission.OWNER_READ,
+                                    PosixFilePermission.OWNER_WRITE,
+                                    PosixFilePermission.GROUP_READ,
+                                    PosixFilePermission.OTHERS_READ,
+                                    PosixFilePermission.OWNER_EXECUTE,
+                                    PosixFilePermission.GROUP_EXECUTE,
+                                    PosixFilePermission.OTHERS_EXECUTE
+                            ), posixFilePermissions);
+                            assertTrue(file.isDirectory());
+                            final String[] children = file.list();
+                            assertEquals(1, children.length);
+                            assertFileReadable(Files.getPosixFilePermissions(Path.of(file.getAbsolutePath(), children[0])));
+                        } else {
+                            assertFileReadable(posixFilePermissions);
+                        }
+
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -98,6 +116,14 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         assertEquals("default", namedProfile.getTenant());
         assertEquals("http://localhost:8090", namedProfile.getWebServiceUrl());
         assertEquals("ws://localhost:8091", namedProfile.getApiGatewayUrl());
+    }
+
+    private void assertFileReadable(Set<PosixFilePermission> posixFilePermissions) {
+        assertEquals(Set.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE,
+                PosixFilePermission.GROUP_READ,
+                PosixFilePermission.OTHERS_READ), posixFilePermissions);
     }
 
     private static List<String> extractVolumes(String input) {

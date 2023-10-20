@@ -110,6 +110,8 @@ public class CLIDockerRunIT {
     @SneakyThrows
     private static CompletableFuture<Void> runCli(String args, Map<String, String> env) {
         final List<String> allArgs = new ArrayList<>();
+        allArgs.add("echo");
+        allArgs.add("starting!!!");
         if (env != null) {
             String beforeCmd =
                     env.entrySet().stream()
@@ -130,7 +132,7 @@ public class CLIDockerRunIT {
         allArgs.add(configFile);
         allArgs.add("-v");
         allArgs.addAll(Arrays.stream(args.split(" ")).toList());
-        final String fullCommand = allArgs.stream().collect(Collectors.joining(" "));
+        final String fullCommand = allArgs.stream().filter(s -> !s.isBlank()).collect(Collectors.joining(" "));
 
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(

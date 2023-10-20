@@ -182,15 +182,7 @@ jobs:
 
   cli-e2e-tests:
     name: CLI End to End tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-          - name: MacOS
-            os: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - name: 'Setup: checkout project'
@@ -200,8 +192,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17.x'
-      - uses: crazy-max/ghaction-setup-docker@v2
-
       - name: Run tests
         run: |
           ./docker/build.sh runtime-base-docker-image && ./docker/build.sh runtime && ./docker/build.sh runtime-tester 

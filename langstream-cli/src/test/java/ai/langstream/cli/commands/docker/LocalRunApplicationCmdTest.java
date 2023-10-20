@@ -21,7 +21,6 @@ import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.CommandTestBase;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -89,19 +88,22 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                     try {
                         posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
                         if (file.getName().contains("app")) {
-                            assertEquals(Set.of(
-                                    PosixFilePermission.OWNER_READ,
-                                    PosixFilePermission.OWNER_WRITE,
-                                    PosixFilePermission.GROUP_READ,
-                                    PosixFilePermission.OTHERS_READ,
-                                    PosixFilePermission.OWNER_EXECUTE,
-                                    PosixFilePermission.GROUP_EXECUTE,
-                                    PosixFilePermission.OTHERS_EXECUTE
-                            ), posixFilePermissions);
+                            assertEquals(
+                                    Set.of(
+                                            PosixFilePermission.OWNER_READ,
+                                            PosixFilePermission.OWNER_WRITE,
+                                            PosixFilePermission.GROUP_READ,
+                                            PosixFilePermission.OTHERS_READ,
+                                            PosixFilePermission.OWNER_EXECUTE,
+                                            PosixFilePermission.GROUP_EXECUTE,
+                                            PosixFilePermission.OTHERS_EXECUTE),
+                                    posixFilePermissions);
                             assertTrue(file.isDirectory());
                             final String[] children = file.list();
                             assertEquals(1, children.length);
-                            assertFileReadable(Files.getPosixFilePermissions(Path.of(file.getAbsolutePath(), children[0])));
+                            assertFileReadable(
+                                    Files.getPosixFilePermissions(
+                                            Path.of(file.getAbsolutePath(), children[0])));
                         } else {
                             assertFileReadable(posixFilePermissions);
                         }
@@ -119,11 +121,13 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
     }
 
     private void assertFileReadable(Set<PosixFilePermission> posixFilePermissions) {
-        assertEquals(Set.of(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE,
-                PosixFilePermission.GROUP_READ,
-                PosixFilePermission.OTHERS_READ), posixFilePermissions);
+        assertEquals(
+                Set.of(
+                        PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_WRITE,
+                        PosixFilePermission.GROUP_READ,
+                        PosixFilePermission.OTHERS_READ),
+                posixFilePermissions);
     }
 
     private static List<String> extractVolumes(String input) {

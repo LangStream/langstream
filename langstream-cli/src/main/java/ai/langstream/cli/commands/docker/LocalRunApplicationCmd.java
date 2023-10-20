@@ -272,7 +272,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         log("Cleaning environment");
         for (Path temporaryFile : temporaryFiles) {
             debug("Deleting temporary file: " + temporaryFile);
-            // FileUtils.deleteQuietly(temporaryFile.toFile());
+            FileUtils.deleteQuietly(temporaryFile.toFile());
         }
     }
 
@@ -416,11 +416,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             for (File child : file.listFiles()) {
                 makeDirOrFileReadable(child);
             }
-            Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"));
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"));
         } else {
-            Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
         }
-
     }
 
     @SneakyThrows

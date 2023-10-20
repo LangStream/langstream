@@ -536,7 +536,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                 .loadConf(configuration)
                                 .topic(topic)
                                 .subscriptionType(SubscriptionType.Failover)
-                                .ackTimeout(60000, java.util.concurrent.TimeUnit.MILLISECONDS)
                                 .subscribe();
             }
 

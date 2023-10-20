@@ -194,6 +194,7 @@ jobs:
           java-version: '17.x'
       - name: Run tests
         run: |
+          set -e
           ./docker/build.sh runtime-base-docker-image && ./docker/build.sh runtime && ./docker/build.sh runtime-tester 
           ./mvnw -ntp install -pl langstream-e2e-tests -DskipTests -Dspotless.skip -Dlicense.skip
           export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream

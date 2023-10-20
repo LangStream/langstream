@@ -413,8 +413,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     private File prepareAppDirectory(File appDirectory) throws IOException {
         // depending on the docker engine, we should ensure the permissions are properly set.
-        // On MacOs, Docker runs on a VM, so the user mapping between the host and the container is performed by the engine.
-        // On Linux, we need to make sure all the mounted volumes are readable from others because the docker container runs with a different user than the file owner.
+        // On MacOs, Docker runs on a VM, so the user mapping between the host and the container is
+        // performed by the engine.
+        // On Linux, we need to make sure all the mounted volumes are readable from others because
+        // the docker container runs with a different user than the file owner.
         if (SystemUtils.IS_OS_MAC) {
             return appDirectory;
         }

@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.commands.applications.CommandTestBase;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -64,16 +63,16 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         assertTrue(
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
-                        + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
-                        + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
+                                + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
+                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(
                 lastLine.contains(
                         "--add-host minio.minio-dev.svc.cluster.local:127.0.0.1 "
-                        + "--add-host herddb.herddb-dev.svc.cluster.local:127.0.0.1 "
-                        + "--add-host my-cluster-kafka-bootstrap.kafka:127.0.0.1 "
-                        + "-p 8091:8091 "
-                        + "-p 8090:8090 "
-                        + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
+                                + "--add-host herddb.herddb-dev.svc.cluster.local:127.0.0.1 "
+                                + "--add-host my-cluster-kafka-bootstrap.kafka:127.0.0.1 "
+                                + "-p 8091:8091 "
+                                + "-p 8090:8090 "
+                                + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());
@@ -85,7 +84,8 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
             final Path langstreamTmp =
                     Path.of(System.getProperty("user.home"), ".langstream", "tmp");
 
-            final Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
+            final Set<PosixFilePermission> posixFilePermissions =
+                    Files.getPosixFilePermissions(file.toPath());
             if (file.isDirectory()) {
                 if (SystemUtils.IS_OS_MAC) {
                     assertNotEquals(langstreamTmp, file.toPath().getParent());

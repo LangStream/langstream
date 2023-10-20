@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-agents</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-ai-agents</artifactId>

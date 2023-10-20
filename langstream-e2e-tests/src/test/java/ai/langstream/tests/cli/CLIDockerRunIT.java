@@ -110,8 +110,6 @@ public class CLIDockerRunIT {
     @SneakyThrows
     private static CompletableFuture<Void> runCli(String args, Map<String, String> env) {
         final List<String> allArgs = new ArrayList<>();
-        allArgs.add("echo");
-        allArgs.add("starting!!!");
         if (env != null) {
             String beforeCmd =
                     env.entrySet().stream()

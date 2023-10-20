@@ -200,7 +200,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17.x'
-      - uses: docker-practice/actions-setup-docker@master
+      - uses: crazy-max/ghaction-setup-docker@v2
 
       - name: Run tests
         run: |

@@ -28,5 +28,8 @@ langstream -V
 langstream -V | grep $version
 langstream -h | grep "Usage: langstream"
 
+# pull before otherwise the test will timeout
+docker pull ghcr.io/langstream/langstream-runtime-tester:$version
+
 ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests -Dspotless.skip -Dlicense.skip
 ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="cli"

@@ -168,6 +168,7 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests
+          export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
           ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="${{ matrix.category }}" -Dlangstream.tests.recycleenv=true
 
       - name: Upload Surefire reports
@@ -178,3 +179,36 @@ jobs:
           name: test-logs-e2e
           path: "**/target/e2e-test-logs/*"
           retention-days: 7
+
+  cli-e2e-tests:
+    name: CLI End to End tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+          - name: Windows
+            os: windows-latest
+          - name: MacOS
+            os: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: 'Setup: checkout project'
+        uses: actions/checkout@v2
+      - name: 'Setup: Java 17'
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17.x'
+
+      - name: Run tests
+        run: |
+          ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests -Dspotless.skip -Dlicense.skip
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            SET LANGSTREAM_TESTS_CLI_BIN=%CD%\langstream-cli\target\cli\bin\langstream.bat
+          else
+            export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
+          fi
+          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="cli"

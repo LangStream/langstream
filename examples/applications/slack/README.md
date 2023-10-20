@@ -1,7 +1,9 @@
 # Slack channel witer
 
-This sample application shows how to iwrite to a slack channel
+This sample application shows how to write to a slack channel
 
+Export the slack incoming webhook (token) (iwebhooks are locked to slack apps channels at creation):
+export SLACK_TOKEN="<token>"
 
 ## Deploy the LangStream application
 ```

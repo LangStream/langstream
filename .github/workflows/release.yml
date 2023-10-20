@@ -101,3 +101,7 @@ jobs:
           homebrew-tap: LangStream/homebrew-langstream
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+
+      - uses: ./.github/workflows/test-cli-macos.yml
+        with:
+          version: ${{ steps.vars.outputs.version }}

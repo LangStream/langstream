@@ -16,10 +16,7 @@
 #
 
 configuration:
-  resources:
-    - type: "slack-configuration"
-      name: "slack configuration"
-      configuration:
-        url: "${secrets.slack.url}"
-        access-key: "${secrets.slack.access-key}"
-        provider: "${secrets.slack.provider}"
+  defaults:
+    globals:
+      slack:
+        url: "https://hooks.slack.com/services/"

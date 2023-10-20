@@ -26,7 +26,7 @@ pipeline:
   - name: "submit to slack API"
     type: "http-request"
     configuration:
-      url: "https://hooks.slack.com/services/${secrets.slack.token}"
+      url: "${globals.slack.url}${secrets.slack.token}"
       body: '{"text":"{{ value.text }}"}'
       output-field: "field"
       method: "POST"

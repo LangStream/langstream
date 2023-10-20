@@ -5,7 +5,7 @@ This sample application shows how to iwrite to a slack channel
 
 ## Deploy the LangStream application
 ```
-langstream docker run slack -app examples/applications/slack -i examples/instances/kafka-docker.yaml  -s examples/secrets/secrets.yaml --docker-args -u --docker-args 0
+langstream docker run slack -app examples/applications/slack -i examples/instances/kafka-docker.yaml  -s examples/secrets/secrets.yaml
 ```
 
 ## write

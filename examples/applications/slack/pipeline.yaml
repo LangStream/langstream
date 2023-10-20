@@ -26,7 +26,7 @@ pipeline:
   - name: "submit to slack API"
     type: "http-request"
     configuration:
-        url: "https://hooks.slack.com/services/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"
-        body: '{"text":"hello from langstream"}'
-        output-field: "field"
-        method: "POST"
+      url: "https://hooks.slack.com/services/${secrets.slack.token}"
+      body: '{"text":"{{ value.text }}"}'
+      output-field: "field"
+      method: "POST"

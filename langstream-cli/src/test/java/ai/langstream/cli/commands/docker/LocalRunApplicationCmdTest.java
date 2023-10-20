@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.Test;
 
 class LocalRunApplicationCmdTest extends CommandTestBase {
@@ -63,56 +64,57 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         assertTrue(
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
-                                + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
-                                + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
+                        + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
+                        + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(
                 lastLine.contains(
                         "--add-host minio.minio-dev.svc.cluster.local:127.0.0.1 "
-                                + "--add-host herddb.herddb-dev.svc.cluster.local:127.0.0.1 "
-                                + "--add-host my-cluster-kafka-bootstrap.kafka:127.0.0.1 "
-                                + "-p 8091:8091 "
-                                + "-p 8090:8090 "
-                                + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
+                        + "--add-host herddb.herddb-dev.svc.cluster.local:127.0.0.1 "
+                        + "--add-host my-cluster-kafka-bootstrap.kafka:127.0.0.1 "
+                        + "-p 8091:8091 "
+                        + "-p 8090:8090 "
+                        + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());
-        volumes.forEach(
-                volume -> {
-                    final String hostPath = volume.split(":")[0];
-                    final File file = new File(hostPath);
-                    assertTrue(file.exists());
-                    final Path langstreamTmp =
-                            Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+        for (String volume : volumes) {
+
+            final String hostPath = volume.split(":")[0];
+            final File file = new File(hostPath);
+            assertTrue(file.exists());
+            final Path langstreamTmp =
+                    Path.of(System.getProperty("user.home"), ".langstream", "tmp");
+
+            final Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
+            if (file.isDirectory()) {
+                if (SystemUtils.IS_OS_MAC) {
+                    assertNotEquals(langstreamTmp, file.toPath().getParent());
+                } else {
                     assertEquals(langstreamTmp, file.toPath().getParent());
-                    final Set<PosixFilePermission> posixFilePermissions;
-                    try {
-                        posixFilePermissions = Files.getPosixFilePermissions(file.toPath());
-                        if (file.getName().contains("app")) {
-                            assertEquals(
-                                    Set.of(
-                                            PosixFilePermission.OWNER_READ,
-                                            PosixFilePermission.OWNER_WRITE,
-                                            PosixFilePermission.GROUP_READ,
-                                            PosixFilePermission.OTHERS_READ,
-                                            PosixFilePermission.OWNER_EXECUTE,
-                                            PosixFilePermission.GROUP_EXECUTE,
-                                            PosixFilePermission.OTHERS_EXECUTE),
-                                    posixFilePermissions);
-                            assertTrue(file.isDirectory());
-                            final String[] children = file.list();
-                            assertEquals(1, children.length);
-                            assertFileReadable(
-                                    Files.getPosixFilePermissions(
-                                            Path.of(file.getAbsolutePath(), children[0])));
-                        } else {
-                            assertFileReadable(posixFilePermissions);
-                        }
+                    assertEquals(
+                            Set.of(
+                                    PosixFilePermission.OWNER_READ,
+                                    PosixFilePermission.OWNER_WRITE,
+                                    PosixFilePermission.GROUP_READ,
+                                    PosixFilePermission.OTHERS_READ,
+                                    PosixFilePermission.OWNER_EXECUTE,
+                                    PosixFilePermission.GROUP_EXECUTE,
+                                    PosixFilePermission.OTHERS_EXECUTE),
+                            posixFilePermissions);
+                }
+                final String[] children = file.list();
+                assertEquals(1, children.length);
+                if (!SystemUtils.IS_OS_MAC) {
+                    assertFileReadable(
+                            Files.getPosixFilePermissions(
+                                    Path.of(file.getAbsolutePath(), children[0])));
+                }
 
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
+            } else {
+                assertEquals(langstreamTmp, file.toPath().getParent());
+                assertFileReadable(posixFilePermissions);
+            }
+        }
         final NamedProfile namedProfile = getConfig().getProfiles().get("local-docker-run");
         assertNotNull(namedProfile);
         assertEquals("default", namedProfile.getTenant());

@@ -44,6 +44,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.lang3.SystemUtils;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "run", header = "Run on a docker container a LangStream application")
@@ -302,14 +303,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startDatabase,
             boolean dryRun)
             throws Exception {
-        final File appTmp = generateTempFile("app");
-        FileUtils.copyDirectory(appDirectory, appTmp);
-        makeDirOrFileReadable(appTmp);
-        File tmpInstanceFile = createReadableTempFile("instance", instanceContents);
-        File tmpSecretsFile = null;
-        if (secretsContents != null) {
-            tmpSecretsFile = createReadableTempFile("secrets", secretsContents);
-        }
+        final File appTmp = prepareAppDirectory(appDirectory);
+        File tmpInstanceFile = prepareInstanceFile(instanceContents);
+        File tmpSecretsFile = prepareSecretsFile(secretsContents);
         String imageName = dockerImageName + ":" + dockerImageVersion;
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
@@ -403,6 +399,33 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
     }
 
+    private File prepareSecretsFile(String secretsContents) throws IOException {
+        File tmpSecretsFile = null;
+        if (secretsContents != null) {
+            tmpSecretsFile = createReadableTempFile("secrets", secretsContents);
+        }
+        return tmpSecretsFile;
+    }
+
+    private File prepareInstanceFile(String instanceContents) throws IOException {
+        return createReadableTempFile("instance", instanceContents);
+    }
+
+    private File prepareAppDirectory(File appDirectory) throws IOException {
+        // depending on the docker engine, we should ensure the permissions are properly set.
+        // On MacOs, Docker runs on a VM, so the user mapping between the host and the container is
+        // performed by the engine.
+        // On Linux, we need to make sure all the mounted volumes are readable from others because
+        // the docker container runs with a different user than the file owner.
+        if (SystemUtils.IS_OS_MAC) {
+            return appDirectory;
+        }
+        final File appTmp = generateTempFile("app");
+        FileUtils.copyDirectory(appDirectory, appTmp);
+        makeDirOrFileReadable(appTmp);
+        return appTmp;
+    }
+
     private static File createReadableTempFile(String prefix, String instanceContents)
             throws IOException {
         File tempFile = generateTempFile(prefix);
@@ -416,8 +439,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             for (File child : file.listFiles()) {
                 makeDirOrFileReadable(child);
             }
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"));
+        } else {
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
         }
-        Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
     }
 
     @SneakyThrows

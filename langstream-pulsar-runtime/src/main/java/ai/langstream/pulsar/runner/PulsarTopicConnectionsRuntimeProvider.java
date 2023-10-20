@@ -533,9 +533,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                                .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
-                                .subscriptionType(SubscriptionType.Failover)
                                 .subscribe();
             }
 

@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -109,6 +110,7 @@ public class AgentRunner {
             RuntimePodConfiguration configuration,
             Path codeDirectory,
             Path agentsDirectory,
+            Path basePersistentStateDirectory,
             AgentInfo agentInfo,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
@@ -120,6 +122,7 @@ public class AgentRunner {
                         configuration,
                         codeDirectory,
                         agentsDirectory,
+                        basePersistentStateDirectory,
                         agentInfo,
                         continueLoop,
                         beforeStopSource,
@@ -131,6 +134,7 @@ public class AgentRunner {
             RuntimePodConfiguration configuration,
             Path codeDirectory,
             Path agentsDirectory,
+            Path basePersistentStateDirectory,
             AgentInfo agentInfo,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
@@ -148,6 +152,7 @@ public class AgentRunner {
 
         log.info("Starting agent {}", agentId);
         log.info("Code directory {}", codeDirectory);
+        log.info("Base persistent state directory {}", basePersistentStateDirectory);
 
         List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         NarFileHandler narFileHandler =
@@ -185,7 +190,8 @@ public class AgentRunner {
                             agentCode,
                             agentInfo,
                             beforeStopSource,
-                            codeDirectory);
+                            codeDirectory,
+                            basePersistentStateDirectory);
                 } finally {
                     if (server != null) {
                         server.stop();
@@ -239,8 +245,14 @@ public class AgentRunner {
             AgentCodeAndLoader agentCodeWithLoader,
             AgentInfo agentInfo,
             Runnable beforeStopSource,
-            Path codeDirectory)
+            Path codeDirectory,
+            Path basePersistentStateDirectory)
             throws Exception {
+
+        Set<String> agentsWithPersistentState = configuration.agent().agentsWithDisk();
+        if (agentsWithPersistentState == null) {
+            agentsWithPersistentState = Set.of();
+        }
 
         String statsThreadName = "stats-" + configuration.agent().agentId();
         ScheduledExecutorService statsScheduler =
@@ -368,7 +380,9 @@ public class AgentRunner {
                                                     config);
                                         }
                                     },
-                                    codeDirectory);
+                                    codeDirectory,
+                                    basePersistentStateDirectory,
+                                    agentsWithPersistentState);
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
@@ -969,6 +983,9 @@ public class AgentRunner {
         private final BadRecordHandler brh;
 
         private final Path codeDirectory;
+        private final Path basePersistentStateDirectory;
+
+        private final Set<String> agentsWithPersistentState;
 
         public SimpleAgentContext(
                 String agentId,
@@ -977,7 +994,9 @@ public class AgentRunner {
                 TopicAdmin topicAdmin,
                 BadRecordHandler brh,
                 TopicConnectionProvider topicConnectionProvider,
-                Path codeDirectory) {
+                Path codeDirectory,
+                Path basePersistentStateDirectory,
+                Set<String> agentsWithPersistentState) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
@@ -985,6 +1004,8 @@ public class AgentRunner {
             this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
             this.codeDirectory = codeDirectory;
+            this.basePersistentStateDirectory = basePersistentStateDirectory;
+            this.agentsWithPersistentState = agentsWithPersistentState;
         }
 
         @Override
@@ -1030,6 +1051,15 @@ public class AgentRunner {
         @Override
         public Path getCodeDirectory() {
             return codeDirectory;
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            if (!agentsWithPersistentState.contains(agentId)) {
+                return Optional.empty();
+            }
+            // TODO: normalize the agentId
+            return Optional.of(basePersistentStateDirectory.resolve(agentId));
         }
     }
 }

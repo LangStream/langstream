@@ -95,12 +95,14 @@ public class KubeTestServer implements AutoCloseable {
     private final Map<String, ApplicationCustomResource> currentApplications = new HashMap<>();
     private final Map<String, Secret> currentAgentsSecrets = new HashMap<>();
 
+    private static final String CRD_VERSION = "v1beta1";
+
     public Map<String, AgentCustomResource> spyAgentCustomResources(
             final String namespace, String... expectedAgents) {
         for (String agentId : expectedAgents) {
             final String fullPath =
-                    "/apis/langstream.ai/v1alpha1/namespaces/%s/agents/%s"
-                            .formatted(namespace, agentId);
+                    "/apis/langstream.ai/%s/namespaces/%s/agents/%s"
+                            .formatted(CRD_VERSION, namespace, agentId);
             server.expect()
                     .patch()
                     .withPath(fullPath + "?fieldManager=fabric8")
@@ -260,8 +262,8 @@ public class KubeTestServer implements AutoCloseable {
             String namespace, String... applicationIds) {
         for (String appId : applicationIds) {
             final String fullPath =
-                    "/apis/langstream.ai/v1alpha1/namespaces/%s/applications/%s"
-                            .formatted(namespace, appId);
+                    "/apis/langstream.ai/%s/namespaces/%s/applications/%s"
+                            .formatted(CRD_VERSION, namespace, appId);
             server.expect()
                     .patch()
                     .withPath(fullPath + "?fieldManager=fabric8")

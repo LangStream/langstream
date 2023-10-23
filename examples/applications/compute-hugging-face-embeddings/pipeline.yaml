@@ -30,6 +30,10 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     output: "output-topic"
+    resources:
+        disk:
+          enabled: true
+          size: 512M
     configuration:
       model: "${secrets.hugging-face.embeddings-model}" # This is the id of the model
       model-url: "${secrets.hugging-face.embeddings-model-url}" # This is the URL of the repository containing the model

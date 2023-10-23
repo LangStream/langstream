@@ -13,23 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.agent;
+package ai.langstream.deployer.k8s.api.crds.agents;
 
-import java.util.Map;
-import java.util.Set;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 
-public record AgentSpec(
-        ComponentType componentType,
-        String tenant,
-        String agentId,
-        String applicationId,
-        String agentType,
-        Map<String, Object> configuration,
-        Map<String, Object> errorHandlerConfiguration,
-        Set<String> agentsWithDisk) {
-    public enum ComponentType {
-        PROCESSOR,
-        SOURCE,
-        SINK
-    }
+public interface AgentSpecProvider extends HasMetadata {
+    AgentSpecV1Alpha1 getSpec();
 }

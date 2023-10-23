@@ -37,7 +37,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -71,7 +71,7 @@ class AgentResourcesFactoryTest {
                           name: test-agent1
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1alpha1
+                          - apiVersion: langstream.ai/v1beta1
                             kind: Agent
                             blockOwnerDeletion: true
                             controller: true
@@ -202,7 +202,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -236,7 +236,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -286,7 +286,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: test-agent1

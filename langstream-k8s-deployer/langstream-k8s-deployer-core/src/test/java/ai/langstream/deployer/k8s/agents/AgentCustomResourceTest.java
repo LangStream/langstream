@@ -171,7 +171,7 @@ class AgentCustomResourceTest {
         AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: %s

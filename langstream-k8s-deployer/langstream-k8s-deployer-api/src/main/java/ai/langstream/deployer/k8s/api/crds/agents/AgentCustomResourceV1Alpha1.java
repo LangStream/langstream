@@ -24,12 +24,12 @@ import io.fabric8.kubernetes.model.annotation.Plural;
 import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
 
-@Version("v1beta1")
+@Version(value = "v1alpha1", storage = false, served = true)
 @Group("langstream.ai")
 @Kind("Agent")
 @Singular("agent")
 @Plural("agents")
-public class AgentCustomResource extends CustomResource<AgentSpec, AgentStatus>
+public class AgentCustomResourceV1Alpha1 extends CustomResource<AgentSpecV1Alpha1, AgentStatus>
         implements Namespaced, AgentSpecProvider {
 
     @Override

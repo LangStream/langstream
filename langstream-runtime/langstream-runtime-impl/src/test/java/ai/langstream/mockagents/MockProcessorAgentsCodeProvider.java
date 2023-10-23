@@ -18,12 +18,16 @@ package ai.langstream.mockagents;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import ai.langstream.api.runtime.ComponentType;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +47,8 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
     public boolean supports(String agentType) {
         return "mock-failing-processor".equals(agentType)
                 || "mock-failing-sink".equals(agentType)
-                || "mock-async-processor".equals(agentType);
+                || "mock-async-processor".equals(agentType)
+                || "mock-stateful-processor".equals(agentType);
     }
 
     @Override
@@ -55,8 +60,41 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
                 return new FailingSink();
             case "mock-async-processor":
                 return new AsyncProcessor();
+            case "mock-stateful-processor":
+                return new StateFulProcessor();
             default:
                 throw new IllegalStateException();
+        }
+    }
+
+    private static class StateFulProcessor extends SingleRecordAgentProcessor {
+
+        private Path statusFile;
+        private StringBuilder status;
+
+        @Override
+        public void setContext(AgentContext context) throws Exception {
+            this.statusFile =
+                    context.getPersistentStateDirectoryForAgent(agentId())
+                            .orElseThrow()
+                            .resolve("status");
+        }
+
+        @Override
+        public void start() throws Exception {
+            log.info("Status file {}", statusFile);
+            if (Files.exists(statusFile)) {
+                status = new StringBuilder().append(Files.readString(statusFile));
+            } else {
+                status = new StringBuilder();
+            }
+        }
+
+        @Override
+        public synchronized List<Record> processRecord(Record record) throws Exception {
+            status.append(record.value().toString());
+            Files.writeString(statusFile, status.toString());
+            return List.of(SimpleRecord.of(record.key(), status.toString()));
         }
     }
 

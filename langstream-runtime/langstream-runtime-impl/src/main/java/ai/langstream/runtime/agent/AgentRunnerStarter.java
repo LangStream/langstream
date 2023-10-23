@@ -28,6 +28,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
         Path podRuntimeConfiguration;
         Path codeDirectory;
         Path agentsDirectory;
+        Path basePersistentStateDirectory = Paths.get("/persistent-state");
         if (args.length == 0) {
             podRuntimeConfiguration = getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
             codeDirectory =
@@ -112,6 +114,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 configuration,
                 codeDirectory,
                 agentsDirectory,
+                basePersistentStateDirectory,
                 new AgentInfo(),
                 continueLoop::get,
                 null,

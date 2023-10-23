@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runtime;
 
+import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.ResourcesSpec;
 import java.util.Map;
 
@@ -38,4 +39,6 @@ public interface AgentNode extends ConnectionImplementation {
     ConnectionImplementation getOutputConnectionImplementation();
 
     ResourcesSpec getResources();
+
+    Map<String, DiskSpec> getDisks();
 }

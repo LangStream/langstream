@@ -186,7 +186,7 @@ class ApplicationCustomResourceTest {
         ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Application
                 metadata:
                   name: %s

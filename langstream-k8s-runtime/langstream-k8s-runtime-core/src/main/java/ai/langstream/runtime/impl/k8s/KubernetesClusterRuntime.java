@@ -15,7 +15,9 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.ErrorsSpec;
+import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.DeployContext;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -288,6 +291,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         // set StandardErrorHandler
         errorsConfiguration.put("retries", errorsSpec.getRetries());
         errorsConfiguration.put("onFailure", errorsSpec.getOnFailure());
+        Set<String> agentIdsWithDisks =
+                defaultAgentImplementation.getDisks() != null
+                        ? defaultAgentImplementation.getDisks().keySet()
+                        : null;
 
         final StreamingCluster streamingCluster =
                 applicationInstance.getApplication().getInstance().streamingCluster();
@@ -303,7 +310,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                                 applicationInstance.getApplicationId(),
                                 defaultAgentImplementation.getAgentType(),
                                 defaultAgentImplementation.getConfiguration(),
-                                errorsConfiguration),
+                                errorsConfiguration,
+                                agentIdsWithDisks != null ? agentIdsWithDisks : Set.of()),
                         streamingCluster);
 
         final Secret secret =
@@ -315,9 +323,23 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         final AgentSpec agentSpec = new AgentSpec();
         agentSpec.setTenant(tenant);
         agentSpec.setApplicationId(applicationInstance.getApplicationId());
+        ResourcesSpec resourcesSpec = agent.getResources();
+        List<AgentSpec.Disk> disks;
+        if (agent.getDisks() != null && !agent.getDisks().isEmpty()) {
+            disks = new ArrayList<>();
+            agent.getDisks()
+                    .forEach(
+                            (k, v) -> {
+                                disks.add(
+                                        new AgentSpec.Disk(
+                                                k, DiskSpec.parseSize(v.size()), v.type()));
+                            });
+        } else {
+            disks = List.of();
+        }
         agentSpec.setResources(
-                new AgentSpec.Resources(
-                        agent.getResources().parallelism(), agent.getResources().size()));
+                new AgentSpec.Resources(resourcesSpec.parallelism(), resourcesSpec.size()));
+        agentSpec.setDisks(disks);
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         byte[] hash = DIGEST.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));

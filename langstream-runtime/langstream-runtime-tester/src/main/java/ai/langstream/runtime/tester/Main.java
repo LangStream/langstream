@@ -59,6 +59,9 @@ public class Main {
             String secretsFile = "/code/secrets.yaml";
             String agentsDirectory = "/app/agents";
 
+            // TODO: mount this directory on the docker container in order to allow persistent state
+            String basePersistentStateDirectory = "/persistent-state";
+
             final String secrets;
             final Path secretsPath = Paths.get(secretsFile);
             if (Files.exists(secretsPath)) {
@@ -135,7 +138,10 @@ public class Main {
             }
 
             try (LocalApplicationRunner runner =
-                    new LocalApplicationRunner(Paths.get(agentsDirectory), codeDirectory); ) {
+                    new LocalApplicationRunner(
+                            Paths.get(agentsDirectory),
+                            codeDirectory,
+                            Paths.get(basePersistentStateDirectory)); ) {
 
                 InMemoryApplicationStore.setAgentsInfoCollector(runner);
                 InMemoryApplicationStore.setFilterAgents(agentsIdToKeepInStats);

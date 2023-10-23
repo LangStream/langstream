@@ -15,20 +15,26 @@
  */
 package ai.langstream.deployer.k8s.api.crds.agents;
 
-import java.util.List;
+import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class AgentSpec extends AgentSpecV1Alpha1 {
+public class AgentSpecV1Alpha1 extends NamespacedSpec {
 
-    public record Disk(String agentId, long size, String type) {}
+    public record Resources(int parallelism, int size) {}
 
-    private List<Disk> disks;
-    private String additionalConfiguration;
+    private String agentId;
+    private String applicationId;
+    @Deprecated private String image;
+    @Deprecated private String imagePullPolicy;
+    private String agentConfigSecretRef;
+    private String agentConfigSecretRefChecksum;
+    private Resources resources;
+    private String codeArchiveId;
 
-    public AgentSpec(
+    public AgentSpecV1Alpha1(
             String tenant,
             String agentId,
             String applicationId,
@@ -37,20 +43,15 @@ public class AgentSpec extends AgentSpecV1Alpha1 {
             String agentConfigSecretRef,
             String agentConfigSecretRefChecksum,
             Resources resources,
-            String codeArchiveId,
-            List<Disk> disks,
-            String additionalConfiguration) {
-        super(
-                tenant,
-                agentId,
-                applicationId,
-                image,
-                imagePullPolicy,
-                agentConfigSecretRef,
-                agentConfigSecretRefChecksum,
-                resources,
-                codeArchiveId);
-        this.disks = disks;
-        this.additionalConfiguration = additionalConfiguration;
+            String codeArchiveId) {
+        super(tenant);
+        this.agentId = agentId;
+        this.applicationId = applicationId;
+        this.image = image;
+        this.imagePullPolicy = imagePullPolicy;
+        this.agentConfigSecretRef = agentConfigSecretRef;
+        this.agentConfigSecretRefChecksum = agentConfigSecretRefChecksum;
+        this.resources = resources;
+        this.codeArchiveId = codeArchiveId;
     }
 }

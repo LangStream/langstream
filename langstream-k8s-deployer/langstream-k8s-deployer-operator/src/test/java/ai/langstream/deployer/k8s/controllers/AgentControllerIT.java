@@ -33,6 +33,7 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ public class AgentControllerIT {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: %s
@@ -156,7 +157,7 @@ public class AgentControllerIT {
         AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
+                apiVersion: langstream.ai/v1beta1
                 kind: Agent
                 metadata:
                   name: %s
@@ -263,7 +264,8 @@ public class AgentControllerIT {
                                                 "my-app",
                                                 "fn-type",
                                                 Map.of("config", true),
-                                                Map.of()),
+                                                Map.of(),
+                                                Set.of()),
                                         new StreamingCluster("noop", Map.of("config", true)))))
                 .inNamespace(namespace)
                 .serverSideApply();

@@ -23,6 +23,8 @@ import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentSpecProvider;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentSpecV1Alpha1;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
@@ -38,6 +40,8 @@ import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.ContainerPortBuilder;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
@@ -50,6 +54,7 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePortBuilder;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
@@ -62,6 +67,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -89,7 +95,7 @@ public class AgentResourcesFactory {
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
-    public static Service generateHeadlessService(AgentCustomResource agentCustomResource) {
+    public static Service generateHeadlessService(AgentSpecProvider agentCustomResource) {
         final Map<String, String> agentLabels =
                 getAgentLabels(
                         agentCustomResource.getSpec().getAgentId(),
@@ -113,7 +119,7 @@ public class AgentResourcesFactory {
     @Builder
     @Getter
     public static class GenerateStatefulsetParams {
-        private AgentCustomResource agentCustomResource;
+        private AgentSpecProvider agentCustomResource;
 
         @Builder.Default
         private AgentResourceUnitConfiguration agentResourceUnitConfiguration =
@@ -125,14 +131,14 @@ public class AgentResourcesFactory {
     }
 
     public static StatefulSet generateStatefulSet(GenerateStatefulsetParams params) {
-        final AgentCustomResource agentCustomResource =
+        final AgentSpecProvider agentCustomResource =
                 Objects.requireNonNull(params.getAgentCustomResource());
         final AgentResourceUnitConfiguration agentResourceUnitConfiguration =
                 Objects.requireNonNull(params.getAgentResourceUnitConfiguration());
         final PodTemplate podTemplate = params.getPodTemplate();
 
-        final AgentSpec spec = agentCustomResource.getSpec();
-        final String image = getStsImage(params, spec);
+        final AgentSpecV1Alpha1 spec = agentCustomResource.getSpec();
+        final String image = getStsImage(params);
         final String imagePullPolicy = getStsImagePullPolicy(params, spec);
 
         final String appConfigVolume = "app-config";
@@ -177,6 +183,67 @@ public class AgentResourcesFactory {
                         .withTerminationMessagePolicy("FallbackToLogsOnError")
                         .build();
 
+        List<VolumeMount> mounts = new ArrayList<>();
+        mounts.add(
+                new VolumeMountBuilder()
+                        .withName(clusterConfigVolume)
+                        .withMountPath("/cluster-config")
+                        .build());
+
+        mounts.add(
+                new VolumeMountBuilder()
+                        .withName(downloadConfigVolume)
+                        .withMountPath("/download-config")
+                        .build());
+        mounts.add(
+                new VolumeMountBuilder()
+                        .withName(downloadCodeVolume)
+                        .withMountPath(downloadCodePath)
+                        .build());
+
+        List<PersistentVolumeClaim> persistentVolumeClaims = new ArrayList<>();
+        AgentSpec.Resources resources = spec.getResources();
+        List<AgentSpec.Disk> disks =
+                spec instanceof AgentSpec ? ((AgentSpec) spec).getDisks() : null;
+        if (disks == null) {
+            disks = List.of();
+        }
+        if (!disks.isEmpty()) {
+            log.info("Agents that require a disk in this stateful set:");
+            disks.forEach(
+                    (disk) -> {
+                        String agentId = disk.agentId();
+                        log.info("  - {}: disk specs {}", agentId, disk);
+                        String mountName = agentId + "-state";
+                        String path = "/persistent-state/" + agentId;
+                        mounts.add(
+                                new VolumeMountBuilder()
+                                        .withName(mountName)
+                                        .withMountPath(path)
+                                        .withReadOnly(false)
+                                        .build());
+
+                        persistentVolumeClaims.add(
+                                new PersistentVolumeClaimBuilder()
+                                        .withNewMetadata()
+                                        .withName(mountName)
+                                        .endMetadata()
+                                        .withNewSpec()
+                                        .withAccessModes("ReadWriteOnce")
+                                        .withResources(
+                                                new ResourceRequirementsBuilder()
+                                                        .withRequests(
+                                                                Map.of(
+                                                                        "storage",
+                                                                        Quantity.parse("256Mi")))
+                                                        .build())
+                                        .endSpec()
+                                        .build());
+                    });
+        } else {
+            log.info("No agents require a disk for this stateful set");
+        }
+
         final Container downloadCodeInitContainer =
                 new ContainerBuilder()
                         .withName("code-download")
@@ -197,19 +264,7 @@ public class AgentResourcesFactory {
                                         .withValue(
                                                 "/var/run/secrets/kubernetes.io/serviceaccount/token")
                                         .build())
-                        .withVolumeMounts(
-                                new VolumeMountBuilder()
-                                        .withName(clusterConfigVolume)
-                                        .withMountPath("/cluster-config")
-                                        .build(),
-                                new VolumeMountBuilder()
-                                        .withName(downloadConfigVolume)
-                                        .withMountPath("/download-config")
-                                        .build(),
-                                new VolumeMountBuilder()
-                                        .withName(downloadCodeVolume)
-                                        .withMountPath(downloadCodePath)
-                                        .build())
+                        .withVolumeMounts(mounts)
                         .withTerminationMessagePolicy("FallbackToLogsOnError")
                         .build();
 
@@ -224,9 +279,7 @@ public class AgentResourcesFactory {
                         .withPorts(List.of(port))
                         .withLivenessProbe(createLivenessProbe(agentResourceUnitConfiguration))
                         .withReadinessProbe(createReadinessProbe(agentResourceUnitConfiguration))
-                        .withResources(
-                                convertResources(
-                                        spec.getResources(), agentResourceUnitConfiguration))
+                        .withResources(convertResources(resources, agentResourceUnitConfiguration))
                         .withEnv(
                                 new EnvVarBuilder()
                                         .withName(AgentRunnerConstants.POD_CONFIG_ENV)
@@ -263,7 +316,7 @@ public class AgentResourcesFactory {
                 .endMetadata()
                 .withNewSpec()
                 .withServiceName(name)
-                .withReplicas(computeReplicas(agentResourceUnitConfiguration, spec.getResources()))
+                .withReplicas(computeReplicas(agentResourceUnitConfiguration, resources))
                 .withNewSelector()
                 .withMatchLabels(labels)
                 .endSelector()
@@ -321,6 +374,7 @@ public class AgentResourcesFactory {
                         CRDConstants.computeRuntimeServiceAccountForTenant(spec.getTenant()))
                 .endSpec()
                 .endTemplate()
+                .withVolumeClaimTemplates(persistentVolumeClaims)
                 .endSpec()
                 .build();
     }
@@ -364,7 +418,8 @@ public class AgentResourcesFactory {
                 .build();
     }
 
-    private static Map<String, String> getPodAnnotations(AgentSpec spec, PodTemplate podTemplate) {
+    private static Map<String, String> getPodAnnotations(
+            AgentSpecV1Alpha1 spec, PodTemplate podTemplate) {
         final Map<String, String> annotations = new HashMap<>();
         annotations.put("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum());
         if (podTemplate != null && podTemplate.annotations() != null) {
@@ -373,7 +428,8 @@ public class AgentResourcesFactory {
         return annotations;
     }
 
-    private static String getStsImagePullPolicy(GenerateStatefulsetParams params, AgentSpec spec) {
+    private static String getStsImagePullPolicy(
+            GenerateStatefulsetParams params, AgentSpecV1Alpha1 spec) {
         final String imagePullPolicy = params.getImagePullPolicy();
         final String containerImagePullPolicy =
                 imagePullPolicy != null && !imagePullPolicy.isBlank()
@@ -386,10 +442,13 @@ public class AgentResourcesFactory {
         return containerImagePullPolicy;
     }
 
-    private static String getStsImage(GenerateStatefulsetParams params, AgentSpec spec) {
+    private static String getStsImage(GenerateStatefulsetParams params) {
         final String image = params.getImage();
 
-        final String containerImage = image != null && !image.isBlank() ? image : spec.getImage();
+        final String containerImage =
+                image != null && !image.isBlank()
+                        ? image
+                        : params.getAgentCustomResource().getSpec().getImage();
         if (containerImage == null) {
             throw new IllegalStateException(
                     "Runtime image is not specified, neither in the resource and in the deployer configuration.");

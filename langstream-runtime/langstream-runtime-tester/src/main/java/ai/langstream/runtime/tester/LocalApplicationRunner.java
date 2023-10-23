@@ -66,6 +66,8 @@ public class LocalApplicationRunner
 
     final Path codeDirectory;
 
+    final Path basePersistentStateDirectory;
+
     final AtomicBoolean continueLoop = new AtomicBoolean(true);
 
     final CountDownLatch exited = new CountDownLatch(1);
@@ -74,9 +76,12 @@ public class LocalApplicationRunner
 
     final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
 
-    public LocalApplicationRunner(Path agentsDirectory, Path codeDirectory) throws Exception {
+    public LocalApplicationRunner(
+            Path agentsDirectory, Path codeDirectory, Path basePersistentStateDirectory)
+            throws Exception {
         this.codeDirectory = codeDirectory;
         this.agentsDirectory = agentsDirectory;
+        this.basePersistentStateDirectory = basePersistentStateDirectory;
         List<URL> customLib = AgentRunner.buildCustomLibClasspath(codeDirectory);
         this.narFileHandler =
                 new NarFileHandler(
@@ -210,6 +215,7 @@ public class LocalApplicationRunner
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
+                                        basePersistentStateDirectory,
                                         agentInfo,
                                         continueLoop::get,
                                         () -> {},

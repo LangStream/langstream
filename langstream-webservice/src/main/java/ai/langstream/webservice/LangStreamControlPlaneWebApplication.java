@@ -16,6 +16,7 @@
 package ai.langstream.webservice;
 
 import ai.langstream.webservice.config.ApplicationDeployProperties;
+import ai.langstream.webservice.config.ArchetypesProperties;
 import ai.langstream.webservice.config.AuthTokenProperties;
 import ai.langstream.webservice.config.StorageProperties;
 import ai.langstream.webservice.config.TenantProperties;
@@ -30,6 +31,7 @@ import org.springframework.core.env.Environment;
 @EnableConfigurationProperties({
     LangStreamProperties.class,
     StorageProperties.class,
+    ArchetypesProperties.class,
     TenantProperties.class,
     AuthTokenProperties.class,
     ApplicationDeployProperties.class

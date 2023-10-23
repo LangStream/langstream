@@ -33,8 +33,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<springdoc-openapi-starter-webmvc.version>2.1.0</springdoc-openapi-starter-webmvc.version>
-		<jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
-
   </properties>
 
 	<dependencies>

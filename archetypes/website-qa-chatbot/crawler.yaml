@@ -24,14 +24,14 @@ pipeline:
   - name: "Crawl the WebSite"
     type: "webcrawler-source"
     configuration:
-      seed-urls: ["https://docs.langstream.ai/"]
-      allowed-domains: ["https://docs.langstream.ai"]
+      seed-urls: "${globals.website.urls}"
+      allowed-domains: "${globals.website.urls}"
       forbidden-paths: []
       min-time-between-requests: 500
       reindex-interval-seconds: 3600
       max-error-count: 5
       max-urls: 1000
-      max-depth: 50
+      max-depth: "${globals.website.max-depth}"
       handle-robots-file: true
       user-agent: "" # this is computed automatically, but you can override it
       scan-html-documents: true
@@ -90,7 +90,7 @@ pipeline:
     type: "compute-ai-embeddings"
     output: "chunks-topic"
     configuration:
-      model: "secrets.open-ai.embeddings-model"
+      model: "${secrets.open-ai.embeddings-model}"
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10

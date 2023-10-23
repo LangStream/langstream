@@ -18,7 +18,7 @@ archetype:
    title: "Website QA Chatbot"
    labels:
      - qa
-     - chatbot
+     - chat-bot
      - website
      - astra
    description: "This archetype is a chatbot that answers questions from a website. It uses a pre-trained model from OpenAI to compute embeddings for the questions and then uses a Cassandra database to store the answers."
@@ -41,6 +41,7 @@ archetype:
            label: "Crawler depth"
            description: "Maximum depth of the crawler"
            type: "integer"
+           binding: "globals.website.max-depth"
            default: 10
            required: false
      - title: OpenAI parameters
@@ -65,6 +66,31 @@ archetype:
            type: "string"
            required: true
            binding: "secrets.open-ai.chat-completions-model"
+     - title: Prompt
+       description: "Here you can define the prompt to send to the LLM"
+       parameters:
+          - name: "llm-prompt"
+            label: "Prompt"
+            description: "This is the template to send to the LLM"
+            type: "prompt"
+            subtype: "openai-prompt" # each LLM has its own way of defining the prompt
+            binding: "globals.llm.prompt"
+            default: |            
+              - role: system
+                content: |
+                    An user is going to perform a questions, The documents below may help you in answering to their questions.
+                    Please try to leverage them in your answer as much as possible.
+                    Take into consideration that the user is always asking questions about the LangStream project.
+                    If you provide code or YAML snippets, please explicitly state that they are examples.
+                    Do not provide information that is not related to the LangStream project.
+              
+                    Documents:
+                    {{# value.related_documents }}
+                    {{ text}}
+                    {{/ value.related_documents }}
+              - role: user
+                content: "{{ value.question }}"
+            required: true
      - title: Astra DB parameters
        description: "This application uses a AstraDB database to store the answers. You need to provide the connection information for the database."
        parameters:
@@ -112,4 +138,28 @@ archetype:
            type: "string"
            subtype: "s3-access-key"
            binding: "secrets.s3.access-key"
+           required: true
+     - title: Kafka parameters
+       description: "LangStream uses Kafka to connect the agents"
+       parameters:
+         - name: "kafka-bootstrap-servers"
+           label: "Kafka bootstrap servers"
+           description: "The connection string to the broker"
+           type: "string"
+           subtype: "kafka-bootstrap-servers"
+           binding: "secrets.kafka.bootstrap-servers"
+           required: true
+         - name: "kafka-username"
+           label: "Username"
+           description: "The username for the Kafka broker"
+           type: "string"
+           subtype: "kafka-username"
+           binding: "secrets.kafka.username"
+           required: true
+         - name: "kafka-password"
+           label: "Password"
+           description: "The password for the Kafka broker"
+           type: "password"
+           subtype: "kafka-password"
+           binding: "secrets.kafka.password"
            required: true

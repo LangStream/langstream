@@ -1,0 +1,115 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+archetype:
+   title: "Website QA Chatbot"
+   labels:
+     - qa
+     - chatbot
+     - website
+     - astra
+   description: "This archetype is a chatbot that answers questions from a website. It uses a pre-trained model from OpenAI to compute embeddings for the questions and then uses a Cassandra database to store the answers."
+   icon: "https://raw.githubusercontent.com/datastax/management-api-for-apache-cassandra/master/docs/images/website-qa-chatbot.png"
+   sections:
+     - title: Website
+       description: "Define the website to crawl"
+       parameters:
+         - name: "website-url"
+           label: "Website URL"
+           description: "The URL of the website to crawl"
+           type: "strings-array"
+           subtype: "url"
+           required: true
+           binding: "globals.website.urls"
+           default:
+             - "https://docs.langstream.ai/"
+             - "https://langstream.ai/"
+         - name: "website-crawler-depth"
+           label: "Crawler depth"
+           description: "Maximum depth of the crawler"
+           type: "integer"
+           default: 10
+           required: false
+     - title: OpenAI parameters
+       description: "This archetype uses a pre-trained model from OpenAI to compute embeddings for the questions. You need to provide the name of the model deployment."
+       parameters:
+         - name: "embeddings-model"
+           label: "Embeddings model"
+           description: "The name of the model deployment from OpenAI."
+           type: "string"
+           default: ""
+           required: true
+           binding: "secrets.open-ai.embeddings-model"
+         - name: "access-key"
+           label: "Access key"
+           description: "The access key for the OpenAI API."
+           type: "string"
+           required: true
+           binding: "secrets.open-ai.access-key"
+         - name: "chat-completion-model"
+           label: "Chat completion model"
+           description: "The name of the model deployment from OpenAI."
+           type: "string"
+           required: true
+           binding: "secrets.open-ai.chat-completions-model"
+     - title: Astra DB parameters
+       description: "This application uses a AstraDB database to store the answers. You need to provide the connection information for the database."
+       parameters:
+          - name: "astra-database"
+            label: "Database"
+            description: "The name of the Astra DB database"
+            type: "string"
+            subtype: "astra-database"
+            binding: "secrets.astra.database"
+            required: true
+          - name: "astra-client-id"
+            label: "Client ID"
+            description: "The client ID for the Astra DB database"
+            type: "string"
+            subtype: "astra-client-id"
+            required: true
+            binding: "secrets.astra.clientId"
+          - name: "astra-client-secret"
+            label: "Client secret"
+            description: "The client secret for the Astra DB database"
+            type: "string"
+            subtype: "astra-client-secret"
+            required: true
+            binding: "secrets.astra.secret"
+          - name: "astra-token"
+            label: "Token"
+            description: "The token for the Astra DB database"
+            type: "string"
+            subtype: "astra-token"
+            binding: "secrets.astra.token"
+            required: true
+     - title: S3 Bucket parameters
+       description: "The crawler uses an S3 bucket to store the state of the crawler. You need to provide the connection information for the S3 bucket."
+       parameters:
+         - name: "s3-bucket"
+           label: "Bucket name"
+           description: "The name of the S3 bucket"
+           type: "string"
+           subtype: "s3-bucket"
+           binding: "secrets.s3.bucket-name"
+           required: true
+         - name: "s3-access-key"
+           label: "S3 Access key"
+           description: "The access key for the S3 bucket"
+           type: "string"
+           subtype: "s3-access-key"
+           binding: "secrets.s3.access-key"
+           required: true

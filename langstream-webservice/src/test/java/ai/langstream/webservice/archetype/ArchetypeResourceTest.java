@@ -22,6 +22,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -39,6 +43,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 class ArchetypeResourceTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @Autowired MockMvc mockMvc;
 
     @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
@@ -49,10 +55,14 @@ class ArchetypeResourceTest {
         mockMvc.perform(get("/api/archetypes/my-tenant"))
                 .andExpect(status().isOk())
                 .andExpect(
-                        result ->
-                                assertEquals(
-                                        "[ \"website-qa-chatbot\" ]",
-                                        result.getResponse().getContentAsString()));
+                        result -> {
+                            List<Map<String, Object>> list =
+                                    MAPPER.readValue(
+                                            result.getResponse().getContentAsString(),
+                                            new TypeReference<List<Map<String, Object>>>() {});
+                            assertEquals(1, list.size());
+                            assertEquals("website-qa-chatbot", list.get(0).get("id"));
+                        });
         mockMvc.perform(get("/api/archetypes/my-tenant/not-exists"))
                 .andExpect(status().isNotFound());
 

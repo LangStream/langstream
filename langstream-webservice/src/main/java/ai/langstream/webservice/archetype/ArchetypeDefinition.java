@@ -39,4 +39,13 @@ public record ArchetypeDefinition(Archetype archetype) {
             String binding,
             boolean required,
             @JsonProperty("default") Object defaultVal) {}
+
+    public ArchetypeBasicInfo toBasicInfo() {
+        return new ArchetypeBasicInfo(
+                archetype.id(),
+                archetype.title(),
+                archetype.labels(),
+                archetype.description(),
+                archetype.icon());
+    }
 }

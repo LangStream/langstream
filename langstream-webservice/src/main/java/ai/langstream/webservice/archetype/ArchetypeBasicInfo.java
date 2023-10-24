@@ -16,25 +16,6 @@
 package ai.langstream.webservice.archetype;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
-@Service
-@Slf4j
-@AllArgsConstructor
-public class ArchetypeService {
-
-    private final ArchetypeStore archetypeStore;
-
-    public ArchetypeDefinition getArchetype(String tenant, String id) {
-        return archetypeStore.get(id);
-    }
-
-    public List<ArchetypeBasicInfo> getAllArchetypesBasicInfo(String tenant) {
-        return archetypeStore.list().stream()
-                .map(id -> archetypeStore.get(id).toBasicInfo())
-                .collect(Collectors.toList());
-    }
-}
+public record ArchetypeBasicInfo(
+        String id, String title, List<String> labels, String description, String icon) {}

@@ -19,7 +19,7 @@ import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Collection;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -73,10 +73,10 @@ public class ArchetypeResource {
 
     @GetMapping("/{tenant}")
     @Operation(summary = "Get all archetypes")
-    Collection<String> getArchetypes(
+    List<ArchetypeBasicInfo> getArchetypes(
             Authentication authentication, @NotBlank @PathVariable("tenant") String tenant) {
         performAuthorization(authentication, tenant);
-        return archetypeService.getAllArchetypes(tenant);
+        return archetypeService.getAllArchetypesBasicInfo(tenant);
     }
 
     @GetMapping("/{tenant}/{id}")

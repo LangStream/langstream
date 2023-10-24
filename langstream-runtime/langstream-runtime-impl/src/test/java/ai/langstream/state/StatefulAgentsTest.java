@@ -15,7 +15,6 @@
  */
 package ai.langstream.state;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import java.util.List;
 import java.util.Map;

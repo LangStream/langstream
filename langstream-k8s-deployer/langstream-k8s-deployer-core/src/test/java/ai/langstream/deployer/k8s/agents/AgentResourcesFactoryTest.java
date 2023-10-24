@@ -335,7 +335,6 @@ class AgentResourcesFactoryTest {
         }
         assertTrue(found);
 
-
         resource =
                 getCr(
                         """
@@ -352,18 +351,20 @@ class AgentResourcesFactoryTest {
                     agentId: my-agent
                     options: '{"disks":[{"agentId": "my-agent"}]}'
                 """);
-        pvc = AgentResourcesFactory.generateStatefulSet(
-                AgentResourcesFactory.GenerateStatefulsetParams.builder()
-                        .agentCustomResource(resource)
-                        .image("busybox")
-                        .imagePullPolicy("Never")
-                        .build())
-                        .getSpec().getVolumeClaimTemplates().get(0);
+        pvc =
+                AgentResourcesFactory.generateStatefulSet(
+                                AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                        .agentCustomResource(resource)
+                                        .image("busybox")
+                                        .imagePullPolicy("Never")
+                                        .build())
+                        .getSpec()
+                        .getVolumeClaimTemplates()
+                        .get(0);
 
         assertEquals("default", pvc.getSpec().getStorageClassName());
         assertEquals(
-                Quantity.parse("128M"),
-                pvc.getSpec().getResources().getRequests().get("storage"));
+                Quantity.parse("128M"), pvc.getSpec().getResources().getRequests().get("storage"));
 
         resource =
                 getCr(
@@ -384,38 +385,40 @@ class AgentResourcesFactoryTest {
         AgentResourceUnitConfiguration config = new AgentResourceUnitConfiguration();
         config.setStorageClassesMapping(Map.of("custom-type", "custom-storage-class"));
         config.setDefaultStorageDiskSize("1G");
-        pvc = AgentResourcesFactory.generateStatefulSet(
-                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
-                                .agentCustomResource(resource)
-                                .image("busybox")
-                                .imagePullPolicy("Never")
-                                .agentResourceUnitConfiguration(config)
-                                .build())
-                .getSpec().getVolumeClaimTemplates().get(0);
-
+        pvc =
+                AgentResourcesFactory.generateStatefulSet(
+                                AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                        .agentCustomResource(resource)
+                                        .image("busybox")
+                                        .imagePullPolicy("Never")
+                                        .agentResourceUnitConfiguration(config)
+                                        .build())
+                        .getSpec()
+                        .getVolumeClaimTemplates()
+                        .get(0);
 
         assertEquals("custom-storage-class", pvc.getSpec().getStorageClassName());
         assertEquals(
-                Quantity.parse("1G"),
-                pvc.getSpec().getResources().getRequests().get("storage"));
+                Quantity.parse("1G"), pvc.getSpec().getResources().getRequests().get("storage"));
 
         config = new AgentResourceUnitConfiguration();
         config.setStorageClassesMapping(Map.of("custom-type0", "custom-storage-class"));
         config.setDefaultStorageDiskSize("1G");
-        pvc = AgentResourcesFactory.generateStatefulSet(
-                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
-                                .agentCustomResource(resource)
-                                .image("busybox")
-                                .imagePullPolicy("Never")
-                                .agentResourceUnitConfiguration(config)
-                                .build())
-                .getSpec().getVolumeClaimTemplates().get(0);
-
+        pvc =
+                AgentResourcesFactory.generateStatefulSet(
+                                AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                        .agentCustomResource(resource)
+                                        .image("busybox")
+                                        .imagePullPolicy("Never")
+                                        .agentResourceUnitConfiguration(config)
+                                        .build())
+                        .getSpec()
+                        .getVolumeClaimTemplates()
+                        .get(0);
 
         assertEquals("default", pvc.getSpec().getStorageClassName());
         assertEquals(
-                Quantity.parse("1G"),
-                pvc.getSpec().getResources().getRequests().get("storage"));
+                Quantity.parse("1G"), pvc.getSpec().getResources().getRequests().get("storage"));
     }
 
     @Test

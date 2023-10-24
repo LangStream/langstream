@@ -239,7 +239,12 @@ public class AgentResourcesFactory {
                         .build());
         final List<PersistentVolumeClaim> persistentVolumeClaims = new ArrayList<>();
         handleContainerDisks(
-                agentCustomResource, spec, persistentVolumeClaims, disks, containerMounts, agentResourceUnitConfiguration);
+                agentCustomResource,
+                spec,
+                persistentVolumeClaims,
+                disks,
+                containerMounts,
+                agentResourceUnitConfiguration);
         final Container container =
                 new ContainerBuilder()
                         .withName("runtime")
@@ -362,7 +367,10 @@ public class AgentResourcesFactory {
 
                         final Quantity size;
                         if (disk.size() <= 0) {
-                            size = Quantity.parse(agentResourceUnitConfiguration.getDefaultStorageDiskSize());
+                            size =
+                                    Quantity.parse(
+                                            agentResourceUnitConfiguration
+                                                    .getDefaultStorageDiskSize());
                         } else {
                             size = Quantity.parse(disk.size() + "");
                         }
@@ -373,8 +381,11 @@ public class AgentResourcesFactory {
                             storageClass = mapping.get(disk.type());
                         }
                         if (storageClass == null) {
-                            log.info("Disk type '{}' not found in mapping ({}), using default storage class '{}'", disk.type(),
-                                    mapping, agentResourceUnitConfiguration.getDefaultStorageClass());
+                            log.info(
+                                    "Disk type '{}' not found in mapping ({}), using default storage class '{}'",
+                                    disk.type(),
+                                    mapping,
+                                    agentResourceUnitConfiguration.getDefaultStorageClass());
                             storageClass = agentResourceUnitConfiguration.getDefaultStorageClass();
                         }
 

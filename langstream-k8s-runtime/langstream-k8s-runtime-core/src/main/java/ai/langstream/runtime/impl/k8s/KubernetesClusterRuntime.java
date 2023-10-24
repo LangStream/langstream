@@ -338,8 +338,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             disks = List.of();
         }
 
-
-        agentSpec.setResources(new AgentSpec.Resources(resourcesSpec.parallelism(), resourcesSpec.size()));
+        agentSpec.setResources(
+                new AgentSpec.Resources(resourcesSpec.parallelism(), resourcesSpec.size()));
         agentSpec.serializeAndSetOptions(new AgentSpec.Options(disks));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);

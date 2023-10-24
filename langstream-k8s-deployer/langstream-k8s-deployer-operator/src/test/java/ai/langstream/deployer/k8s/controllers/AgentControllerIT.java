@@ -22,7 +22,6 @@ import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
-import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
@@ -256,7 +255,8 @@ public class AgentControllerIT {
                                         Map.of("input", Map.of("is_input", true)),
                                         Map.of("output", Map.of("is_output", true)),
                                         new ai.langstream.runtime.api.agent.AgentSpec(
-                                                ai.langstream.runtime.api.agent.AgentSpec.ComponentType.PROCESSOR,
+                                                ai.langstream.runtime.api.agent.AgentSpec
+                                                        .ComponentType.PROCESSOR,
                                                 tenant,
                                                 "agent-id",
                                                 "my-app",

@@ -125,7 +125,8 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected StatefulSet desired(
                 AgentCustomResource primary, Context<AgentCustomResource> context) {
-            log.infof("Found desired %s for %s", primary.getApiVersion(), this.getClass().getName());
+            log.infof(
+                    "Found desired %s for %s", primary.getApiVersion(), this.getClass().getName());
             try {
                 final StatefulSet existingStatefulset =
                         context.getSecondaryResource(StatefulSet.class).orElse(null);

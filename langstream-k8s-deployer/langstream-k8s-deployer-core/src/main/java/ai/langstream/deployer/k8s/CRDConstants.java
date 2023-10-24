@@ -15,8 +15,6 @@
  */
 package ai.langstream.deployer.k8s;
 
-import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
-import ai.langstream.deployer.k8s.util.SerializationUtil;
 import java.util.regex.Pattern;
 
 public class CRDConstants {

@@ -283,7 +283,6 @@ class AgentResourcesFactoryTest {
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
     }
 
-
     @Test
     void testDisks() {
         final AgentCustomResource resource =
@@ -315,10 +314,18 @@ class AgentResourcesFactoryTest {
         assertEquals("default", pvc.getMetadata().getNamespace());
         assertEquals("ReadWriteOnce", pvc.getSpec().getAccessModes().get(0));
         assertEquals("default", pvc.getSpec().getStorageClassName());
-        assertEquals(Quantity.parse("888888"), pvc.getSpec().getResources().getRequests().get("storage"));
+        assertEquals(
+                Quantity.parse("888888"),
+                pvc.getSpec().getResources().getRequests().get("storage"));
 
-        final List<VolumeMount> mounts = statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0)
-                .getVolumeMounts();
+        final List<VolumeMount> mounts =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getContainers()
+                        .get(0)
+                        .getVolumeMounts();
         boolean found = false;
         for (VolumeMount mount : mounts) {
             if (mount.getName().equals("the-app-my-agent")) {
@@ -328,7 +335,6 @@ class AgentResourcesFactoryTest {
         }
         assertTrue(found);
     }
-
 
     @Test
     void testProbes() {

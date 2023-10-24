@@ -16,6 +16,7 @@
 package ai.langstream.state;
 
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +26,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class StatefulAgentsTest extends AbstractApplicationRunner {
+class StatefulAgentsTest extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testSingleStatefulAgent() throws Exception {

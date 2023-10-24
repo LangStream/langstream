@@ -69,7 +69,7 @@ kubectl apply -f helm/examples/herddb-dev.yaml
 # Start LangStream
 helm repo add langstream https://langstream.github.io/charts
 helm repo update
-helm install langstream ../langstream-charts/charts/langstream --values helm/examples/local.yaml || helm upgrade langstream  ../langstream-charts/charts/langstream --values helm/examples/local.yaml
+helm install langstream langstream/langstream --values helm/examples/local.yaml || helm upgrade langstream langstream/langstream --values helm/examples/local.yaml
 kubectl wait deployment/langstream-control-plane --for condition=available --timeout=300s
 
 

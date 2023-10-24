@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import static ai.langstream.cli.utils.ApplicationPackager.buildZip;
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.binaryEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -44,8 +45,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(
                 WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))
@@ -105,8 +105,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
                 WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))
                         .withMultipartRequestBody(
@@ -140,8 +139,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
                 WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
                         .withMultipartRequestBody(
@@ -175,8 +173,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
         final String secrets = createTempFile("secrets: []");
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(
                 WireMock.post(String.format("/api/applications/%s/my-app?dry-run=true", TENANT))
@@ -245,8 +242,7 @@ class AppsCmdTest extends CommandTestBase {
         final String app = createTempFile("module: module-1", langstream);
         final String instance = createTempFile("instance: {}");
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
                 WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
                         .withMultipartRequestBody(
@@ -274,8 +270,7 @@ class AppsCmdTest extends CommandTestBase {
         Path langstream = Files.createTempDirectory("langstream");
         final String app = createTempFile("module: module-1", langstream);
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
                 WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
                         .withMultipartRequestBody(

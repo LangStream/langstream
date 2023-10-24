@@ -177,8 +177,8 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>langstream-cli</artifactId>
 			<version>${project.version}</version>
-			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>langstream-k8s-deployer-api</artifactId>

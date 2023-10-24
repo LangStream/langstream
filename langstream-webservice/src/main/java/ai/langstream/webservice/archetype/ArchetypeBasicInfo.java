@@ -15,7 +15,18 @@
  */
 package ai.langstream.webservice.archetype;
 
+import ai.langstream.api.archetype.ArchetypeDefinition;
 import java.util.List;
 
 public record ArchetypeBasicInfo(
-        String id, String title, List<String> labels, String description, String icon) {}
+        String id, String title, List<String> labels, String description, String icon) {
+
+    public static ArchetypeBasicInfo fromArchetypeDefinition(ArchetypeDefinition definition) {
+        return new ArchetypeBasicInfo(
+                definition.archetype().id(),
+                definition.archetype().title(),
+                definition.archetype().labels(),
+                definition.archetype().description(),
+                definition.archetype().icon());
+    }
+}

@@ -19,6 +19,7 @@ import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
+import ai.langstream.api.archetype.ArchetypeDefinition;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.AssetDefinition;
@@ -72,7 +73,123 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class ModelBuilder {
 
-    static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    static final ObjectMapper yamlParser = new ObjectMapper(new YAMLFactory());
+
+    public static ApplicationWithPackageInfo buildApplicationInstanceFromArchetype(
+            Path archetypePath, Map<String, Object> applicationParameters) throws Exception {
+        Path archetypeFile = archetypePath.resolve("archetype.yaml");
+        ArchetypeDefinition archetypeDefinition =
+                yamlParser.readValue(archetypeFile.toFile(), ArchetypeDefinition.class);
+
+        Path instance = archetypePath.resolve("instance.yaml");
+        Map<String, Object> globalsMap = new HashMap<>();
+        InstanceFileModel instanceFileModel;
+        if (Files.isRegularFile(instance)) {
+            instanceFileModel = yamlParser.readValue(instance.toFile(), InstanceFileModel.class);
+            if (instanceFileModel.instance.globals() != null) {
+                globalsMap = new HashMap<>(instanceFileModel.instance.globals());
+            }
+        } else {
+            throw new IllegalArgumentException(
+                    "An archetype must always contain an instance.yaml file");
+        }
+
+        Path secrets = archetypePath.resolve("secrets.yaml");
+        Map<String, Object> secretsMap = new HashMap<>();
+        SecretsFileModel secretsModel;
+        if (Files.isRegularFile(secrets)) {
+            secretsModel = yamlParser.readValue(secrets.toFile(), SecretsFileModel.class);
+            secretsModel
+                    .secrets()
+                    .forEach(
+                            s -> {
+                                secretsMap.put(s.id(), s.data());
+                            });
+        } else {
+            throw new IllegalArgumentException(
+                    "An archetype must always contain an secrets.yaml file");
+        }
+
+        applyArchetypeParameters(
+                archetypeDefinition, applicationParameters, globalsMap, secretsMap);
+
+        InstanceFileModel newInstanceFileModel =
+                new InstanceFileModel(
+                        new Instance(
+                                instanceFileModel.instance.streamingCluster(),
+                                instanceFileModel.instance().computeCluster(),
+                                globalsMap));
+        SecretsFileModel newSecretsFileModel =
+                new SecretsFileModel(
+                        secretsModel.secrets().stream()
+                                .map(
+                                        s ->
+                                                new Secret(
+                                                        s.id(),
+                                                        s.name(),
+                                                        (Map<String, Object>)
+                                                                secretsMap.get(s.id())))
+                                .collect(Collectors.toList()));
+
+        String instanceContent = yamlParser.writeValueAsString(newInstanceFileModel);
+        String secretsContent = yamlParser.writeValueAsString(newSecretsFileModel);
+        log.info("Generated instance.yaml file:\n{}", instanceContent);
+        log.info("Generated secrets.yaml file:\n{}", secretsContent);
+
+        return buildApplicationInstance(List.of(archetypePath), instanceContent, secretsContent);
+    }
+
+    static void applyArchetypeParameters(
+            ArchetypeDefinition archetypeDefinition,
+            Map<String, Object> applicationParameters,
+            Map<String, Object> globals,
+            Map<String, Object> secretsMap) {
+
+        archetypeDefinition
+                .archetype()
+                .sections()
+                .forEach(
+                        section -> {
+                            if (section.parameters() != null) {
+                                section.parameters()
+                                        .forEach(
+                                                parameter -> {
+                                                    String binding = parameter.binding();
+                                                    Object value =
+                                                            applicationParameters.get(
+                                                                    parameter.name());
+                                                    log.info(
+                                                            "Processing parameter, name: {}, binding: {}, value {}",
+                                                            parameter.name(),
+                                                            binding,
+                                                            value);
+                                                    String[] path = binding.split("\\.");
+                                                    String first = path[0];
+                                                    Map<String, Object> context =
+                                                            switch (first) {
+                                                                case "secrets" -> secretsMap;
+                                                                case "globals" -> globals;
+                                                                default -> throw new IllegalArgumentException(
+                                                                        "Invalid binding "
+                                                                                + binding);
+                                                            };
+                                                    applyValue(context, path, 1, value);
+                                                });
+                            }
+                        });
+    }
+
+    private static void applyValue(
+            Map<String, Object> context, String[] path, int index, Object value) {
+        if (index == path.length - 1) {
+            context.put(path[index], value);
+        } else {
+            context =
+                    (Map<String, Object>)
+                            context.computeIfAbsent(path[index], k -> new HashMap<>());
+            applyValue(context, path, index + 1, value);
+        }
+    }
 
     @Getter
     public static class ApplicationWithPackageInfo {
@@ -312,7 +429,7 @@ public class ModelBuilder {
             String content, Application application, DefaultsHolder defaultsHolder)
             throws IOException {
         ConfigurationFileModel configurationFileModel =
-                mapper.readValue(content, ConfigurationFileModel.class);
+                yamlParser.readValue(content, ConfigurationFileModel.class);
         if (configurationFileModel.configuration == null) {
             throw new IllegalArgumentException(
                     "configuration entry is not present in configuration.yaml");
@@ -345,7 +462,7 @@ public class ModelBuilder {
     }
 
     private static void parseGateways(String content, Application application) throws IOException {
-        Gateways gatewaysFileModel = mapper.readValue(content, Gateways.class);
+        Gateways gatewaysFileModel = yamlParser.readValue(content, Gateways.class);
         if (gatewaysFileModel.gateways() != null) {
             gatewaysFileModel.gateways().forEach(ModelBuilder::validateGateway);
         }
@@ -456,7 +573,7 @@ public class ModelBuilder {
             throws IOException {
         try {
             PipelineFileModel pipelineConfiguration =
-                    mapper.readValue(content, PipelineFileModel.class);
+                    yamlParser.readValue(content, PipelineFileModel.class);
             if (pipelineConfiguration.getModule() == null) {
                 pipelineConfiguration.setModule(Module.DEFAULT_MODULE);
             }
@@ -606,7 +723,7 @@ public class ModelBuilder {
     }
 
     private static void parseSecrets(String content, Application application) throws IOException {
-        SecretsFileModel secretsFileModel = mapper.readValue(content, SecretsFileModel.class);
+        SecretsFileModel secretsFileModel = yamlParser.readValue(content, SecretsFileModel.class);
         if (log.isDebugEnabled()) { // don't write secrets in logs
             log.debug("Secrets: {}", secretsFileModel);
         }
@@ -633,7 +750,7 @@ public class ModelBuilder {
     private static void parseInstance(
             String content, Application application, Map<String, Object> defaultValues)
             throws IOException {
-        InstanceFileModel instanceModel = mapper.readValue(content, InstanceFileModel.class);
+        InstanceFileModel instanceModel = yamlParser.readValue(content, InstanceFileModel.class);
         log.info("Instance Configuration: {}", instanceModel);
         Instance instance = instanceModel.instance;
         if (instance == null) {

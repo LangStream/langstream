@@ -242,7 +242,7 @@ public class ApplicationResource {
         return parsedApplication;
     }
 
-    private void withApplicationZip(
+    public static void withApplicationZip(
             Optional<MultipartFile> file, BiConsumer<Path, List<Path>> appDirectoriesConsumer)
             throws Exception {
         if (file.isPresent()) {

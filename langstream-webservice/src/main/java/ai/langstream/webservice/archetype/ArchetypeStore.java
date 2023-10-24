@@ -15,6 +15,8 @@
  */
 package ai.langstream.webservice.archetype;
 
+import ai.langstream.api.archetype.ArchetypeDefinition;
+import ai.langstream.cli.utils.ApplicationPackager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Files;
@@ -31,6 +33,7 @@ public class ArchetypeStore {
 
     private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     private final Map<String, ArchetypeDefinition> archetypeDefinitions = new HashMap<>();
+    private final Map<String, Path> archetypePaths = new HashMap<>();
 
     public void load(String path) throws Exception {
         Path directory = Paths.get(path);
@@ -43,7 +46,8 @@ public class ArchetypeStore {
                             log.info("Loading archetype from {}", file);
                             try {
                                 if (Files.isDirectory(file)) {
-                                    loadArchetype(file);
+                                    String id = loadArchetype(file);
+                                    archetypePaths.put(id, file);
                                 }
                             } catch (Exception e) {
                                 log.error("Failed to load archetype from {}", file, e);
@@ -54,12 +58,13 @@ public class ArchetypeStore {
         }
     }
 
-    private void loadArchetype(Path file) throws Exception {
+    private String loadArchetype(Path file) throws Exception {
         Path archetypeFile = file.resolve("archetype.yaml");
         if (Files.isRegularFile(archetypeFile)) {
             ArchetypeDefinition archetypeDefinition =
                     mapper.readValue(archetypeFile.toFile(), ArchetypeDefinition.class);
             archetypeDefinitions.put(archetypeDefinition.archetype().id(), archetypeDefinition);
+            return archetypeDefinition.archetype().id();
         } else {
             throw new IllegalArgumentException("Archetype file not found: " + archetypeFile);
         }
@@ -71,5 +76,17 @@ public class ArchetypeStore {
 
     public ArchetypeDefinition get(String archetypeId) {
         return archetypeDefinitions.get(archetypeId);
+    }
+
+    public Path getArchetypePath(String archetypeId) {
+        return archetypePaths.get(archetypeId);
+    }
+
+    public Path buildArchetypeZip(String archetypeId) throws Exception {
+        Path path = getArchetypePath(archetypeId);
+        if (path == null) {
+            throw new IllegalArgumentException("Archetype not found: " + archetypeId);
+        }
+        return ApplicationPackager.buildZip(path.toFile(), msg -> log.info("{}", msg));
     }
 }

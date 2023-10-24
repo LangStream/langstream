@@ -15,19 +15,32 @@
  */
 package ai.langstream.webservice.archetype;
 
+import ai.langstream.api.archetype.ArchetypeDefinition;
+import ai.langstream.api.model.Application;
+import ai.langstream.api.webservice.application.ApplicationDescription;
+import ai.langstream.impl.common.ApplicationPlaceholderResolver;
+import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.webservice.application.ApplicationService;
+import ai.langstream.webservice.application.CodeStorageService;
 import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -39,6 +52,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class ArchetypeResource {
 
     ArchetypeService archetypeService;
+    ApplicationService applicationService;
+    CodeStorageService codeStorageService;
 
     private void performAuthorization(Authentication authentication, final String tenant) {
         if (authentication == null) {
@@ -91,5 +106,82 @@ public class ArchetypeResource {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return result;
+    }
+
+    @Data
+    static class ParsedApplication {
+        private ModelBuilder.ApplicationWithPackageInfo application;
+        private String codeArchiveReference;
+    }
+
+    @PostMapping(
+            value = "/{tenant}/{idarchetype}/applications/{idapplication}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create and deploy an application from an archetype")
+    ApplicationDescription.ApplicationDefinition deployApplication(
+            Authentication authentication,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("idapplication") String applicationId,
+            @NotBlank @PathVariable("idarchetype") String idarchetype,
+            @RequestParam("applicationParameters") Map<String, Object> applicationParameters,
+            @RequestParam(value = "dry-run", required = false) boolean dryRun)
+            throws Exception {
+        performAuthorization(authentication, tenant);
+
+        final ParsedApplication parsedApplication =
+                buildApplicationFromArchetype(
+                        applicationId, idarchetype, applicationParameters, tenant, dryRun);
+        final Application application;
+        if (dryRun) {
+            application =
+                    ApplicationPlaceholderResolver.resolvePlaceholders(
+                            parsedApplication.getApplication().getApplication());
+
+        } else {
+            applicationService.deployApplication(
+                    tenant,
+                    applicationId,
+                    parsedApplication.getApplication(),
+                    parsedApplication.getCodeArchiveReference());
+            application = parsedApplication.getApplication().getApplication();
+        }
+        return new ApplicationDescription.ApplicationDefinition(application);
+    }
+
+    private ParsedApplication buildApplicationFromArchetype(
+            String name,
+            String archetypeId,
+            Map<String, Object> applicationParameters,
+            String tenant,
+            boolean dryRun)
+            throws Exception {
+        final ParsedApplication parsedApplication = new ParsedApplication();
+        Path archetypePath = archetypeService.getArchetypePath(archetypeId);
+        final ModelBuilder.ApplicationWithPackageInfo app =
+                ModelBuilder.buildApplicationInstanceFromArchetype(
+                        archetypePath, applicationParameters);
+        final Path zip = archetypeService.buildArchetypeZip(archetypeId);
+
+        final String codeArchiveReference;
+        if (dryRun) {
+            codeArchiveReference = null;
+        } else {
+            codeArchiveReference =
+                    codeStorageService.deployApplicationCodeStorage(
+                            tenant,
+                            name,
+                            zip,
+                            app.getPyBinariesDigest(),
+                            app.getJavaBinariesDigest());
+        }
+        log.info(
+                "Parsed application {} {} with code archive {}",
+                name,
+                app.getApplication(),
+                codeArchiveReference);
+        parsedApplication.setApplication(app);
+        parsedApplication.setCodeArchiveReference(codeArchiveReference);
+
+        return parsedApplication;
     }
 }

@@ -15,10 +15,10 @@
  */
 package ai.langstream.webservice.application;
 
+import static ai.langstream.cli.utils.ApplicationPackager.buildZip;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ai.langstream.cli.commands.applications.AbstractDeployApplicationCmd;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -48,7 +48,7 @@ public class AppTestHelper {
 
     private static MockMultipartFile getMultipartFile(String application) throws Exception {
         final Path zip =
-                AbstractDeployApplicationCmd.buildZip(
+                buildZip(
                         application == null ? null : createTempFile(application),
                         System.out::println);
         return new MockMultipartFile(

@@ -15,6 +15,8 @@
  */
 package ai.langstream.webservice.archetype;
 
+import ai.langstream.api.archetype.ArchetypeDefinition;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -34,7 +36,15 @@ public class ArchetypeService {
 
     public List<ArchetypeBasicInfo> getAllArchetypesBasicInfo(String tenant) {
         return archetypeStore.list().stream()
-                .map(id -> archetypeStore.get(id).toBasicInfo())
+                .map(id -> ArchetypeBasicInfo.fromArchetypeDefinition(archetypeStore.get(id)))
                 .collect(Collectors.toList());
+    }
+
+    public Path getArchetypePath(String archetypeId) {
+        return archetypeStore.getArchetypePath(archetypeId);
+    }
+
+    public Path buildArchetypeZip(String archetypeId) throws Exception {
+        return archetypeStore.buildArchetypeZip(archetypeId);
     }
 }

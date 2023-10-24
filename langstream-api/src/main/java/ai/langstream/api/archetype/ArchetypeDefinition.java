@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.webservice.archetype;
+package ai.langstream.api.archetype;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
@@ -39,13 +39,4 @@ public record ArchetypeDefinition(Archetype archetype) {
             String binding,
             boolean required,
             @JsonProperty("default") Object defaultVal) {}
-
-    public ArchetypeBasicInfo toBasicInfo() {
-        return new ArchetypeBasicInfo(
-                archetype.id(),
-                archetype.title(),
-                archetype.labels(),
-                archetype.description(),
-                archetype.icon());
-    }
 }

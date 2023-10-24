@@ -15,19 +15,16 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import static ai.langstream.cli.utils.ApplicationPackager.buildZip;
+
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
-import ai.langstream.cli.commands.GitIgnoreParser;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import lombok.SneakyThrows;
-import net.lingala.zip4j.ZipFile;
-import net.lingala.zip4j.model.ZipParameters;
 import picocli.CommandLine;
 
 public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
@@ -251,57 +248,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);
             } else {
                 log(String.format("application %s deployed", applicationId));
-            }
-        }
-    }
-
-    public static Path buildZip(File appDirectory, Consumer<String> logger) throws IOException {
-        final Path tempZip = Files.createTempFile("app", ".zip");
-        try (final ZipFile zip = new ZipFile(tempZip.toFile())) {
-            addApp(appDirectory, zip, logger);
-        }
-        return tempZip;
-    }
-
-    private static void addApp(File appDirectory, ZipFile zip, Consumer<String> logger)
-            throws IOException {
-        if (appDirectory == null) {
-            return;
-        }
-        logger.accept(String.format("packaging app: %s", appDirectory.getAbsolutePath()));
-        if (appDirectory.isDirectory()) {
-            File ignoreFile = appDirectory.toPath().resolve(".langstreamignore").toFile();
-            if (ignoreFile.exists()) {
-                GitIgnoreParser parser = new GitIgnoreParser(ignoreFile.toPath());
-                addDirectoryFilesWithLangstreamIgnore(appDirectory, appDirectory, parser, zip);
-            } else {
-                for (File file : appDirectory.listFiles()) {
-                    if (file.isDirectory()) {
-                        zip.addFolder(file);
-                    } else {
-                        zip.addFile(file);
-                    }
-                }
-            }
-        } else {
-            zip.addFile(appDirectory);
-        }
-        logger.accept("app packaged");
-    }
-
-    private static void addDirectoryFilesWithLangstreamIgnore(
-            File appDirectory, File directory, GitIgnoreParser parser, ZipFile zip)
-            throws IOException {
-        for (File file : directory.listFiles()) {
-            if (!parser.matches(file)) {
-                if (file.isDirectory()) {
-                    addDirectoryFilesWithLangstreamIgnore(appDirectory, file, parser, zip);
-                } else {
-                    ZipParameters zipParameters = new ZipParameters();
-                    String filename = appDirectory.toURI().relativize(file.toURI()).getPath();
-                    zipParameters.setFileNameInZip(filename);
-                    zip.addFile(file, zipParameters);
-                }
             }
         }
     }

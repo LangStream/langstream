@@ -37,7 +37,7 @@ class AppResourcesFactoryTest {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app
@@ -63,7 +63,7 @@ class AppResourcesFactoryTest {
                           name: langstream-runtime-deployer-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1beta1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -162,7 +162,7 @@ class AppResourcesFactoryTest {
                           name: langstream-runtime-deployer-cleanup-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1beta1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -255,7 +255,7 @@ class AppResourcesFactoryTest {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app
@@ -281,7 +281,7 @@ class AppResourcesFactoryTest {
                           name: langstream-app-setup-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1beta1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -377,7 +377,7 @@ class AppResourcesFactoryTest {
                           name: langstream-app-setup-cleanup-test-'app
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1beta1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Application
                             blockOwnerDeletion: true
                             controller: true
@@ -468,7 +468,7 @@ class AppResourcesFactoryTest {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app
@@ -517,7 +517,7 @@ class AppResourcesFactoryTest {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: test-'app

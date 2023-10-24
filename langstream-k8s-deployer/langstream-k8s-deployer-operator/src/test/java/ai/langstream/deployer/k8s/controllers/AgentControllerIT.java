@@ -22,8 +22,8 @@ import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentSpec;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -54,7 +54,7 @@ public class AgentControllerIT {
     static final OperatorExtension deployment = new OperatorExtension(DEPLOYER_CONFIG);
 
     @Test
-    void testAgentController() {
+    void testAgentController() throws Exception {
         final KubernetesClient client = deployment.getClient();
         final String tenant = genTenant();
         final String namespace = "langstream-" + tenant;
@@ -68,7 +68,7 @@ public class AgentControllerIT {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s
@@ -157,13 +157,11 @@ public class AgentControllerIT {
         AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s
                 spec:
-                    image: busybox
-                    imagePullPolicy: IfNotPresent
                     applicationId: my-app
                     agentId: agent-id
                     agentConfigSecretRef: %s
@@ -257,8 +255,8 @@ public class AgentControllerIT {
                                 new RuntimePodConfiguration(
                                         Map.of("input", Map.of("is_input", true)),
                                         Map.of("output", Map.of("is_output", true)),
-                                        new AgentSpec(
-                                                AgentSpec.ComponentType.PROCESSOR,
+                                        new ai.langstream.runtime.api.agent.AgentSpec(
+                                                ai.langstream.runtime.api.agent.AgentSpec.ComponentType.PROCESSOR,
                                                 tenant,
                                                 "agent-id",
                                                 "my-app",

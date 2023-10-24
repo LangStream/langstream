@@ -21,10 +21,12 @@ import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.TolerationBuilder;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +39,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -71,7 +73,7 @@ class AgentResourcesFactoryTest {
                           name: test-agent1
                           namespace: default
                           ownerReferences:
-                          - apiVersion: langstream.ai/v1beta1
+                          - apiVersion: langstream.ai/v1alpha1
                             kind: Agent
                             blockOwnerDeletion: true
                             controller: true
@@ -202,7 +204,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -236,7 +238,7 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1
@@ -281,12 +283,59 @@ class AgentResourcesFactoryTest {
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
     }
 
+
+    @Test
+    void testDisks() {
+        final AgentCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: test-agent1
+                  namespace: default
+                spec:
+                    agentConfigSecretRef: agent-config
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                    applicationId: the-app
+                    agentId: my-agent
+                    options: '{"disks":[{"agentId": "my-agent", "type": "default", "size": 888888}]}'
+                """);
+        final StatefulSet statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .image("busybox")
+                                .imagePullPolicy("Never")
+                                .build());
+
+        final PersistentVolumeClaim pvc = statefulSet.getSpec().getVolumeClaimTemplates().get(0);
+        assertEquals("the-app-my-agent", pvc.getMetadata().getName());
+        assertEquals("default", pvc.getMetadata().getNamespace());
+        assertEquals("ReadWriteOnce", pvc.getSpec().getAccessModes().get(0));
+        assertEquals("default", pvc.getSpec().getStorageClassName());
+        assertEquals(Quantity.parse("888888"), pvc.getSpec().getResources().getRequests().get("storage"));
+
+        final List<VolumeMount> mounts = statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0)
+                .getVolumeMounts();
+        boolean found = false;
+        for (VolumeMount mount : mounts) {
+            if (mount.getName().equals("the-app-my-agent")) {
+                found = true;
+                assertEquals("/persistent-state/my-agent", mount.getMountPath());
+            }
+        }
+        assertTrue(found);
+    }
+
+
     @Test
     void testProbes() {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: test-agent1

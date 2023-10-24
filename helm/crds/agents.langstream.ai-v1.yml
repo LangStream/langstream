@@ -29,75 +29,7 @@ spec:
                 type: string
               imagePullPolicy:
                 type: string
-              applicationId:
-                type: string
-              resources:
-                properties:
-                  parallelism:
-                    type: integer
-                  size:
-                    type: integer
-                type: object
-              tenant:
-                type: string
-            required:
-            - tenant
-            type: object
-          status:
-            properties:
-              lastConfigApplied:
-                type: string
-              status:
-                properties:
-                  status:
-                    enum:
-                    - ERROR
-                    - CREATED
-                    - DEPLOYED
-                    - DEPLOYING
-                    type: string
-                  reason:
-                    type: string
-                type: object
-              lastApplied:
-                description: Last spec applied.
-                type: string
-            type: object
-        type: object
-    served: false
-    storage: false
-    subresources:
-      status: {}
-  - name: v1beta1
-    schema:
-      openAPIV3Schema:
-        properties:
-          spec:
-            properties:
-              additionalConfiguration:
-                type: string
-              disks:
-                items:
-                  properties:
-                    size:
-                      type: integer
-                    agentId:
-                      type: string
-                    type:
-                      type: string
-                  type: object
-                type: array
-              codeArchiveId:
-                type: string
-              agentConfigSecretRef:
-                type: string
-              agentConfigSecretRefChecksum:
-                type: string
-              image:
-                type: string
-              agentId:
-                type: string
-              imagePullPolicy:
+              options:
                 type: string
               applicationId:
                 type: string

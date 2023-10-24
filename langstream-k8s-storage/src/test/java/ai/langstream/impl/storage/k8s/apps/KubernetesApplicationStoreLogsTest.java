@@ -223,7 +223,7 @@ class KubernetesApplicationStoreLogsTest {
 
         return SerializationUtil.readYaml(
                 """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Agent
                 metadata:
                   name: %s

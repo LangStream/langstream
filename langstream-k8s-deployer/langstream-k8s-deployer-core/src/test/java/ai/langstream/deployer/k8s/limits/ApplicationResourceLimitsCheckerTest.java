@@ -118,7 +118,7 @@ class ApplicationResourceLimitsCheckerTest {
         ApplicationCustomResource resource =
                 getCr(
                         """
-                                apiVersion: langstream.ai/v1beta1
+                                apiVersion: langstream.ai/v1alpha1
                                 kind: Application
                                 metadata:
                                   name: %s

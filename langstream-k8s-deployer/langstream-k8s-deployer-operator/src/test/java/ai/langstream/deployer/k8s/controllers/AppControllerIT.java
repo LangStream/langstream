@@ -68,7 +68,7 @@ public class AppControllerIT {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1beta1
+                apiVersion: langstream.ai/v1alpha1
                 kind: Application
                 metadata:
                   name: %s
@@ -395,7 +395,7 @@ public class AppControllerIT {
         ApplicationCustomResource resource =
                 getCr(
                         """
-                                apiVersion: langstream.ai/v1beta1
+                                apiVersion: langstream.ai/v1alpha1
                                 kind: Application
                                 metadata:
                                   name: %s

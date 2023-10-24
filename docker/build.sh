@@ -32,15 +32,20 @@ common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip -ntp"
 
 build_docker_image() {
   module=$1
+  clean="${2:-true}"
+  clean_cmd=""
+  if [ "$clean" == "true" ]; then
+    clean_cmd="clean"
+  fi
   ./mvnw install -am -pl $module -T 1C $common_flags
-  ./mvnw clean package -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" $common_flags
+  ./mvnw $clean_cmd package -Pdocker -pl $module -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 2
 }
 
 if [ "$only_image" == "control-plane" ]; then
   build_docker_image langstream-webservice
 elif [ "$only_image" == "operator" ] || [ "$only_image" == "deployer" ]; then
-  build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator
+  build_docker_image langstream-k8s-deployer/langstream-k8s-deployer-operator "false"
 elif [ "$only_image" == "runtime-base-docker-image" ]; then
   build_docker_image langstream-runtime/langstream-runtime-base-docker-image
 elif [ "$only_image" == "runtime" ]; then

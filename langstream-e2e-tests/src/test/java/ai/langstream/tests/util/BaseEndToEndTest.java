@@ -558,7 +558,7 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @AfterEach
     public void cleanupAfterEach() {
-        // do not cleanup the langstream cluster here otherwise we wouldn't get the logs and status if the test fails
+        cleanupAllEndToEndTestsNamespaces();
         cleanupEnv();
     }
 

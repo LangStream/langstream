@@ -49,9 +49,12 @@ class AgentRunnerStarterTest {
         runTest(false, Map.of());
         runTest(false, Map.of(), podRuntimeFile);
         runTest(false, Map.of(), podRuntimeFile, codeDir);
-        runTest(true, Map.of(
-                AgentRunnerConstants.PERSISTENT_VOLUMES_PATH,
-                persistentStateDir), podRuntimeFile, codeDir, agentsDir);
+        runTest(
+                true,
+                Map.of(AgentRunnerConstants.PERSISTENT_VOLUMES_PATH, persistentStateDir),
+                podRuntimeFile,
+                codeDir,
+                agentsDir);
         runTest(
                 false,
                 Map.of(
@@ -69,8 +72,7 @@ class AgentRunnerStarterTest {
                         AgentRunnerConstants.AGENTS_ENV,
                         agentsDir,
                         AgentRunnerConstants.PERSISTENT_VOLUMES_PATH,
-                        persistentStateDir
-                        ));
+                        persistentStateDir));
     }
 
     @SneakyThrows

@@ -16,6 +16,7 @@
 package ai.langstream.webservice.archetype;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -25,10 +26,16 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
+import ai.langstream.webservice.application.CodeStorageService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -53,6 +60,9 @@ class ArchetypeResourceTest {
     @RegisterExtension static final KubeK3sServer k3s = new KubeK3sServer(true);
 
     @Autowired ApplicationStore applicationStore;
+
+    @Autowired
+    CodeStorageService codeStorageService;
 
     @Test
     void testArchetypesMetadata() throws Exception {
@@ -240,9 +250,15 @@ class ArchetypeResourceTest {
                                     globals.get("nested-map"));
                         });
 
+        String codeArchiveReference = applicationStore.getSpecs("my-tenant", "app-id")
+                .getCodeArchiveReference();
         Secrets secrets = applicationStore.getSecrets("my-tenant", "app-id");
         assertEquals("value secret 2", secrets.secrets().get("open-ai").data().get("foo"));
         assertEquals(100, secrets.secrets().get("open-ai").data().get("foo-int"));
         assertEquals("value 3", secrets.secrets().get("kafka").data().get("bootstrap-servers"));
+
+        byte[] bytes = codeStorageService.downloadApplicationCode("my-tenant", "app-id",
+                codeArchiveReference);
+        assertNotNull(bytes);
     }
 }

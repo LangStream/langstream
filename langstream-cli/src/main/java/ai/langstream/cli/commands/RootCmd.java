@@ -27,6 +27,7 @@ import picocli.CommandLine;
         scope = CommandLine.ScopeType.INHERIT,
         header = "LangStream CLI",
         subcommands = {
+            RootArchetypeCmd.class,
             RootAppCmd.class,
             ConfigureCmd.class,
             RootTenantCmd.class,

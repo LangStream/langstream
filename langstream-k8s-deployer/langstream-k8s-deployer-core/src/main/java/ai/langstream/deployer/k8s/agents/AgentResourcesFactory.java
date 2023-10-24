@@ -239,7 +239,7 @@ public class AgentResourcesFactory {
                         .build());
         final List<PersistentVolumeClaim> persistentVolumeClaims = new ArrayList<>();
         handleContainerDisks(
-                agentCustomResource, spec, persistentVolumeClaims, disks, containerMounts);
+                agentCustomResource, spec, persistentVolumeClaims, disks, containerMounts, agentResourceUnitConfiguration);
         final Container container =
                 new ContainerBuilder()
                         .withName("runtime")
@@ -345,7 +345,8 @@ public class AgentResourcesFactory {
             AgentSpec spec,
             List<PersistentVolumeClaim> persistentVolumeClaims,
             List<AgentSpec.Disk> disks,
-            List<VolumeMount> containerMounts) {
+            List<VolumeMount> containerMounts,
+            AgentResourceUnitConfiguration agentResourceUnitConfiguration) {
         if (disks != null) {
             disks.forEach(
                     (disk) -> {
@@ -359,9 +360,24 @@ public class AgentResourcesFactory {
                                         .withReadOnly(false)
                                         .build());
 
-                        final Quantity size = Quantity.parse(disk.size() + "");
-                        // TODO: map type to actual storage class
-                        final String storageClass = disk.type();
+                        final Quantity size;
+                        if (disk.size() <= 0) {
+                            size = Quantity.parse(agentResourceUnitConfiguration.getDefaultStorageDiskSize());
+                        } else {
+                            size = Quantity.parse(disk.size() + "");
+                        }
+                        final Map<String, String> mapping =
+                                agentResourceUnitConfiguration.getStorageClassesMapping();
+                        String storageClass = null;
+                        if (disk.type() != null && mapping != null) {
+                            storageClass = mapping.get(disk.type());
+                        }
+                        if (storageClass == null) {
+                            log.info("Disk type '{}' not found in mapping ({}), using default storage class '{}'", disk.type(),
+                                    mapping, agentResourceUnitConfiguration.getDefaultStorageClass());
+                            storageClass = agentResourceUnitConfiguration.getDefaultStorageClass();
+                        }
+
                         persistentVolumeClaims.add(
                                 new PersistentVolumeClaimBuilder()
                                         .withNewMetadata()

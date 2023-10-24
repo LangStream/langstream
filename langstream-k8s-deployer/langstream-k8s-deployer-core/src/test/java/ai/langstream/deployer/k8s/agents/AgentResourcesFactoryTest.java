@@ -285,7 +285,7 @@ class AgentResourcesFactoryTest {
 
     @Test
     void testDisks() {
-        final AgentCustomResource resource =
+        AgentCustomResource resource =
                 getCr(
                         """
                 apiVersion: langstream.ai/v1alpha1
@@ -309,7 +309,7 @@ class AgentResourcesFactoryTest {
                                 .imagePullPolicy("Never")
                                 .build());
 
-        final PersistentVolumeClaim pvc = statefulSet.getSpec().getVolumeClaimTemplates().get(0);
+        PersistentVolumeClaim pvc = statefulSet.getSpec().getVolumeClaimTemplates().get(0);
         assertEquals("the-app-my-agent", pvc.getMetadata().getName());
         assertEquals("default", pvc.getMetadata().getNamespace());
         assertEquals("ReadWriteOnce", pvc.getSpec().getAccessModes().get(0));
@@ -334,6 +334,88 @@ class AgentResourcesFactoryTest {
             }
         }
         assertTrue(found);
+
+
+        resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: test-agent1
+                  namespace: default
+                spec:
+                    agentConfigSecretRef: agent-config
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                    applicationId: the-app
+                    agentId: my-agent
+                    options: '{"disks":[{"agentId": "my-agent"}]}'
+                """);
+        pvc = AgentResourcesFactory.generateStatefulSet(
+                AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                        .agentCustomResource(resource)
+                        .image("busybox")
+                        .imagePullPolicy("Never")
+                        .build())
+                        .getSpec().getVolumeClaimTemplates().get(0);
+
+        assertEquals("default", pvc.getSpec().getStorageClassName());
+        assertEquals(
+                Quantity.parse("128M"),
+                pvc.getSpec().getResources().getRequests().get("storage"));
+
+        resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: test-agent1
+                  namespace: default
+                spec:
+                    agentConfigSecretRef: agent-config
+                    agentConfigSecretRefChecksum: xx
+                    tenant: my-tenant
+                    applicationId: the-app
+                    agentId: my-agent
+                    options: '{"disks":[{"agentId": "my-agent", "type": "custom-type"}]}'
+                """);
+        AgentResourceUnitConfiguration config = new AgentResourceUnitConfiguration();
+        config.setStorageClassesMapping(Map.of("custom-type", "custom-storage-class"));
+        config.setDefaultStorageDiskSize("1G");
+        pvc = AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .image("busybox")
+                                .imagePullPolicy("Never")
+                                .agentResourceUnitConfiguration(config)
+                                .build())
+                .getSpec().getVolumeClaimTemplates().get(0);
+
+
+        assertEquals("custom-storage-class", pvc.getSpec().getStorageClassName());
+        assertEquals(
+                Quantity.parse("1G"),
+                pvc.getSpec().getResources().getRequests().get("storage"));
+
+        config = new AgentResourceUnitConfiguration();
+        config.setStorageClassesMapping(Map.of("custom-type0", "custom-storage-class"));
+        config.setDefaultStorageDiskSize("1G");
+        pvc = AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .image("busybox")
+                                .imagePullPolicy("Never")
+                                .agentResourceUnitConfiguration(config)
+                                .build())
+                .getSpec().getVolumeClaimTemplates().get(0);
+
+
+        assertEquals("default", pvc.getSpec().getStorageClassName());
+        assertEquals(
+                Quantity.parse("1G"),
+                pvc.getSpec().getResources().getRequests().get("storage"));
     }
 
     @Test

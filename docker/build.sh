@@ -57,10 +57,8 @@ elif [ "$only_image" == "cli" ]; then
 elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image langstream-api-gateway
 else
-  # Build all artifacts
-  ./mvnw install -T 1C -Ddocker.platforms="$(docker_platforms)" $common_flags
-  # Build docker images
-  ./mvnw package -Pdocker -Ddocker.platforms="$(docker_platforms)" $common_flags
+  # Always clean to remove old NARs and cached docker images in the "target" directory
+  ./mvnw clean install -Pdocker -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 6
 fi
 

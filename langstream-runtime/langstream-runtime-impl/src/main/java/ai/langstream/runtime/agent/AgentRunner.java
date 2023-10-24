@@ -43,6 +43,7 @@ import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
+import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.prometheus.client.hotspot.DefaultExports;
 import java.io.IOException;
@@ -347,6 +348,7 @@ public class AgentRunner {
                     AgentContext agentContext =
                             new SimpleAgentContext(
                                     agentId,
+                                    configuration.agent(),
                                     consumer,
                                     producer,
                                     topicAdmin,
@@ -977,6 +979,7 @@ public class AgentRunner {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
         private final TopicAdmin topicAdmin;
+        private final String globalAgentId;
         private final String agentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
@@ -988,7 +991,8 @@ public class AgentRunner {
         private final Set<String> agentsWithPersistentState;
 
         public SimpleAgentContext(
-                String agentId,
+                String globalAgentId,
+                AgentSpec agentSpec,
                 TopicConsumer consumer,
                 TopicProducer producer,
                 TopicAdmin topicAdmin,
@@ -1000,7 +1004,8 @@ public class AgentRunner {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
-            this.agentId = agentId;
+            this.globalAgentId = globalAgentId;
+            this.agentId = agentSpec.agentId();
             this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
             this.codeDirectory = codeDirectory;
@@ -1026,8 +1031,13 @@ public class AgentRunner {
         }
 
         @Override
-        public String getGlobalAgentId() {
+        public String getAgentId() {
             return agentId;
+        }
+
+        @Override
+        public String getGlobalAgentId() {
+            return globalAgentId;
         }
 
         @Override

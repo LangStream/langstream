@@ -19,6 +19,8 @@ import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.AGENTS_ENV_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV_DEFAULT;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.PERSISTENT_VOLUMES_PATH;
+import static ai.langstream.runtime.api.agent.AgentRunnerConstants.PERSISTENT_VOLUMES_PATH_DEFAULT;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
@@ -71,7 +73,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
         Path podRuntimeConfiguration;
         Path codeDirectory;
         Path agentsDirectory;
-        Path basePersistentStateDirectory = Paths.get("/persistent-state");
+        Path basePersistentStateDirectory = getPathFromEnv(PERSISTENT_VOLUMES_PATH, PERSISTENT_VOLUMES_PATH_DEFAULT);
         if (args.length == 0) {
             podRuntimeConfiguration = getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
             codeDirectory =
@@ -97,6 +99,8 @@ public class AgentRunnerStarter extends RuntimeStarter {
         log.info("Loading pod configuration from {}", podRuntimeConfiguration);
         log.info("Loading code from {}", codeDirectory);
         log.info("Loading agents from {}", agentsDirectory);
+        log.info("Loading persistent state from {}", basePersistentStateDirectory);
+
 
         RuntimePodConfiguration configuration =
                 MAPPER.readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);

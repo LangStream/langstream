@@ -1006,6 +1006,18 @@ public class AgentRunner {
             this.codeDirectory = codeDirectory;
             this.basePersistentStateDirectory = basePersistentStateDirectory;
             this.agentsWithPersistentState = agentsWithPersistentState;
+            ensurePersistentStateDirectoriesExist();
+        }
+
+        private void ensurePersistentStateDirectoriesExist() {
+            for (String s : agentsWithPersistentState) {
+                Path agentPersistentStateDirectory = basePersistentStateDirectory.resolve(s);
+                if (!agentPersistentStateDirectory.toFile().exists()) {
+                    throw new IllegalStateException(
+                            "Persistent state directory for agent %s does not exist: %s"
+                                    .formatted(s, agentPersistentStateDirectory));
+                }
+            }
         }
 
         @Override
@@ -1058,7 +1070,6 @@ public class AgentRunner {
             if (!agentsWithPersistentState.contains(agentId)) {
                 return Optional.empty();
             }
-            // TODO: normalize the agentId
             return Optional.of(basePersistentStateDirectory.resolve(agentId));
         }
     }

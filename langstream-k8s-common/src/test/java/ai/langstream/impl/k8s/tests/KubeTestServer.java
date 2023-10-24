@@ -113,7 +113,7 @@ public class KubeTestServer
     private final Map<String, ApplicationCustomResource> currentApplications = new HashMap<>();
     private final Map<String, Secret> currentAgentsSecrets = new HashMap<>();
 
-    private static final String CRD_VERSION = "v1beta1";
+    private static final String CRD_VERSION = "v1alpha1";
 
     public Map<String, AgentCustomResource> spyAgentCustomResources(
             final String namespace, String... expectedAgents) {

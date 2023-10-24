@@ -136,7 +136,8 @@ public class ModelBuilder {
         log.info("Generated instance.yaml file:\n{}", instanceContent);
         log.info("Generated secrets.yaml file:\n{}", secretsContent);
 
-        return buildApplicationInstance(List.of(archetypePath), instanceContent, secretsContent);
+        return buildApplicationInstance(
+                List.of(archetypePath), instanceContent, secretsContent, true);
     }
 
     static void applyArchetypeParameters(
@@ -217,14 +218,25 @@ public class ModelBuilder {
      * @throws Exception if an error occurs
      */
     public static ApplicationWithPackageInfo buildApplicationInstance(
-            List<Path> applicationDirectories, String instanceContent, String secretsContent)
+            List<Path> applicationDirectories,
+            String instanceContent,
+            String secretsContent,
+            boolean fromArchetype)
             throws Exception {
         return buildApplicationInstance(
                 applicationDirectories,
                 instanceContent,
                 secretsContent,
                 new MessageDigestFunction(DigestUtils::getSha256Digest),
-                new MessageDigestFunction(DigestUtils::getSha256Digest));
+                new MessageDigestFunction(DigestUtils::getSha256Digest),
+                fromArchetype);
+    }
+
+    public static ApplicationWithPackageInfo buildApplicationInstance(
+            List<Path> applicationDirectories, String instanceContent, String secretsContent)
+            throws Exception {
+        return buildApplicationInstance(
+                applicationDirectories, instanceContent, secretsContent, false);
     }
 
     static class MessageDigestFunction implements ChecksumFunction {
@@ -265,7 +277,8 @@ public class ModelBuilder {
             String instanceContent,
             String secretsContent,
             ChecksumFunction pyChecksumFunction,
-            ChecksumFunction javaChecksumFunction)
+            ChecksumFunction javaChecksumFunction,
+            boolean fromArchetype)
             throws Exception {
         Map<String, String> applicationContents = new HashMap<>();
 
@@ -318,7 +331,8 @@ public class ModelBuilder {
             }
         }
         final ApplicationWithPackageInfo applicationWithPackageInfo =
-                buildApplicationInstance(applicationContents, instanceContent, secretsContent);
+                buildApplicationInstance(
+                        applicationContents, instanceContent, secretsContent, fromArchetype);
 
         applicationWithPackageInfo.javaBinariesDigest = javaChecksumFunction.digest();
         applicationWithPackageInfo.pyBinariesDigest = pyChecksumFunction.digest();
@@ -350,12 +364,25 @@ public class ModelBuilder {
     public static ApplicationWithPackageInfo buildApplicationInstance(
             Map<String, String> files, String instanceContent, String secretsContent)
             throws Exception {
+        return buildApplicationInstance(files, instanceContent, secretsContent, false);
+    }
+
+    public static ApplicationWithPackageInfo buildApplicationInstance(
+            Map<String, String> files,
+            String instanceContent,
+            String secretsContent,
+            boolean fromArchetype)
+            throws Exception {
         final ApplicationWithPackageInfo applicationWithPackageInfo =
                 new ApplicationWithPackageInfo(new Application());
         DefaultsHolder defaultsHolder = new DefaultsHolder();
         for (Map.Entry<String, String> entry : files.entrySet()) {
             parseApplicationFile(
-                    entry.getKey(), entry.getValue(), applicationWithPackageInfo, defaultsHolder);
+                    entry.getKey(),
+                    entry.getValue(),
+                    applicationWithPackageInfo,
+                    defaultsHolder,
+                    fromArchetype);
         }
         if (instanceContent != null) {
             applicationWithPackageInfo.hasInstanceDefinition = true;
@@ -384,7 +411,8 @@ public class ModelBuilder {
             String fileName,
             String content,
             ApplicationWithPackageInfo applicationWithPackageInfo,
-            DefaultsHolder defaultsHolder)
+            DefaultsHolder defaultsHolder,
+            boolean fromArchetype)
             throws IOException {
         if (!isPipelineFile(fileName)) {
             // skip
@@ -394,11 +422,17 @@ public class ModelBuilder {
 
         switch (fileName) {
             case "instance.yaml":
-                throw new IllegalArgumentException(
-                        "instance.yaml must not be included in the application zip");
+                if (!fromArchetype) {
+                    throw new IllegalArgumentException(
+                            "instance.yaml must not be included in the application zip");
+                }
+                break;
             case "secrets.yaml":
-                throw new IllegalArgumentException(
-                        "secrets.yaml must not be included in the application zip");
+                if (!fromArchetype) {
+                    throw new IllegalArgumentException(
+                            "secrets.yaml must not be included in the application zip");
+                }
+                break;
             case "configuration.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
                 parseConfiguration(
@@ -407,6 +441,11 @@ public class ModelBuilder {
             case "gateways.yaml":
                 applicationWithPackageInfo.hasAppDefinition = true;
                 parseGateways(content, applicationWithPackageInfo.getApplication());
+                break;
+            case "archetype.yaml":
+                // ignore
+                // only validate that the file is valid
+                yamlParser.readValue(content, ArchetypeDefinition.class);
                 break;
             default:
                 applicationWithPackageInfo.hasAppDefinition = true;

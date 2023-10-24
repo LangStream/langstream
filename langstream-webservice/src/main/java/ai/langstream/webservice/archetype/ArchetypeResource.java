@@ -39,6 +39,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -116,17 +117,23 @@ public class ArchetypeResource {
 
     @PostMapping(
             value = "/{tenant}/{idarchetype}/applications/{idapplication}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create and deploy an application from an archetype")
     ApplicationDescription.ApplicationDefinition deployApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("idapplication") String applicationId,
             @NotBlank @PathVariable("idarchetype") String idarchetype,
-            @RequestParam("applicationParameters") Map<String, Object> applicationParameters,
+            @RequestBody Map<String, Object> applicationParameters,
             @RequestParam(value = "dry-run", required = false) boolean dryRun)
             throws Exception {
         performAuthorization(authentication, tenant);
+
+        ArchetypeDefinition archetype = archetypeService.getArchetype(tenant, idarchetype);
+        if (archetype == null) {
+            log.info("Archetype {} not found", idarchetype);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
 
         final ParsedApplication parsedApplication =
                 buildApplicationFromArchetype(

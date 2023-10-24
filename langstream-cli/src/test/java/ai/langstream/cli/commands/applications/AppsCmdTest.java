@@ -468,8 +468,7 @@ class AppsCmdTest extends CommandTestBase {
                                         + "         project: myproject\n"),
                                 jsonFileRelative));
 
-        final Path zipFile =
-                AbstractDeployApplicationCmd.buildZip(langstream.toFile(), System.out::println);
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
 
         wireMock.register(
                 WireMock.post(String.format("/api/applications/%s/my-app?dry-run=false", TENANT))

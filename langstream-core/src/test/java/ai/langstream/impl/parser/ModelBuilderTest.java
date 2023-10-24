@@ -64,7 +64,8 @@ class ModelBuilderTest {
                         null,
                         null,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         Assertions.assertEquals(
                 "asubdir/script2.py:print('hello world3'),script.py:print('hello world'),script2.py:print('hello world2'),",
                 applicationWithPackageInfo.getPyBinariesDigest());
@@ -89,7 +90,8 @@ class ModelBuilderTest {
                         null,
                         null,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         Assertions.assertEquals(
                 "my-jar-1.jar:some bin content,my-jar-2.jar:some bin content2,",
                 applicationWithPackageInfo.getJavaBinariesDigest());
@@ -169,7 +171,8 @@ class ModelBuilderTest {
                         instanceContent,
                         secretsContent,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         Application applicationInstance = applicationWithPackageInfo.getApplication();
         Map<String, Object> globals = applicationInstance.getInstance().globals();
         assertEquals("value1", globals.get("var1"));
@@ -201,7 +204,8 @@ class ModelBuilderTest {
                         instanceContentWithoutGlobals,
                         secretsContent,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         applicationInstance = applicationWithPackageInfo.getApplication();
         globals = applicationInstance.getInstance().globals();
         assertEquals("default-value1", globals.get("var1"));
@@ -220,7 +224,8 @@ class ModelBuilderTest {
                         instanceContentWithEmptyGlobals,
                         secretsContent,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         applicationInstance = applicationWithPackageInfo.getApplication();
         globals = applicationInstance.getInstance().globals();
         assertEquals("default-value1", globals.get("var1"));
@@ -234,7 +239,8 @@ class ModelBuilderTest {
                         null,
                         secretsContent,
                         new StrChecksumFunction(),
-                        new StrChecksumFunction());
+                        new StrChecksumFunction(),
+                        false);
         applicationInstance = applicationWithPackageInfo.getApplication();
         globals = applicationInstance.getInstance().globals();
         assertEquals("default-value1", globals.get("var1"));

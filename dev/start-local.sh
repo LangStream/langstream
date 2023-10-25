@@ -37,6 +37,12 @@ kubectl create namespace kafka || true
 kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
 
+# Load the local CRDs before loading them with the Helm Chart (they will take precedence)
+for i in helm/crds/*yml ; do
+   echo "loading CRD $i"
+   kubectl apply -f $i
+done
+
 
 if [ "true" == "$(use_minikube_load)" ]; then
   if [ "$SKIP_BUILD" == "false" ]; then

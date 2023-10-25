@@ -29,6 +29,8 @@ spec:
                 type: string
               imagePullPolicy:
                 type: string
+              options:
+                type: string
               applicationId:
                 type: string
               resources:

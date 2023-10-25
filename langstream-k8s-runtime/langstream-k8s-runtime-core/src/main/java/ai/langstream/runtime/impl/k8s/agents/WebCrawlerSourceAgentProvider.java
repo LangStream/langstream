@@ -18,7 +18,13 @@ package ai.langstream.runtime.impl.k8s.agents;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.DiskSpec;
+import ai.langstream.api.model.Module;
+import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.api.runtime.ComputeClusterRuntime;
+import ai.langstream.api.runtime.ExecutionPlan;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -41,6 +47,42 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
     }
 
     @Override
+    protected DiskSpec computeDisk(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan physicalApplicationInstance,
+            ComputeClusterRuntime clusterRuntime,
+            StreamingClusterRuntime streamingClusterRuntime) {
+        final String stateStorage =
+                (String) agentConfiguration.getConfiguration().get("state-storage");
+        if (stateStorage.equals("s3")) {
+            return null;
+        }
+        if (!stateStorage.equals("disk")) {
+            throw new IllegalArgumentException("Unsupported state-storage: " + stateStorage);
+        }
+
+        final DiskSpec configuredDisk =
+                super.computeDisk(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        physicalApplicationInstance,
+                        clusterRuntime,
+                        streamingClusterRuntime);
+        String size = "256M";
+        String type = null;
+        if (configuredDisk != null) {
+            if (configuredDisk.size() != null) {
+                size = configuredDisk.size();
+            }
+            type = configuredDisk.type();
+        }
+        return new DiskSpec(true, type, size);
+    }
+
+    @Override
     protected Class getAgentConfigModelClass(String type) {
         return Config.class;
     }
@@ -53,6 +95,15 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                     Crawl a website and extract the content of the pages.
                     """)
     public static class Config {
+        @ConfigProperty(
+                description =
+                        """
+                        State  storage configuration. "s3" or "disk"
+                        """,
+                defaultValue = "s3")
+        @JsonProperty("state-storage")
+        private String stateStorage;
+
         @ConfigProperty(
                 description =
                         """

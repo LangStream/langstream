@@ -2,18 +2,10 @@
 
 This sample application shows how to execute embeddings using the OpenAI python library.
 
-## Create OpenAI Secret
+## Configure the OpenAI Access key
 
 ```
 export OPEN_AI_ACCESS_KEY=xxxx
-
-echo """
-secrets:
-  - name: open-ai
-    id: open-ai
-    data:
-      access-key: $OPEN_AI_ACCESS_KEY
-""" > /tmp/secrets.yaml
 ```
 ## 
 ```

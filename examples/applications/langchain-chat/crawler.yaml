@@ -15,9 +15,6 @@
 #
 
 name: "Crawl a website"
-topics:
-  - name: "chunks-topic"
-    creation-mode: create-if-not-exists
 resources:
       size: 2
 pipeline:
@@ -38,8 +35,11 @@ pipeline:
       http-timeout: 10000
       handle-cookies: true
       max-unflushed-pages: 100
-      # store data directly on the agent disk, no need for external S3 storage
-      state-storage: disk
+      bucketName: "${secrets.s3.bucket-name}"
+      endpoint: "${secrets.s3.endpoint}"
+      access-key: "${secrets.s3.access-key}"
+      secret-key: "${secrets.s3.secret}"
+      region: "${secrets.s3.region}"
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -82,13 +82,24 @@ pipeline:
         - name: "value.chunk_num_tokens"
           expression: "properties.chunk_num_tokens"
           type: STRING
+        - name: "value.row_id"
+          expression: "fn:concat3(value.filename, '_', value.chunk_id)"
+          type: STRING
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "chunks-topic"
     configuration:
-      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10
       flush-interval: 500
+  - name: "Write to Astra"
+    type: "vector-db-sink"
+    resources:
+      size: 2
+    configuration:
+      datasource: "AstraDatasource"
+      table-name: "documents"
+      keyspace: "documents"
+      mapping: "row_id=value.row_id, body_blob=value.text, vector=value.embeddings_vector"

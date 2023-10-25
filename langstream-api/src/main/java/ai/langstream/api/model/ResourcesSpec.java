@@ -15,10 +15,13 @@
  */
 package ai.langstream.api.model;
 
-/** Definition of the resources required by the agent. */
-public record ResourcesSpec(Integer parallelism, Integer size) {
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-    public static ResourcesSpec DEFAULT = new ResourcesSpec(1, 1);
+@JsonInclude(JsonInclude.Include.NON_NULL)
+/** Definition of the resources required by the agent. */
+public record ResourcesSpec(Integer parallelism, Integer size, DiskSpec disk) {
+
+    public static ResourcesSpec DEFAULT = new ResourcesSpec(1, 1, null);
 
     public ResourcesSpec withDefaultsFrom(ResourcesSpec higherLevel) {
         if (higherLevel == null) {
@@ -26,6 +29,8 @@ public record ResourcesSpec(Integer parallelism, Integer size) {
         }
         Integer newParallelism = parallelism == null ? higherLevel.parallelism() : parallelism;
         Integer newUnits = size == null ? higherLevel.size() : size;
-        return new ResourcesSpec(newParallelism, newUnits);
+        DiskSpec newDisk =
+                disk == null ? higherLevel.disk() : disk.withDefaultsFrom(higherLevel.disk);
+        return new ResourcesSpec(newParallelism, newUnits, newDisk);
     }
 }

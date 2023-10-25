@@ -32,6 +32,7 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -67,7 +69,7 @@ public abstract class AbstractApplicationRunner {
 
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
-    private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    @Getter private static Path basePersistenceDirectory;
 
     private static Path codeDirectory;
 
@@ -145,12 +147,15 @@ public abstract class AbstractApplicationRunner {
     @BeforeAll
     public static void setup() throws Exception {
         codeDirectory = Paths.get("target/test-jdbc-drivers");
+        basePersistenceDirectory =
+                Files.createTempDirectory("langstream-agents-tests-persistent-state");
         narFileHandler =
                 new NarFileHandler(
                         agentsDirectory,
                         AgentRunner.buildCustomLibClasspath(codeDirectory),
                         Thread.currentThread().getContextClassLoader());
-        topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         final AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
@@ -210,10 +215,23 @@ public abstract class AbstractApplicationRunner {
                                 AgentInfo agentInfo = new AgentInfo();
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                                 AtomicInteger numLoops = new AtomicInteger();
+                                for (String agentWithDisk :
+                                        podConfiguration.agent().agentsWithDisk()) {
+                                    Path directory =
+                                            basePersistenceDirectory.resolve(agentWithDisk);
+                                    if (!Files.isDirectory(directory)) {
+                                        log.info(
+                                                "Provisioning directory {} for stateful agent {}",
+                                                directory,
+                                                agentWithDisk);
+                                        Files.createDirectory(directory);
+                                    }
+                                }
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
+                                        basePersistenceDirectory,
                                         agentInfo,
                                         () -> {
                                             log.info(

@@ -73,7 +73,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
         Path codeDirectory;
         Path agentsDirectory;
         Path basePersistentStateDirectory =
-                getPathFromEnv(PERSISTENT_VOLUMES_PATH, PERSISTENT_VOLUMES_PATH_DEFAULT);
+                getOptionalPathFromEnv(PERSISTENT_VOLUMES_PATH, PERSISTENT_VOLUMES_PATH_DEFAULT);
         if (args.length == 0) {
             podRuntimeConfiguration = getPathFromEnv(POD_CONFIG_ENV, POD_CONFIG_ENV_DEFAULT);
             codeDirectory =
@@ -99,7 +99,11 @@ public class AgentRunnerStarter extends RuntimeStarter {
         log.info("Loading pod configuration from {}", podRuntimeConfiguration);
         log.info("Loading code from {}", codeDirectory);
         log.info("Loading agents from {}", agentsDirectory);
-        log.info("Loading persistent state from {}", basePersistentStateDirectory);
+        if (basePersistentStateDirectory == null) {
+            log.info("No persistent state directory");
+        } else {
+            log.info("Loading persistent state from {}", basePersistentStateDirectory);
+        }
 
         RuntimePodConfiguration configuration =
                 MAPPER.readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);

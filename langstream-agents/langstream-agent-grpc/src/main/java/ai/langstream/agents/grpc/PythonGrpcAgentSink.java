@@ -30,7 +30,7 @@ public class PythonGrpcAgentSink extends GrpcAgentSink {
 
     @Override
     public void start() throws Exception {
-        server = new PythonGrpcServer(agentContext.getCodeDirectory(), configuration, agentContext);
+        server = new PythonGrpcServer(agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
         channel = server.start();
         super.start();
     }

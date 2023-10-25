@@ -33,12 +33,14 @@ public class PythonGrpcServer {
 
     private final Path codeDirectory;
     private final Map<String, Object> configuration;
+    private final String agentId;
     private final AgentContext agentContext;
     private Process pythonProcess;
 
-    public PythonGrpcServer(Path codeDirectory, Map<String, Object> configuration, AgentContext agentContext) {
+    public PythonGrpcServer(Path codeDirectory, Map<String, Object> configuration, String agentId, AgentContext agentContext) {
         this.codeDirectory = codeDirectory;
         this.configuration = configuration;
+        this.agentId = agentId;
         this.agentContext = agentContext;
     }
 
@@ -100,7 +102,7 @@ public class PythonGrpcServer {
 
     private AgentContextConfiguration computeAgentContextConfiguration() {
         final Optional<Path> persistentStateDirectoryForAgent =
-                agentContext.getPersistentStateDirectoryForAgent(agentContext.getAgentId());
+                agentContext.getPersistentStateDirectoryForAgent(agentId);
 
         final String persistentStateDirectory = persistentStateDirectoryForAgent.map(p -> p.toFile().getAbsolutePath()).orElse(null);
         AgentContextConfiguration agentContextConfiguration = new AgentContextConfiguration(persistentStateDirectory);

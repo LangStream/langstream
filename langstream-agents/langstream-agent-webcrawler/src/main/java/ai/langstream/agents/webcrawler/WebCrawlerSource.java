@@ -56,7 +56,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
@@ -100,7 +99,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         agentConfiguration = configuration;
-        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
+
 
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
@@ -159,7 +158,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("Status file is {}", statusFileName);
         final String agentId = agentId();
         localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
-        String stateStorage = agentConfiguration.getOrDefault("state-storage", "s3").toString();
+        String stateStorage = getString("state-storage", "s3", agentConfiguration);
         if (stateStorage.equals("disk")) {
             if (!localDiskPath.isPresent()) {
                 throw new IllegalArgumentException(
@@ -172,6 +171,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             statusStorage = new LocalDiskStatusStorage();
         } else {
             log.info("Using S3 storage");
+            bucketName = getString("bucketName", "langstream-source", agentConfiguration);
             String endpoint =
                     getString(
                             "endpoint", "http://minio-endpoint.-not-set:9090", agentConfiguration);
@@ -433,7 +433,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             MAPPER.writeValue(fullPath.toFile(), status);
         }
 
-        @NotNull
         private Path computeFullPath() {
             final Path fullPath = localDiskPath.get().resolve(statusFileName);
             return fullPath;

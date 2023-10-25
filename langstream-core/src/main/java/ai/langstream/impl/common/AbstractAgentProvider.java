@@ -17,6 +17,7 @@ package ai.langstream.impl.common;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.runtime.AgentNode;
@@ -87,6 +88,44 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                     ConnectionImplementation.ConnectionDirection.OUTPUT,
                     physicalApplicationInstance,
                     streamingClusterRuntime);
+        } else {
+            return null;
+        }
+    }
+
+    protected Map<String, DiskSpec> computeDisks(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan physicalApplicationInstance,
+            ComputeClusterRuntime clusterRuntime,
+            StreamingClusterRuntime streamingClusterRuntime) {
+        final DiskSpec disk =
+                computeDisk(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        physicalApplicationInstance,
+                        clusterRuntime,
+                        streamingClusterRuntime);
+        if (disk == null) {
+            return Map.of();
+        }
+        return Map.of(agentConfiguration.getId(), disk);
+    }
+
+    protected DiskSpec computeDisk(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan physicalApplicationInstance,
+            ComputeClusterRuntime clusterRuntime,
+            StreamingClusterRuntime streamingClusterRuntime) {
+        if (agentConfiguration.getResources() != null
+                && agentConfiguration.getResources().disk() != null
+                && agentConfiguration.getResources().disk().enabled() != null
+                && agentConfiguration.getResources().disk().enabled()) {
+            return agentConfiguration.getResources().disk();
         } else {
             return null;
         }
@@ -186,6 +225,14 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         clusterRuntime,
                         streamingClusterRuntime);
         boolean composable = isComposable(agentConfiguration);
+        Map<String, DiskSpec> disks =
+                computeDisks(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        streamingClusterRuntime);
         return new DefaultAgentNode(
                 agentConfiguration.getId(),
                 agentType,
@@ -196,7 +243,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 input,
                 output,
                 agentConfiguration.getResources(),
-                agentConfiguration.getErrors());
+                agentConfiguration.getErrors(),
+                disks);
     }
 
     @Override

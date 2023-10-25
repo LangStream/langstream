@@ -43,11 +43,18 @@ class AgentRunnerStarterTest {
                 Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
         String agentsDir =
                 Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
+        String persistentStateDir =
+                Files.createTempDirectory("langstream-cli-test").toFile().getAbsolutePath();
 
         runTest(false, Map.of());
         runTest(false, Map.of(), podRuntimeFile);
         runTest(false, Map.of(), podRuntimeFile, codeDir);
-        runTest(true, Map.of(), podRuntimeFile, codeDir, agentsDir);
+        runTest(
+                true,
+                Map.of(AgentRunnerConstants.PERSISTENT_VOLUMES_PATH, persistentStateDir),
+                podRuntimeFile,
+                codeDir,
+                agentsDir);
         runTest(
                 false,
                 Map.of(
@@ -63,7 +70,9 @@ class AgentRunnerStarterTest {
                         AgentRunnerConstants.DOWNLOADED_CODE_PATH_ENV,
                         codeDir,
                         AgentRunnerConstants.AGENTS_ENV,
-                        agentsDir));
+                        agentsDir,
+                        AgentRunnerConstants.PERSISTENT_VOLUMES_PATH,
+                        persistentStateDir));
     }
 
     @SneakyThrows
@@ -84,6 +93,7 @@ class AgentRunnerStarterTest {
         }
         Mockito.verify(agentRunner)
                 .run(
+                        Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),
                         Mockito.any(),

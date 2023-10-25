@@ -39,25 +39,23 @@ import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -72,10 +70,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private boolean handleRobotsFile;
     private boolean scanHtmlDocuments;
     private Set<String> seedUrls;
+    private Map<String, Object> agentConfiguration;
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
     @Getter private String statusFileName;
+    Optional<Path> localDiskPath;
 
     private WebCrawler crawler;
 
@@ -85,7 +85,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    private final StatusStorage statusStorage = new S3StatusStorage();
+    private StatusStorage statusStorage;
 
     private Runnable onReindexStart;
 
@@ -99,12 +99,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
-        String endpoint =
-                getString("endpoint", "http://minio-endpoint.-not-set:9090", configuration);
-        String username = getString("access-key", "minioadmin", configuration);
-        String password = getString("secret-key", "minioadmin", configuration);
-        String region = getString("region", "", configuration);
+        agentConfiguration = configuration;
+
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
         maxUrls = getInt("max-urls", 1000, configuration);
@@ -123,11 +119,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
-        log.info(
-                "Connecting to S3 Bucket at {} in region {} with user {}",
-                endpoint,
-                region,
-                username);
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
         log.info("seed-urls: {}", seedUrls);
@@ -139,15 +130,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         log.info("max-unflushed-pages: {}", maxUnflushedPages);
         log.info("min-time-between-requests: {}", minTimeBetweenRequests);
         log.info("reindex-interval-seconds: {}", reindexIntervalSeconds);
-
-        MinioClient.Builder builder =
-                MinioClient.builder().endpoint(endpoint).credentials(username, password);
-        if (!region.isBlank()) {
-            builder.region(region);
-        }
-        minioClient = builder.build();
-
-        makeBucketIfNotExists(bucketName);
 
         WebCrawlerConfiguration webCrawlerConfiguration =
                 WebCrawlerConfiguration.builder()
@@ -174,18 +156,49 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String globalAgentId = context.getGlobalAgentId();
         statusFileName = globalAgentId + ".webcrawler.status.json";
         log.info("Status file is {}", statusFileName);
+        final String agentId = agentId();
+        localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
+        String stateStorage = getString("state-storage", "s3", agentConfiguration);
+        if (stateStorage.equals("disk")) {
+            if (!localDiskPath.isPresent()) {
+                throw new IllegalArgumentException(
+                        "No local disk path available for agent "
+                                + agentId
+                                + " and state-storage was set to 'disk'");
+            }
+            log.info("Using local disk storage");
+
+            statusStorage = new LocalDiskStatusStorage();
+        } else {
+            log.info("Using S3 storage");
+            bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+            String endpoint =
+                    getString(
+                            "endpoint", "http://minio-endpoint.-not-set:9090", agentConfiguration);
+            String username = getString("access-key", "minioadmin", agentConfiguration);
+            String password = getString("secret-key", "minioadmin", agentConfiguration);
+            String region = getString("region", "", agentConfiguration);
+
+            log.info(
+                    "Connecting to S3 Bucket at {} in region {} with user {}",
+                    endpoint,
+                    region,
+                    username);
+
+            MinioClient.Builder builder =
+                    MinioClient.builder().endpoint(endpoint).credentials(username, password);
+            if (!region.isBlank()) {
+                builder.region(region);
+            }
+            minioClient = builder.build();
+
+            makeBucketIfNotExists(bucketName);
+            statusStorage = new S3StatusStorage();
+        }
     }
 
-    private void makeBucketIfNotExists(String bucketName)
-            throws ServerException,
-                    InsufficientDataException,
-                    ErrorResponseException,
-                    IOException,
-                    NoSuchAlgorithmException,
-                    InvalidKeyException,
-                    InvalidResponseException,
-                    XmlParserException,
-                    InternalException {
+    @SneakyThrows
+    private void makeBucketIfNotExists(String bucketName) {
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
@@ -297,15 +310,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        return Map.of(
-                "bucketName",
-                bucketName,
-                "statusFileName",
-                statusFileName,
-                "seed-Urls",
-                seedUrls,
-                "allowed-domains",
-                allowedDomains);
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put("seed-Urls", seedUrls);
+        additionalInfo.put("allowed-domains", allowedDomains);
+        additionalInfo.put("statusFileName", statusFileName);
+        additionalInfo.put("bucketName", bucketName);
+        return additionalInfo;
     }
 
     @Override
@@ -398,15 +408,46 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 try {
                     return MAPPER.readValue(content, Status.class);
                 } catch (IOException e) {
-                    log.error("Error parsing status file, restarting from scratch", e);
+                    log.error("Error parsing status file", e);
                     return null;
                 }
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
-                    log.info("No status file found, starting from scratch");
                     return new Status(List.of(), List.of(), null, null, Map.of());
                 }
                 throw e;
+            }
+        }
+    }
+
+    private class LocalDiskStatusStorage implements StatusStorage {
+        private static final ObjectMapper MAPPER = new ObjectMapper();
+
+        @Override
+        public void storeStatus(Status status) throws Exception {
+            final Path fullPath = computeFullPath();
+            log.info("Storing status to the disk at path {}", fullPath);
+            MAPPER.writeValue(fullPath.toFile(), status);
+        }
+
+        private Path computeFullPath() {
+            final Path fullPath = localDiskPath.get().resolve(statusFileName);
+            return fullPath;
+        }
+
+        @Override
+        public Status getCurrentStatus() throws Exception {
+            final Path fullPath = computeFullPath();
+            if (Files.exists(fullPath)) {
+                log.info("Restoring status from {}", fullPath);
+                try {
+                    return MAPPER.readValue(fullPath.toFile(), Status.class);
+                } catch (IOException e) {
+                    log.error("Error parsing status file", e);
+                    return null;
+                }
+            } else {
+                return null;
             }
         }
     }

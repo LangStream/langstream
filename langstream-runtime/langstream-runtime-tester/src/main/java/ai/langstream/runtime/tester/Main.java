@@ -87,6 +87,9 @@ public class Main {
                 return;
             }
 
+            final Path basePersistentStatePath = Paths.get("/app/persistent-state");
+            Files.createDirectories(basePersistentStatePath);
+
             List<String> expectedAgents = new ArrayList<>();
             List<String> allAgentIds = new ArrayList<>();
             applicationWithPackageInfo
@@ -135,7 +138,8 @@ public class Main {
             }
 
             try (LocalApplicationRunner runner =
-                    new LocalApplicationRunner(Paths.get(agentsDirectory), codeDirectory); ) {
+                    new LocalApplicationRunner(
+                            Paths.get(agentsDirectory), codeDirectory, basePersistentStatePath); ) {
 
                 InMemoryApplicationStore.setAgentsInfoCollector(runner);
                 InMemoryApplicationStore.setFilterAgents(agentsIdToKeepInStats);

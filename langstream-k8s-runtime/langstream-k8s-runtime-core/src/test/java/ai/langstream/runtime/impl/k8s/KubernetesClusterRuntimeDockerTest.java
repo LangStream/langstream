@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -229,7 +230,8 @@ class KubernetesClusterRuntimeDockerTest {
                                                         "url", "http://something",
                                                         "access-key", "xxcxcxc",
                                                         "provider", "azure")),
-                                defaultErrorsAsMap)),
+                                defaultErrorsAsMap,
+                                Set.of())),
                 SerializationUtil.prettyPrintJson(runtimePodConfiguration.agent()));
         assertEquals(
                 new StreamingCluster(

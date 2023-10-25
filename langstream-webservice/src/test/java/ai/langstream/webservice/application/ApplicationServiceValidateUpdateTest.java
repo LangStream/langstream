@@ -527,7 +527,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(1, 1),
+                                new ResourcesSpec(1, 1, null),
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -537,30 +537,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(1, 1),
-                                null)),
-                true);
-
-        checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                new ResourcesSpec(1, 1),
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                new ResourcesSpec(2, 1),
+                                new ResourcesSpec(1, 1, null),
                                 null)),
                 true);
 
@@ -573,7 +550,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(1, 1),
+                                new ResourcesSpec(1, 1, null),
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -583,30 +560,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(1, 2),
-                                null)),
-                true);
-
-        checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                new ResourcesSpec(1, 1),
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                new ResourcesSpec(2, 2),
+                                new ResourcesSpec(2, 1, null),
                                 null)),
                 true);
 
@@ -619,7 +573,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(2, 2),
+                                new ResourcesSpec(1, 1, null),
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -629,7 +583,53 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic",
                                 "output-topic",
                                 Map.of(),
-                                new ResourcesSpec(1, 1),
+                                new ResourcesSpec(1, 2, null),
+                                null)),
+                true);
+
+        checkAgents(
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null)),
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                Map.of(),
+                                new ResourcesSpec(2, 2, null),
+                                null)),
+                true);
+
+        checkAgents(
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                Map.of(),
+                                new ResourcesSpec(2, 2, null),
+                                null)),
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
                                 null)),
                 true);
     }

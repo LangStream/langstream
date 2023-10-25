@@ -1012,7 +1012,8 @@ public class AgentRunner {
         private void ensurePersistentStateDirectoriesExist() {
             if (basePersistentStateDirectory == null && !agentsWithPersistentState.isEmpty()) {
                 throw new IllegalStateException(
-                        "Persistent state directory is not configured but some agents have persistent state configured: " + agentsWithPersistentState);
+                        "Persistent state directory is not configured but some agents have persistent state configured: "
+                                + agentsWithPersistentState);
             }
             for (String s : agentsWithPersistentState) {
                 Path agentPersistentStateDirectory = basePersistentStateDirectory.resolve(s);

@@ -5,6 +5,10 @@ We are using the camel-github component to read the messages from GitHub.
 
 https://camel.apache.org/components/4.0.x/github-component.html
 
+In the application we are using the following LangStream agents:
+
+- camel-source: to read the messages from GitHub
+- compute: to manipulate the messages coming from Camel
 
 ## Deploy the LangStream application
 
@@ -16,7 +20,6 @@ export CAMEL_GITHUB_OAUTH_TOKEN=xxxx
 export CAMEL_GITHUB_REPO_NAME=langstream
 export CAMEL_GITHUB_REPO_OWNER=langstream
 export CAMEL_GITHUB_BRANCH=main
-export CAMEL_GITHUB_EVENT=PULLREQUESTCOMMENT
 ```
 
 Then you can run the application

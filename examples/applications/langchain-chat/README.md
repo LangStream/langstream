@@ -1,31 +1,22 @@
-# LangChain Source
+# Simple Chat-bot using LangChain
 
-This sample application shows how to use LangChain in a Python agent.
-The application is a Source that uses LangChain to load documents from S3 and then uses a LangChain document transformer to chunk the document and send the chunks to a Kafka topic.
+This sample application shows how to use LangChain to build a chat-bot.
 
-## Prerequisites
+## Configure you OpenAI API Key
 
-Create a S3 bucket.
+Export to the ENV the access key to OpenAI
 
-## Configure the pipeline
+```
+export OPEN_AI_ACCESS_KEY=...
+```
 
-Update the pipeline file and set the bucket name, s3 URL username, password and the other parameters.
+The default [secrets file](../../secrets/secrets.yaml) reads from the ENV. Check out the file to learn more about
+the default settings, you can change them by exporting other ENV variables.
 
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/langchain-source -i examples/instances/kafka-kubernetes.yaml -s -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/langchain-chatbot -s examples/secrets/secrets.yaml
 ```
 
-## Start a Consumer
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
-```
-
-## Upload a file to S3
-
-For instance using the AWS CLI in another terminal:
-```
-aws s3 cp <some file> s3://langstream-langchain-source
-```
-The chunks of the file will be displayed on the Kafka consumer terminal.
+Then you can talk with the chat-bot using the UI.

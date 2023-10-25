@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -309,15 +310,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        return Map.of(
-                "bucketName",
-                bucketName,
-                "statusFileName",
-                statusFileName,
-                "seed-Urls",
-                seedUrls,
-                "allowed-domains",
-                allowedDomains);
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put("seed-Urls", seedUrls);
+        additionalInfo.put("allowed-domains", allowedDomains);
+        additionalInfo.put("statusFileName", statusFileName);
+        additionalInfo.put("bucketName", bucketName);
+        return additionalInfo;
     }
 
     @Override

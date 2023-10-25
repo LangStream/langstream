@@ -29,7 +29,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 4:
         print("Missing gRPC target or config or agent context")
-        print("usage: python -m langstream_grpc <target> <config> <agent_context_config>")
+        print(
+            "usage: python -m langstream_grpc <target> <config> <agent_context_config>"
+        )
         sys.exit(1)
 
     server = AgentServer(sys.argv[1], sys.argv[2], sys.argv[3])

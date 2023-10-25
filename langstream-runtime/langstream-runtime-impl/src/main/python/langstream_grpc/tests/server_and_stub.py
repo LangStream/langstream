@@ -16,14 +16,15 @@
 
 from typing import Optional
 
-import grpc, json
+import grpc
+import json
 
 from langstream_grpc.grpc_service import AgentServer
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceStub
 
 
 class ServerAndStub(object):
-    def __init__(self, class_name, agent_config = {}, context = {}):
+    def __init__(self, class_name, agent_config={}, context={}):
         self.config = agent_config.copy()
         self.config["className"] = class_name
         self.context = context
@@ -32,7 +33,9 @@ class ServerAndStub(object):
         self.stub: Optional[AgentServiceStub] = None
 
     def __enter__(self):
-        self.server = AgentServer("[::]:0", json.dumps(self.config), json.dumps(self.context))
+        self.server = AgentServer(
+            "[::]:0", json.dumps(self.config), json.dumps(self.context)
+        )
         self.server.start()
         self.channel = grpc.insecure_channel("localhost:%d" % self.server.port)
         self.stub = AgentServiceStub(channel=self.channel)

@@ -44,14 +44,7 @@ from langstream_grpc.proto.agent_pb2 import (
     SinkResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
-from .api import (
-    Source,
-    Sink,
-    Processor,
-    Record,
-    Agent,
-    AgentContext
-)
+from .api import Source, Sink, Processor, Record, Agent, AgentContext
 from .util import SimpleRecord, AvroValue
 
 
@@ -343,6 +336,7 @@ def init_agent(configuration, context) -> Agent:
     context_impl = AgentContextImpl(configuration, context)
     call_method_if_exists(agent, "init", configuration, context_impl)
     return agent
+
 
 class AgentContextImpl(AgentContext):
     def __init__(self, configuration: dict, context: dict):

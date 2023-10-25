@@ -26,7 +26,7 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
-    "AgentContext"
+    "AgentContext",
 ]
 
 
@@ -68,7 +68,6 @@ class AgentContext(ABC):
     def __init__(self):
         """Initialize the agent context."""
         pass
-
 
     def get_persistent_state_directory(self):
         """Return a path pointing to the stateful agent directory. Return None if not configured in the agent."""

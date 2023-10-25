@@ -212,11 +212,10 @@ def test_info():
         assert info.json_info == '{"test-info-key": "test-info-value"}'
 
 
-
 def test_init_one_parameter():
     with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.ProcessorInitOneParameter",
-            {"my-param": "my-value"}
+        {"my-param": "my-value"},
     ) as server_and_stub:
         for response in server_and_stub.stub.process(
             iter([ProcessorRequest(records=[GrpcRecord()])])
@@ -228,16 +227,17 @@ def test_init_one_parameter():
 
 def test_processor_use_context():
     with ServerAndStub(
-            "langstream_grpc.tests.test_grpc_processor.ProcessorUseContext",
-            {"my-param": "my-value"},
-            {"persistentStateDirectory": "/tmp/processor"}
+        "langstream_grpc.tests.test_grpc_processor.ProcessorUseContext",
+        {"my-param": "my-value"},
+        {"persistentStateDirectory": "/tmp/processor"},
     ) as server_and_stub:
         for response in server_and_stub.stub.process(
-                iter([ProcessorRequest(records=[GrpcRecord()])])
+            iter([ProcessorRequest(records=[GrpcRecord()])])
         ):
             assert len(response.results) == 1
             result = response.results[0].records[0]
             assert result.value.string_value == "directory is /tmp/processor"
+
 
 class MyProcessor(Processor):
     def agent_info(self) -> Dict[str, Any]:
@@ -281,15 +281,13 @@ class MyFutureProcessor(Processor):
         return self.executor.submit(lambda r: [r], record)
 
 
-
 class ProcessorInitOneParameter(Processor):
     def init(self, agent_config):
         self.myparam = agent_config["my-param"]
 
     def process(self, record: Record) -> List[RecordType]:
-        return [{
-            "value": self.myparam
-        }]
+        return [{"value": self.myparam}]
+
 
 class ProcessorUseContext(Processor):
     def init(self, agent_config, context: AgentContext):
@@ -297,6 +295,9 @@ class ProcessorUseContext(Processor):
         self.context = context
 
     def process(self, record: Record) -> List[RecordType]:
-        return [{
-            "value": "directory is " + str(self.context.get_persistent_state_directory())
-        }]
+        return [
+            {
+                "value": "directory is "
+                + str(self.context.get_persistent_state_directory())
+            }
+        ]

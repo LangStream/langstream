@@ -35,6 +35,8 @@ import org.apache.camel.Message;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.support.AsyncProcessorSupport;
+import org.jetbrains.annotations.Nullable;
+import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
@@ -119,19 +121,23 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
 
             log.info("Processing exchange: {}", exchange);
             Message in = exchange.getIn();
-            Collection<Header> headers = new ArrayList<>();
-            if (in.hasHeaders()) {
-                in.getHeaders().forEach((k, v) -> headers.add(new SimpleRecord.SimpleHeader(k, v)));
-            }
-            Object key = keyHeader.isEmpty() ? null : in.getHeader(keyHeader);
             try {
-                String asJson = MAPPER.writeValueAsString(in.getBody());
+                Collection<Header> headers = new ArrayList<>();
+                if (in.hasHeaders()) {
+                    for (Map.Entry<String, Object> header : in.getHeaders().entrySet()) {
+                        String k = header.getKey();
+                        Object v = header.getValue();
+                        Object converted = safeObject(v);
+                        headers.add(new SimpleRecord.SimpleHeader(k, converted));
+                    };
+                }
+                Object key = keyHeader.isEmpty() ? null : safeObject(in.getHeader(keyHeader));
                 CamelRecord record =
                         new CamelRecord(
                                 callback,
                                 exchange,
                                 key,
-                                asJson,
+                                safeObject(in.getBody()),
                                 componentUri,
                                 in.getMessageTimestamp(),
                                 headers);
@@ -144,6 +150,21 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
             }
 
             return true;
+        }
+
+        @Nullable
+        private static Object safeObject(Object v) throws JsonProcessingException {
+            Object converted;
+            if (v == null) {
+                converted = null;
+            } else if (v instanceof CharSequence
+                    || v instanceof Number
+                    || v instanceof Boolean) {
+                converted = v;
+            } else {
+                converted = MAPPER.writeValueAsString(v);
+            }
+            return converted;
         }
     }
 

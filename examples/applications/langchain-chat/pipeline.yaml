@@ -18,13 +18,13 @@ name: "LangChain S3 source"
 topics:
   - name: "questions-topic"
     creation-mode: create-if-not-exists
-  - name: "output-topic"
+  - name: "answers-topic"
     creation-mode: create-if-not-exists
 pipeline:
   - name: "Implemented a cha-tbot using OpenAI and LangChain"
     type: "python-processor"
     input: "questions-topic"
-    output: "output-topic"
+    output: "answers-topic"
     configuration:
       className: "langchain_chat.LangChainChat"
       openai-key: "${ secrets.open-ai.access-key }"

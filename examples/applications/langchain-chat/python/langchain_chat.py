@@ -20,10 +20,10 @@ from langchain.embeddings import OpenAIEmbeddings
 import asyncio
 import os
 from operator import itemgetter
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Any
 
 import langsmith
-
+from langchain.callbacks.manager import Callbacks, collect_runs
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
@@ -90,9 +90,31 @@ class ChatRequest(BaseModel):
     question: str
     chat_history: Optional[List[Dict[str, str]]]
 
+class FakeRetriever(BaseRetriever):
+    def _get_relevant_documents(
+            self,
+            query: str,
+            *,
+            callbacks: Callbacks = None,
+            tags: Optional[List[str]] = None,
+            metadata: Optional[Dict[str, Any]] = None,
+            **kwargs: Any,
+    ) -> List[Document]:
+        return [Document(page_content="foo"), Document(page_content="bar")]
+
+    async def _aget_relevant_documents(
+            self,
+            query: str,
+            *,
+            callbacks: Callbacks = None,
+            tags: Optional[List[str]] = None,
+            metadata: Optional[Dict[str, Any]] = None,
+            **kwargs: Any,
+    ) -> List[Document]:
+        return [Document(page_content="foo"), Document(page_content="bar")]
 
 def get_retriever(embeddingsModel) -> BaseRetriever:
-    return "TODO - create AstraDB retriever"
+    return FakeRetriever()
 
 def create_retriever_chain(
         llm: BaseLanguageModel, retriever: BaseRetriever
@@ -201,7 +223,7 @@ class LangChainChat(Processor):
          self.retriever,
      )
 
-def process(self, record):
-      question = record.value();
+    def process(self, record):
+      question = record.value()
       response = self.answer_chain.run(question)
       return [SimpleRecord(response, headers=record.headers())]

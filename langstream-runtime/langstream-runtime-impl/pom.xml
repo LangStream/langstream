@@ -263,6 +263,13 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agent-camel</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>langstream-agents-text-processing</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>

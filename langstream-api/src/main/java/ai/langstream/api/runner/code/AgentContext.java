@@ -36,19 +36,6 @@ public interface AgentContext {
 
     TopicProducer getTopicProducer();
 
-    /**
-     * Unique id of the agent relative to the application.
-     *
-     * @return
-     */
-    String getAgentId();
-
-    /**
-     * Unique id of the agent relative to the tenant. This is normally computed by
-     * {applicationId}-{agentId}
-     *
-     * @return
-     */
     String getGlobalAgentId();
 
     TopicAdmin getTopicAdmin();

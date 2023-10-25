@@ -348,7 +348,6 @@ public class AgentRunner {
                     AgentContext agentContext =
                             new SimpleAgentContext(
                                     agentId,
-                                    configuration.agent(),
                                     consumer,
                                     producer,
                                     topicAdmin,
@@ -980,7 +979,6 @@ public class AgentRunner {
         private final TopicProducer producer;
         private final TopicAdmin topicAdmin;
         private final String globalAgentId;
-        private final String agentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
         private final BadRecordHandler brh;
@@ -992,7 +990,6 @@ public class AgentRunner {
 
         public SimpleAgentContext(
                 String globalAgentId,
-                AgentSpec agentSpec,
                 TopicConsumer consumer,
                 TopicProducer producer,
                 TopicAdmin topicAdmin,
@@ -1005,7 +1002,6 @@ public class AgentRunner {
             this.producer = producer;
             this.topicAdmin = topicAdmin;
             this.globalAgentId = globalAgentId;
-            this.agentId = agentSpec.agentId();
             this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
             this.codeDirectory = codeDirectory;
@@ -1028,11 +1024,6 @@ public class AgentRunner {
                                     .formatted(s, agentPersistentStateDirectory));
                 }
             }
-        }
-
-        @Override
-        public String getAgentId() {
-            return agentId;
         }
 
         @Override

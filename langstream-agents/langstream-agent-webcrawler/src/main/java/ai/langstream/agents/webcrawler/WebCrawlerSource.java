@@ -157,13 +157,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String globalAgentId = context.getGlobalAgentId();
         statusFileName = globalAgentId + ".webcrawler.status.json";
         log.info("Status file is {}", statusFileName);
-        localDiskPath = context.getPersistentStateDirectoryForAgent(context.getAgentId());
+        final String agentId = agentId();
+        localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
         String stateStorage = agentConfiguration.getOrDefault("state-storage", "s3").toString();
         if (stateStorage.equals("disk")) {
             if (!localDiskPath.isPresent()) {
                 throw new IllegalArgumentException(
                         "No local disk path available for agent "
-                                + context.getAgentId()
+                                + agentId
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");

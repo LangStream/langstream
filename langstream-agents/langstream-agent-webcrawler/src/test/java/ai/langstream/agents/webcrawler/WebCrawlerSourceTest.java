@@ -409,11 +409,6 @@ public class WebCrawlerSourceTest {
                     }
 
                     @Override
-                    public String getAgentId() {
-                        return "agent-id";
-                    }
-
-                    @Override
                     public TopicAdmin getTopicAdmin() {
                         return null;
                     }

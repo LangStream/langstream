@@ -16,6 +16,6 @@
 #
 
 gateways:
-  - id: "slack"
+  - id: "github"
     type: consume
     topic: "output-topic"

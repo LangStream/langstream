@@ -18,8 +18,13 @@ topics:
   - name: "output-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "read-from-slack"
+  - name: "read-from-github"
     type: "camel-source"
     output: "output-topic"
     configuration:
-      component-uri: "github:PULLREQUESTCOMMENT/${secrets.camel-github-source.branch}?oauthToken=${secrets.camel-github-source.oauthToken}&repoName=${secrets.camel-github-source.repoName}&repoOwner=${secrets.camel-github-source.repoOwner}"
+      component-uri: "github:${globals.github-event}/${secrets.camel-github-source.branch}"
+      max-buffered-records: 10
+      component-options:
+         oauthToken: "${secrets.camel-github-source.oauthToken}"
+         repoName: "${secrets.camel-github-source.repoName}"
+         repoOwner: "${secrets.camel-github-source.repoOwner}"

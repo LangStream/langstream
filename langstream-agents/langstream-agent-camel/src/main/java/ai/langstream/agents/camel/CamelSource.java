@@ -21,6 +21,7 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -28,16 +29,12 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.camel.CamelContext;
-import org.apache.camel.Consumer;
+import org.apache.camel.AsyncCallback;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
-import org.apache.camel.Processor;
-import org.apache.camel.Producer;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.support.DefaultEndpoint;
-import org.apache.camel.support.DefaultProducer;
+import org.apache.camel.support.AsyncProcessorSupport;
 
 @Slf4j
 public class CamelSource extends AbstractAgentCode implements AgentSource {
@@ -45,16 +42,126 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     private String componentUri;
     private DefaultCamelContext camelContext;
 
-    private ArrayBlockingQueue<SimpleRecord> records;
+    private ArrayBlockingQueue<CamelRecord> records;
 
-    private DefaultEndpoint endpoint;
+    private String keyHeader;
+
+    private static class CamelRecord implements Record {
+        private final AsyncCallback callback;
+        private final Exchange exchange;
+        private final Object key;
+        private final Object value;
+        private final Collection<Header> headers;
+        private final String origin;
+        private final long timestamp;
+
+        public CamelRecord(
+                AsyncCallback callback,
+                Exchange exchange,
+                Object key,
+                Object value,
+                String origin,
+                long timestamp,
+                Collection<Header> headers) {
+            this.callback = callback;
+            this.exchange = exchange;
+            this.key = key;
+            this.value = value;
+            this.headers = headers;
+            this.origin = origin;
+            this.timestamp = timestamp;
+        }
+
+        @Override
+        public Object key() {
+            return key;
+        }
+
+        @Override
+        public Object value() {
+            return value;
+        }
+
+        @Override
+        public String origin() {
+            return origin;
+        }
+
+        @Override
+        public Long timestamp() {
+            return timestamp;
+        }
+
+        @Override
+        public Collection<Header> headers() {
+            return headers;
+        }
+
+        @Override
+        public String toString() {
+            return "CamelRecord{"
+                    + "key="
+                    + key
+                    + ", value="
+                    + value
+                    + ", headers="
+                    + headers
+                    + '}';
+        }
+    }
+
+    private class LangStreamProcessor extends AsyncProcessorSupport {
+
+        @Override
+        public boolean process(Exchange exchange, AsyncCallback callback) {
+
+            log.info("Processing exchange: {}", exchange);
+            Message in = exchange.getIn();
+            Collection<Header> headers = new ArrayList<>();
+            if (in.hasHeaders()) {
+                in.getHeaders().forEach((k, v) -> headers.add(new SimpleRecord.SimpleHeader(k, v)));
+            }
+            Object key = keyHeader.isEmpty() ? null : in.getHeader(keyHeader);
+            CamelRecord record =
+                    new CamelRecord(
+                            callback,
+                            exchange,
+                            key,
+                            in.getBody(),
+                            componentUri,
+                            in.getMessageTimestamp(),
+                            headers);
+            log.info("Created record {}", record);
+            records.add(record);
+
+            return true;
+        }
+    }
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
         componentUri = ConfigurationUtils.getString("component-uri", "", configuration);
-        int maxRecords = ConfigurationUtils.getInt("max-records", 100, configuration);
+        int maxRecords = ConfigurationUtils.getInt("max-buffered-records", 100, configuration);
+        this.keyHeader = ConfigurationUtils.getString("key-header", "", configuration);
+        Map<String, Object> componentOptions =
+                ConfigurationUtils.getMap("component-options", Map.of(), configuration);
+        if (componentOptions != null) {
+            for (Map.Entry<String, Object> entry : componentOptions.entrySet()) {
+                String paramName = entry.getKey();
+                Object value = entry.getValue();
+                if (value != null) {
+                    if (componentUri.contains("?")) {
+                        componentUri += "&";
+                    } else {
+                        componentUri += "?";
+                    }
+                    componentUri += paramName + "=" + URLEncoder.encode(value.toString(), "UTF-8");
+                }
+            }
+        }
         log.info("Initializing CamelSource with componentUri: {}", componentUri);
         log.info("Max pending records: {}", maxRecords);
+        log.info("Key header: {}", keyHeader);
 
         records = new ArrayBlockingQueue<>(maxRecords);
     }
@@ -62,70 +169,11 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void start() throws Exception {
         camelContext = new DefaultCamelContext();
-
-        endpoint =
-                new DefaultEndpoint() {
-                    @Override
-                    public boolean isSingleton() {
-                        return true;
-                    }
-
-                    @Override
-                    public Producer createProducer() throws Exception {
-                        return new DefaultProducer(this) {
-
-                            @Override
-                            public void process(Exchange exchange) throws Exception {
-                                log.info("Processing exchange: {}", exchange);
-                                Message in = exchange.getIn();
-                                SimpleRecord.SimpleRecordBuilder recordBuilder =
-                                        SimpleRecord.builder();
-                                Collection<Header> headers = new ArrayList<>();
-                                if (in.hasHeaders()) {
-                                    in.getHeaders()
-                                            .forEach(
-                                                    (k, v) ->
-                                                            headers.add(
-                                                                    new SimpleRecord.SimpleHeader(
-                                                                            k, v)));
-                                }
-                                recordBuilder.headers(headers);
-                                recordBuilder.value(in.getBody());
-                                recordBuilder.timestamp(in.getMessageTimestamp());
-                                recordBuilder.origin(componentUri);
-                                SimpleRecord build = recordBuilder.build();
-                                log.info("Created record {}", build);
-                                records.add(build);
-                            }
-                        };
-                    }
-
-                    @Override
-                    public CamelContext getCamelContext() {
-                        return camelContext;
-                    }
-
-                    @Override
-                    public Consumer createConsumer(Processor processor) throws Exception {
-                        throw new UnsupportedOperationException();
-                    }
-
-                    @Override
-                    public String getEndpointUri() {
-                        return "langstream://camel-source";
-                    }
-
-                    @Override
-                    public boolean isSingletonProducer() {
-                        return true;
-                    }
-                };
-
         camelContext.addRoutes(
                 new RouteBuilder() {
                     @Override
                     public void configure() throws Exception {
-                        from(componentUri).to(endpoint);
+                        from(componentUri).process(new LangStreamProcessor());
                     }
                 });
 
@@ -134,9 +182,6 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void close() throws Exception {
-        if (endpoint != null) {
-            endpoint.close();
-        }
         if (camelContext != null) {
             camelContext.close();
         }
@@ -144,7 +189,7 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public List<Record> read() throws Exception {
-        SimpleRecord poll = records.poll(1, TimeUnit.SECONDS);
+        CamelRecord poll = records.poll(1, TimeUnit.SECONDS);
         if (poll != null) {
             processed(0, 1);
             return List.of(poll);
@@ -159,5 +204,17 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void commit(List<Record> records) throws Exception {}
+    public void commit(List<Record> records) throws Exception {
+        for (Record r : records) {
+            CamelRecord camelRecord = (CamelRecord) r;
+            camelRecord.callback.done(true);
+        }
+    }
+
+    @Override
+    public void permanentFailure(Record record, Exception error) throws Exception {
+        CamelRecord camelRecord = (CamelRecord) record;
+        log.info("Record {} failed", camelRecord);
+        camelRecord.exchange.setException(error);
+    }
 }

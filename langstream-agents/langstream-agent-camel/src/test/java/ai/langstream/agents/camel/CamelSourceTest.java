@@ -38,7 +38,8 @@ public class CamelSourceTest {
 
     @Test
     void testRead() throws Exception {
-        AgentSource agentSource = buildAgentSource("timer://test?period=1&repeatCount=1");
+        AgentSource agentSource =
+                buildAgentSource("timer://test", Map.of("period", 1, "repeatCount", 1));
         Awaitility.await()
                 .untilAsserted(
                         () -> {
@@ -47,11 +48,14 @@ public class CamelSourceTest {
                         });
     }
 
-    private AgentSource buildAgentSource(String uri) throws Exception {
+    private AgentSource buildAgentSource(String uri, Map<String, Object> componentOptions)
+            throws Exception {
         AgentSource agentSource =
                 (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("camel-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         configs.put("component-uri", uri);
+        configs.put("component-options", componentOptions);
+        configs.put("max-buffered-records", 10);
         agentSource.init(configs);
         agentSource.start();
         return agentSource;

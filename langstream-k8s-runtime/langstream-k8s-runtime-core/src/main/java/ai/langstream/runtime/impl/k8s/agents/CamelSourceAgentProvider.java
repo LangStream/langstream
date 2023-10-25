@@ -22,11 +22,11 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.Set;
 
 /** Implements support for Apache Camel based Source Agents. */
 @Slf4j
@@ -35,9 +35,7 @@ public class CamelSourceAgentProvider extends AbstractComposableAgentProvider {
     protected static final String CAMEL_SOURCE = "camel-source";
 
     public CamelSourceAgentProvider() {
-        super(
-                Set.of(CAMEL_SOURCE),
-                List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
+        super(Set.of(CAMEL_SOURCE), List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
     @Override
@@ -50,18 +48,47 @@ public class CamelSourceAgentProvider extends AbstractComposableAgentProvider {
         return CamelSourceConfiguration.class;
     }
 
-    @AgentConfig(name = "Apache Camel Source", description = "Use Apache Camel components as Source")
+    @AgentConfig(
+            name = "Apache Camel Source",
+            description = "Use Apache Camel components as Source")
     @Data
     public static class CamelSourceConfiguration {
-
 
         @ConfigProperty(
                 description =
                         """
                         The Camel URI of the component to use as Source.
                         """,
-                defaultValue = "", required = true)
+                defaultValue = "",
+                required = true)
         @JsonProperty("component-uri")
         private String componentUri;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Additional parmaters to pass to the Camel component in the query string format.
+                        The values are automatically encoded
+                        """)
+        @JsonProperty("component-options")
+        private Map<String, String> componentOptions;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Maximum number of records to buffer
+                        """,
+                defaultValue = "100")
+        @JsonProperty("max-pending-records")
+        private int maxPendingRecords;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Header to use as key of the record
+                        """,
+                defaultValue = "")
+        @JsonProperty("key-header")
+        private String keyHeader;
     }
 }

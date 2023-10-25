@@ -93,7 +93,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             description = "Start the UI")
     private boolean startUI = true;
 
-    @CommandLine.Option(names = {"-up", "--ui-port"}, description = "Port for the local webserver and UI. If 0, a random port will be used.", defaultValue = "8092")
+    @CommandLine.Option(
+            names = {"-up", "--ui-port"},
+            description = "Port for the local webserver and UI. If 0, a random port will be used.",
+            defaultValue = "8092")
     private int uiPort = 8092;
 
     @CommandLine.Option(

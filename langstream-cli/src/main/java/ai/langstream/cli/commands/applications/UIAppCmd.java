@@ -57,7 +57,10 @@ public class UIAppCmd extends BaseApplicationCmd {
     @CommandLine.Parameters(description = "Application ID")
     private String applicationId;
 
-    @CommandLine.Option(names = {"-p", "--port"}, description = "Port for the local webserver and UI. If 0, a random port will be used. ", defaultValue = "8092")
+    @CommandLine.Option(
+            names = {"-p", "--port"},
+            description = "Port for the local webserver and UI. If 0, a random port will be used. ",
+            defaultValue = "8092")
     private int port = 8092;
 
     @Override
@@ -101,7 +104,10 @@ public class UIAppCmd extends BaseApplicationCmd {
 
     @SneakyThrows
     public static Undertow startServer(
-            int port, Supplier<AppModel> appModel, String apiGatewayUrl, LogSupplier logsStream,
+            int port,
+            Supplier<AppModel> appModel,
+            String apiGatewayUrl,
+            LogSupplier logsStream,
             CLILogger logger) {
         String forwardHost;
         if (apiGatewayUrl.startsWith("wss://")) {
@@ -167,7 +173,8 @@ public class UIAppCmd extends BaseApplicationCmd {
                         .setHandler(routingHandler)
                         .build();
         server.start();
-        actualPort.set(((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
+        actualPort.set(
+                ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
         logger.log("Started UI at http://localhost:" + actualPort.get());
         openBrowserAtPort("open", actualPort.get());

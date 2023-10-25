@@ -129,7 +129,8 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
                         Object v = header.getValue();
                         Object converted = safeObject(v);
                         headers.add(new SimpleRecord.SimpleHeader(k, converted));
-                    };
+                    }
+                    ;
                 }
                 Object key = keyHeader.isEmpty() ? null : safeObject(in.getHeader(keyHeader));
                 CamelRecord record =
@@ -157,9 +158,7 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
             Object converted;
             if (v == null) {
                 converted = null;
-            } else if (v instanceof CharSequence
-                    || v instanceof Number
-                    || v instanceof Boolean) {
+            } else if (v instanceof CharSequence || v instanceof Number || v instanceof Boolean) {
                 converted = v;
             } else {
                 converted = MAPPER.writeValueAsString(v);

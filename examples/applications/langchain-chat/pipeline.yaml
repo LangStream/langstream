@@ -21,7 +21,8 @@ topics:
   - name: "answers-topic"
     creation-mode: create-if-not-exists
 pipeline:
-  - name: "Implemented a cha-tbot using OpenAI and LangChain"
+  - name: "Implemented a cha1t-bot using OpenAI and LangChain"
+    id: "chatbot"
     type: "python-processor"
     input: "questions-topic"
     output: "answers-topic"

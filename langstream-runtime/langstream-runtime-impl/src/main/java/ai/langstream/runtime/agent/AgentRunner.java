@@ -977,7 +977,7 @@ public class AgentRunner {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
         private final TopicAdmin topicAdmin;
-        private final String agentId;
+        private final String globalAgentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
         private final BadRecordHandler brh;
@@ -988,7 +988,7 @@ public class AgentRunner {
         private final Set<String> agentsWithPersistentState;
 
         public SimpleAgentContext(
-                String agentId,
+                String globalAgentId,
                 TopicConsumer consumer,
                 TopicProducer producer,
                 TopicAdmin topicAdmin,
@@ -1000,7 +1000,7 @@ public class AgentRunner {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
-            this.agentId = agentId;
+            this.globalAgentId = globalAgentId;
             this.brh = brh;
             this.topicConnectionProvider = topicConnectionProvider;
             this.codeDirectory = codeDirectory;
@@ -1027,7 +1027,7 @@ public class AgentRunner {
 
         @Override
         public String getGlobalAgentId() {
-            return agentId;
+            return globalAgentId;
         }
 
         @Override

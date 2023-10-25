@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -68,7 +69,7 @@ public abstract class AbstractApplicationRunner {
 
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
-    private static Path baseDirectoryForAgents;
+    @Getter private static Path basePersistenceDirectory;
 
     private static Path codeDirectory;
 
@@ -146,7 +147,7 @@ public abstract class AbstractApplicationRunner {
     @BeforeAll
     public static void setup() throws Exception {
         codeDirectory = Paths.get("target/test-jdbc-drivers");
-        baseDirectoryForAgents =
+        basePersistenceDirectory =
                 Files.createTempDirectory("langstream-agents-tests-persistent-state");
         narFileHandler =
                 new NarFileHandler(
@@ -216,7 +217,8 @@ public abstract class AbstractApplicationRunner {
                                 AtomicInteger numLoops = new AtomicInteger();
                                 for (String agentWithDisk :
                                         podConfiguration.agent().agentsWithDisk()) {
-                                    Path directory = baseDirectoryForAgents.resolve(agentWithDisk);
+                                    Path directory =
+                                            basePersistenceDirectory.resolve(agentWithDisk);
                                     if (!Files.isDirectory(directory)) {
                                         log.info(
                                                 "Provisioning directory {} for stateful agent {}",
@@ -229,7 +231,7 @@ public abstract class AbstractApplicationRunner {
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
-                                        baseDirectoryForAgents,
+                                        basePersistenceDirectory,
                                         agentInfo,
                                         () -> {
                                             log.info(

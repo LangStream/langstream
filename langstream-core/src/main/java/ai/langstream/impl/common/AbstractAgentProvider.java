@@ -93,6 +93,44 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
         }
     }
 
+    protected Map<String, DiskSpec> computeDisks(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan physicalApplicationInstance,
+            ComputeClusterRuntime clusterRuntime,
+            StreamingClusterRuntime streamingClusterRuntime) {
+        final DiskSpec disk =
+                computeDisk(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        physicalApplicationInstance,
+                        clusterRuntime,
+                        streamingClusterRuntime);
+        if (disk == null) {
+            return Map.of();
+        }
+        return Map.of(agentConfiguration.getId(), disk);
+    }
+
+    protected DiskSpec computeDisk(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan physicalApplicationInstance,
+            ComputeClusterRuntime clusterRuntime,
+            StreamingClusterRuntime streamingClusterRuntime) {
+        if (agentConfiguration.getResources() != null
+                && agentConfiguration.getResources().disk() != null
+                && agentConfiguration.getResources().disk().enabled() != null
+                && agentConfiguration.getResources().disk().enabled()) {
+            return agentConfiguration.getResources().disk();
+        } else {
+            return null;
+        }
+    }
+
     /**
      * Allow to override the component type
      *
@@ -188,14 +226,13 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         streamingClusterRuntime);
         boolean composable = isComposable(agentConfiguration);
         Map<String, DiskSpec> disks =
-                agentConfiguration.getResources() != null
-                                && agentConfiguration.getResources().disk() != null
-                                && agentConfiguration.getResources().disk().enabled() != null
-                                && agentConfiguration.getResources().disk().enabled()
-                        ? Map.of(
-                                agentConfiguration.getId(),
-                                agentConfiguration.getResources().disk())
-                        : Map.of();
+                computeDisks(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        streamingClusterRuntime);
         return new DefaultAgentNode(
                 agentConfiguration.getId(),
                 agentType,

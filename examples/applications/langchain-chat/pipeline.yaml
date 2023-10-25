@@ -25,6 +25,8 @@ pipeline:
     type: "python-processor"
     input: "questions-topic"
     output: "answers-topic"
+    errors:
+      on-failure: "skip"
     configuration:
       className: "langchain_chat.LangChainChat"
       openai-key: "${ secrets.open-ai.access-key }"

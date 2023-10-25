@@ -42,7 +42,6 @@ from langchain.schema.runnable import (
 from langchain.vectorstores import Weaviate
 from pydantic import BaseModel
 
-
 RESPONSE_TEMPLATE = """\
 You are an expert programmer and problem-solver, tasked with answering any question \
 about Langchain.
@@ -90,6 +89,7 @@ class ChatRequest(BaseModel):
     question: str
     chat_history: Optional[List[Dict[str, str]]]
 
+
 class FakeRetriever(BaseRetriever):
     def _get_relevant_documents(
             self,
@@ -113,8 +113,10 @@ class FakeRetriever(BaseRetriever):
     ) -> List[Document]:
         return [Document(page_content="foo"), Document(page_content="bar")]
 
+
 def get_retriever(embeddingsModel) -> BaseRetriever:
     return FakeRetriever()
+
 
 def create_retriever_chain(
         llm: BaseLanguageModel, retriever: BaseRetriever
@@ -201,29 +203,30 @@ def create_chain(
     )
 
 
-
-
 class LangChainChat(Processor):
 
     def init(self, config):
-     self.openai_key = config.get("openai-key", "")
-     self.embedings_model = OpenAIEmbeddings(openai_api_key=self.openai_key)
+        self.openai_key = config.get("openai-key", "")
+        self.embedings_model = OpenAIEmbeddings(openai_api_key=self.openai_key)
 
-     self.llm = ChatOpenAI(
-         openai_api_key=self.openai_key,
-         model="gpt-3.5-turbo-16k",
-         streaming=True,
-         temperature=0,
-     )
+        self.llm = ChatOpenAI(
+            openai_api_key=self.openai_key,
+            model="gpt-3.5-turbo-16k",
+            streaming=True,
+            temperature=0,
+        )
 
-     self.retriever = get_retriever(self.embedings_model)
+        self.retriever = get_retriever(self.embedings_model)
 
-     self.answer_chain = create_chain(
-         self.llm,
-         self.retriever,
-     )
+        self.answer_chain = create_chain(
+            self.llm,
+            self.retriever,
+        )
 
     def process(self, record):
-      question = record.value()
-      response = self.answer_chain.run(question)
-      return [SimpleRecord(response, headers=record.headers())]
+        question = record.value()
+        response = self.answer_chain.invoke({
+            "question": question,
+            "chat_history": []
+        })
+        return [SimpleRecord(response, headers=record.headers())]

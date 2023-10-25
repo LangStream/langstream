@@ -22,6 +22,7 @@ from .api import (
     Sink,
     Source,
     Processor,
+    AgentContext
 )
 from .util import SimpleRecord, AvroValue
 
@@ -34,4 +35,5 @@ __all__ = [
     "Processor",
     "SimpleRecord",
     "AvroValue",
+    "AgentContext"
 ]

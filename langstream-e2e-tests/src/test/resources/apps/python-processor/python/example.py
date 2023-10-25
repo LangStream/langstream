@@ -20,14 +20,14 @@ import logging, os
 
 class Exclamation(Processor):
     def init(self, config, context: AgentContext):
-        print("init", config)
+        print("init", config, context)
         self.secret_value = config["secret_value"]
         self.context = context
 
     def process(self, record):
         logging.info("Processing record" + str(record))
         directory = self.context.get_persistent_state_directory()
-        counter_file = os.path.resolve(directory, "counter.txt")
+        counter_file = os.path.join(directory, "counter.txt")
         counter = 0
         if os.path.exists(counter_file):
             with open(counter_file, "r") as f:

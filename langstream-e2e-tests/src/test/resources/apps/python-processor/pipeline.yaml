@@ -35,6 +35,9 @@ pipeline:
   - name: "Process using Python"
     resources:
       size: 2
+      disk:
+        enabled: true
+        size: 50M
     id: "test-python-processor"
     type: "python-processor"
     input: ls-test-topic0

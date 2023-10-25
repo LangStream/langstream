@@ -156,9 +156,9 @@ public class BaseEndToEndTest implements TestWatcher {
     }
 
     private static void dumpTest(String prefix) {
-        dumpAllPodsLogs(prefix);
+        dumpAllPodsLogs(prefix + ".logs");
         dumpEvents(prefix);
-        dumpAllResources(prefix);
+        dumpAllResources(prefix + ".resource");
         dumpProcessOutput(prefix, "kubectl-nodes", "kubectl describe nodes".split(" "));
     }
 
@@ -558,7 +558,8 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @AfterEach
     public void cleanupAfterEach() {
-        cleanupAllEndToEndTestsNamespaces();
+        // do not cleanup langstream tenant here otherwise we won't get the logs in case of test
+        // failed
         cleanupEnv();
     }
 
@@ -688,6 +689,8 @@ public class BaseEndToEndTest implements TestWatcher {
                               agentResources:
                                 cpuPerUnit: %s
                                 memPerUnit: %s
+                                storageClassesMapping:
+                                    default: standard
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -941,7 +944,7 @@ public class BaseEndToEndTest implements TestWatcher {
         final File outputFile =
                 new File(
                         TEST_LOGS_DIR,
-                        "%s-%s-%s.txt"
+                        "%s.%s.%s.txt"
                                 .formatted(
                                         filePrefix,
                                         resource.getKind(),

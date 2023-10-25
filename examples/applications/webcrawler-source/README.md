@@ -4,7 +4,6 @@ This sample application shows how to use the WebCrawler Source Connector
 
 ## Prerequisites
 
-Create a S3 bucket, it will contain only a metadata file for the WebCrawler.
 
 Create a table in Astra DB with the following schema.
 This example assumes that you have a KEYSPACE named `documents`.

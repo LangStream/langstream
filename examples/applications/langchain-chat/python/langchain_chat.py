@@ -42,8 +42,6 @@ from langchain.schema.runnable import (
 from langchain.vectorstores import Weaviate
 from pydantic import BaseModel
 
-from voyage import VoyageEmbeddings
-
 
 RESPONSE_TEMPLATE = """\
 You are an expert programmer and problem-solver, tasked with answering any question \

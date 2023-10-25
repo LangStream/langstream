@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-
+import os
 from langstream import Processor, SimpleRecord
 from operator import itemgetter
 from typing import Dict, List, Optional, Sequence, Any
@@ -22,7 +22,6 @@ from langchain.vectorstores.cassandra import Cassandra
 from langchain.callbacks.manager import Callbacks, collect_runs
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.indexes.vectorstore import VectorStoreIndexWrapper
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain.schema import Document
 from langchain.schema.language_model import BaseLanguageModel
@@ -207,6 +206,13 @@ class LangChainChat(Processor):
         self.astra_db_id = config.get("astra-db-id", "")
         self.astra_keyspace = config.get("astra-db-keyspace", "")
         self.astra_table_name = config.get("astra-db-table", "")
+
+        self.langsmith_url = config.get("lang-smith-api-url", "https://api.smith.langchain.com")
+        self.langsmith_key = config.get("lang-smith-api-key", "")
+
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_ENDPOINT"] = self.langsmith_url
+        os.environ["LANGCHAIN_API_KEY"] = self.langsmith_key
 
         cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
 

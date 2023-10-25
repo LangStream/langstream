@@ -35,3 +35,5 @@ pipeline:
       astra-db-id: "${ secrets.astra-langchain.database-id }"
       astra-db-keyspace: "${ secrets.astra-langchain.keyspace }"
       astra-db-table: "${ secrets.astra-langchain.table }"
+      lang-smith-api_url:  "${ secrets.lang-smith.api-url }"
+      lang-smith-api-key:  "${ secrets.lang-smith.api-key }"

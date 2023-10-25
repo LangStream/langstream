@@ -35,9 +35,11 @@ import org.apache.camel.Message;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.support.AsyncProcessorSupport;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
 public class CamelSource extends AbstractAgentCode implements AgentSource {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private String componentUri;
     private DefaultCamelContext camelContext;
@@ -122,17 +124,24 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
                 in.getHeaders().forEach((k, v) -> headers.add(new SimpleRecord.SimpleHeader(k, v)));
             }
             Object key = keyHeader.isEmpty() ? null : in.getHeader(keyHeader);
-            CamelRecord record =
-                    new CamelRecord(
-                            callback,
-                            exchange,
-                            key,
-                            in.getBody(),
-                            componentUri,
-                            in.getMessageTimestamp(),
-                            headers);
-            log.info("Created record {}", record);
-            records.add(record);
+            try {
+                String asJson = MAPPER.writeValueAsString(in.getBody());
+                CamelRecord record =
+                        new CamelRecord(
+                                callback,
+                                exchange,
+                                key,
+                                asJson,
+                                componentUri,
+                                in.getMessageTimestamp(),
+                                headers);
+                log.info("Created record {}", record);
+                records.add(record);
+            } catch (Exception error) {
+                log.error("Error serializing record", error);
+                exchange.setException(error);
+                callback.done(true);
+            }
 
             return true;
         }

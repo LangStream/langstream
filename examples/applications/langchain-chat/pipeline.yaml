@@ -30,3 +30,7 @@ pipeline:
     configuration:
       className: "langchain_chat.LangChainChat"
       openai-key: "${ secrets.open-ai.access-key }"
+      astra-db-token: "${ secrets.astra-langchain.token }"
+      astra-db-id: "${ secrets.astra-langchain.database-id }"
+      astra-db-keyspace: "${ secrets.astra-langchain.keyspace }"
+      astra-db-table: "${ secrets.astra-langchain.table }"

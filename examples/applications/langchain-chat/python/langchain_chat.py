@@ -16,19 +16,15 @@
 
 
 from langstream import Processor, SimpleRecord
-from langchain.embeddings import OpenAIEmbeddings
-import asyncio
-import os
 from operator import itemgetter
 from typing import Dict, List, Optional, Sequence, Any
-
-import langsmith
+from langchain.vectorstores.cassandra import Cassandra
 from langchain.callbacks.manager import Callbacks, collect_runs
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.indexes.vectorstore import VectorStoreIndexWrapper
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain.schema import Document
-from langchain.schema.embeddings import Embeddings
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.schema.messages import AIMessage, HumanMessage
 from langchain.schema.output_parser import StrOutputParser
@@ -39,8 +35,8 @@ from langchain.schema.runnable import (
     RunnableLambda,
     RunnableMap,
 )
-from langchain.vectorstores import Weaviate
 from pydantic import BaseModel
+import cassio
 
 RESPONSE_TEMPLATE = """\
 You are an expert programmer and problem-solver, tasked with answering any question \
@@ -207,7 +203,21 @@ class LangChainChat(Processor):
 
     def init(self, config):
         self.openai_key = config.get("openai-key", "")
+        self.astra_db_token = config.get("astra-db-token", "")
+        self.astra_db_id = config.get("astra-db-id", "")
+        self.astra_keyspace = config.get("astra-db-keyspace", "")
+        self.astra_table_name = config.get("astra-db-table", "")
+
+        cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
+
         self.embedings_model = OpenAIEmbeddings(openai_api_key=self.openai_key)
+
+        self.astra_vector_store = Cassandra(
+            embedding=self.embedings_model,
+            session=None,
+            keyspace=self.astra_keyspace,
+            table_name=self.astra_table_name,
+        )
 
         self.llm = ChatOpenAI(
             openai_api_key=self.openai_key,
@@ -216,7 +226,7 @@ class LangChainChat(Processor):
             temperature=0,
         )
 
-        self.retriever = get_retriever(self.embedings_model)
+        self.retriever = self.astra_vector_store.as_retriever()
 
         self.answer_chain = create_chain(
             self.llm,

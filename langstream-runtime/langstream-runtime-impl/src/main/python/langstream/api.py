@@ -26,6 +26,7 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
+    "AgentContext"
 ]
 
 
@@ -60,11 +61,25 @@ class Record(ABC):
 
 RecordType = Union[Record, dict, list, tuple]
 
+class AgentContext(ABC):
+    """The Agent context interface"""
+
+    def __init__(self):
+        """Initialize the agent context."""
+        pass
+
+
+    @abstractmethod
+    def get_persistent_state_directory(self):
+        """Return a path pointing to the stateful agent directory. Return None if not configured in the agent."""
+        pass
+
+
 
 class Agent(ABC):
     """The Agent interface"""
 
-    def init(self, config: Dict[str, Any]):
+    def init(self, config: Dict[str, Any], context: AgentContext):
         """Initialize the agent from the given configuration."""
         pass
 

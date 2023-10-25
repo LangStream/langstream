@@ -14,17 +14,35 @@
 # limitations under the License.
 #
 
-from langstream import SimpleRecord, Processor
-import logging
+from langstream import SimpleRecord, Processor, AgentContext
+import logging, os
 
 
 class Exclamation(Processor):
-    def init(self, config):
+    def init(self, config, context: AgentContext):
         print("init", config)
         self.secret_value = config["secret_value"]
+        self.context = context
 
     def process(self, record):
         logging.info("Processing record" + str(record))
+        directory = self.context.get_persistent_state_directory()
+        counter_file = os.path.resolve(directory, "counter.txt")
+        counter = 0
+        if os.path.exists(counter_file):
+            with open(counter_file, "r") as f:
+                counter = int(f.read())
+                counter += 1
+        else:
+            counter = 1
+        with open(counter_file, 'w') as file:
+            file.write(str(counter))
+
+
+        if self.secret_value == "super secret value - changed":
+            assert counter == 2
+        else:
+            assert counter == 1
         return [
             SimpleRecord(
                 record.value() + "!!" + self.secret_value, headers=record.headers()

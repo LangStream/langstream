@@ -27,12 +27,15 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) <= 3:
         print("Missing gRPC target and python class name")
         print("usage: python -m langstream_grpc <target> <config>")
         sys.exit(1)
 
-    server = AgentServer(sys.argv[1], sys.argv[2])
+    context_config = {}
+    if len(sys.argv) > 3:
+        context_config = sys.argv[3]
+    server = AgentServer(sys.argv[1], sys.argv[2], context_config)
     server.start()
     server.grpc_server.wait_for_termination()
     server.stop()

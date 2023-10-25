@@ -20,6 +20,7 @@ import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import java.nio.file.Path;
+import java.util.Optional;
 
 public interface AgentContext {
     BadRecordHandler DEFAULT_BAD_RECORD_HANDLER =
@@ -48,4 +49,15 @@ public interface AgentContext {
     default void criticalFailure(Throwable error) {}
 
     Path getCodeDirectory();
+
+    /**
+     * Access the persistent disk path for the agent. This is available only of the agent is
+     * configured to have a persistent disk.
+     *
+     * @param agentId the agent id, this is important in case of a "composable" agent, that runs
+     *     multiple agents in the same pod
+     */
+    default Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+        return Optional.empty();
+    }
 }

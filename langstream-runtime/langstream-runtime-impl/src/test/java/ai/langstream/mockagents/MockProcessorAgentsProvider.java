@@ -28,7 +28,11 @@ import lombok.extern.slf4j.Slf4j;
 public class MockProcessorAgentsProvider extends AbstractComposableAgentProvider {
     public MockProcessorAgentsProvider() {
         super(
-                Set.of("mock-failing-processor", "mock-failing-sink", "mock-async-processor"),
+                Set.of(
+                        "mock-failing-processor",
+                        "mock-failing-sink",
+                        "mock-async-processor",
+                        "mock-stateful-processor"),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
     }
 

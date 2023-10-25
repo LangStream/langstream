@@ -15,6 +15,7 @@
  */
 package ai.langstream.impl.common;
 
+import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.runtime.AgentNode;
@@ -35,6 +36,7 @@ public class DefaultAgentNode implements AgentNode {
     private final Object customMetadata;
 
     private final ResourcesSpec resourcesSpec;
+    private final Map<String, DiskSpec> disks;
     private final ErrorsSpec errorsSpec;
 
     private final ConnectionImplementation inputConnectionImplementation;
@@ -51,7 +53,8 @@ public class DefaultAgentNode implements AgentNode {
             ConnectionImplementation inputConnectionImplementation,
             ConnectionImplementation outputConnectionImplementation,
             ResourcesSpec resourcesSpec,
-            ErrorsSpec errorsSpec) {
+            ErrorsSpec errorsSpec,
+            Map<String, DiskSpec> disks) {
         this.agentType = agentType;
         this.composable = composable;
         this.id = id;
@@ -62,6 +65,7 @@ public class DefaultAgentNode implements AgentNode {
         this.outputConnectionImplementation = outputConnectionImplementation;
         this.resourcesSpec = resourcesSpec != null ? resourcesSpec : ResourcesSpec.DEFAULT;
         this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
+        this.disks = disks != null ? new HashMap<>(disks) : new HashMap<>();
     }
 
     public <T> T getCustomMetadata() {
@@ -71,10 +75,14 @@ public class DefaultAgentNode implements AgentNode {
     public void overrideConfigurationAfterMerge(
             String agentType,
             Map<String, Object> newConfiguration,
-            ConnectionImplementation newOutput) {
+            ConnectionImplementation newOutput,
+            Map<String, DiskSpec> additionalDisks) {
         this.agentType = agentType;
         this.configuration = new HashMap<>(newConfiguration);
         this.outputConnectionImplementation = newOutput;
+        if (additionalDisks != null) {
+            this.disks.putAll(additionalDisks);
+        }
     }
 
     @Override

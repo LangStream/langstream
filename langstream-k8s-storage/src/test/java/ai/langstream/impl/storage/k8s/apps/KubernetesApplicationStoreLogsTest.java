@@ -28,6 +28,7 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
@@ -214,7 +215,8 @@ class KubernetesApplicationStoreLogsTest {
                                                 "my-app",
                                                 "fn-type",
                                                 Map.of("config", true),
-                                                Map.of()),
+                                                Map.of(),
+                                                Set.of()),
                                         new StreamingCluster("noop", Map.of("config", true)))))
                 .inNamespace("langstream-" + tenant)
                 .serverSideApply();

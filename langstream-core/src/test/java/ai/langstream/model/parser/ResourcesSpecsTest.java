@@ -16,7 +16,10 @@
 package ai.langstream.model.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.Application;
@@ -139,5 +142,93 @@ public class ResourcesSpecsTest {
                   computeCluster:
                     type: "none"
                 """;
+    }
+
+    @Test
+    public void testConfigureResourceSpecsWithDisk() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                        module: "module-1"
+                        id: "pipeline-1"
+                        resources:
+                           parallelism: 7
+                           size: 7
+                        topics:
+                          - name: "input-topic"
+                            creation-mode: create-if-not-exists
+                        pipeline:
+                          - name: "step1"
+                            type: "noop"
+                            input: "input-topic"
+                          - name: "step2"
+                            type: "noop"
+                            resources:
+                               disk:
+                                enabled: false
+                          - name: "step3"
+                            type: "noop"
+                            resources:
+                               disk:
+                                enabled: true
+                          - name: "step4"
+                            type: "noop"
+                            resources:
+                               disk:
+                                enabled: true
+                                type: "ssd"
+                          - name: "step5"
+                            type: "noop"
+                            resources:
+                               disk:
+                                enabled: true
+                                type: "default"
+                                size: 3G
+                          - name: "step5"
+                            type: "noop"
+                            resources:
+                               disk:
+                                enabled: true
+                                size: 15M
+                        """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        {
+            Module module = applicationInstance.getModule("module-1");
+            Pipeline pipeline = module.getPipelines().get("pipeline-1");
+
+            int i = 0;
+            AgentConfiguration agent = pipeline.getAgents().get(i++);
+            assertNull(agent.getResources().disk());
+
+            agent = pipeline.getAgents().get(i++);
+            assertFalse(agent.getResources().disk().enabled());
+            assertNull(agent.getResources().disk().type());
+            assertNull(agent.getResources().disk().size());
+
+            agent = pipeline.getAgents().get(i++);
+            assertTrue(agent.getResources().disk().enabled());
+            assertEquals("default", agent.getResources().disk().type());
+            assertEquals("256M", agent.getResources().disk().size());
+
+            agent = pipeline.getAgents().get(i++);
+            assertTrue(agent.getResources().disk().enabled());
+            assertEquals("ssd", agent.getResources().disk().type());
+            assertEquals("256M", agent.getResources().disk().size());
+
+            agent = pipeline.getAgents().get(i++);
+            assertTrue(agent.getResources().disk().enabled());
+            assertEquals("default", agent.getResources().disk().type());
+            assertEquals("3G", agent.getResources().disk().size());
+
+            agent = pipeline.getAgents().get(i++);
+            assertTrue(agent.getResources().disk().enabled());
+            assertEquals("default", agent.getResources().disk().type());
+            assertEquals("15M", agent.getResources().disk().size());
+        }
     }
 }

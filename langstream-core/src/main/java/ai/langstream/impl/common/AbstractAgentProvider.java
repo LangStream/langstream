@@ -17,6 +17,7 @@ package ai.langstream.impl.common;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.runtime.AgentNode;
@@ -186,6 +187,15 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         clusterRuntime,
                         streamingClusterRuntime);
         boolean composable = isComposable(agentConfiguration);
+        Map<String, DiskSpec> disks =
+                agentConfiguration.getResources() != null
+                                && agentConfiguration.getResources().disk() != null
+                                && agentConfiguration.getResources().disk().enabled() != null
+                                && agentConfiguration.getResources().disk().enabled()
+                        ? Map.of(
+                                agentConfiguration.getId(),
+                                agentConfiguration.getResources().disk())
+                        : Map.of();
         return new DefaultAgentNode(
                 agentConfiguration.getId(),
                 agentType,
@@ -196,7 +206,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 input,
                 output,
                 agentConfiguration.getResources(),
-                agentConfiguration.getErrors());
+                agentConfiguration.getErrors(),
+                disks);
     }
 
     @Override

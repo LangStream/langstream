@@ -18,6 +18,7 @@ package ai.langstream.runtime.tester;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -66,6 +67,8 @@ public class LocalApplicationRunner
 
     final Path codeDirectory;
 
+    final Path basePersistentStateDirectory;
+
     final AtomicBoolean continueLoop = new AtomicBoolean(true);
 
     final CountDownLatch exited = new CountDownLatch(1);
@@ -74,9 +77,12 @@ public class LocalApplicationRunner
 
     final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
 
-    public LocalApplicationRunner(Path agentsDirectory, Path codeDirectory) throws Exception {
+    public LocalApplicationRunner(
+            Path agentsDirectory, Path codeDirectory, Path basePersistentStateDirectory)
+            throws Exception {
         this.codeDirectory = codeDirectory;
         this.agentsDirectory = agentsDirectory;
+        this.basePersistentStateDirectory = basePersistentStateDirectory;
         List<URL> customLib = AgentRunner.buildCustomLibClasspath(codeDirectory);
         this.narFileHandler =
                 new NarFileHandler(
@@ -130,6 +136,8 @@ public class LocalApplicationRunner
         ExecutionPlan implementation =
                 applicationDeployer.createImplementation(appId, applicationInstance);
 
+        ensureDiskDirectories(implementation);
+
         applicationDeployer.setup(tenant, implementation);
 
         applicationDeployer.deploy(tenant, implementation, null);
@@ -139,6 +147,16 @@ public class LocalApplicationRunner
 
         return new ApplicationRuntime(
                 tenant, appId, applicationInstance, implementation, secrets, applicationDeployer);
+    }
+
+    private void ensureDiskDirectories(ExecutionPlan implementation) throws IOException {
+        for (AgentNode value : implementation.getAgents().values()) {
+            if (value.getDisks() != null) {
+                for (String s : value.getDisks().keySet()) {
+                    Files.createDirectories(basePersistentStateDirectory.resolve(s));
+                }
+            }
+        }
     }
 
     @Override
@@ -210,6 +228,7 @@ public class LocalApplicationRunner
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
+                                        basePersistentStateDirectory,
                                         agentInfo,
                                         continueLoop::get,
                                         () -> {},

@@ -79,8 +79,8 @@ public class CamelSourceAgentProvider extends AbstractComposableAgentProvider {
                         Maximum number of records to buffer
                         """,
                 defaultValue = "100")
-        @JsonProperty("max-pending-records")
-        private int maxPendingRecords;
+        @JsonProperty("max-buffered-records")
+        private int maxBufferedRecords;
 
         @ConfigProperty(
                 description =

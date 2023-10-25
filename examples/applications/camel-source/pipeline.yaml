@@ -23,7 +23,6 @@ pipeline:
     output: "output-topic"
     configuration:
       component-uri: "github:${globals.github-event}/${secrets.camel-github-source.branch}"
-      max-buffered-records: 10
       component-options:
          oauthToken: "${secrets.camel-github-source.oauthToken}"
          repoName: "${secrets.camel-github-source.repoName}"

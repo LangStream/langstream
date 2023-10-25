@@ -100,7 +100,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void init(Map<String, Object> configuration) throws Exception {
         agentConfiguration = configuration;
 
-
         allowedDomains = getSet("allowed-domains", configuration);
         forbiddenPaths = getSet("forbidden-paths", configuration);
         maxUrls = getInt("max-urls", 1000, configuration);

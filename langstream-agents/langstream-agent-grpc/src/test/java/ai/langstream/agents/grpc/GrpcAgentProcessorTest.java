@@ -337,6 +337,7 @@ public class GrpcAgentProcessorTest {
         public String getGlobalAgentId() {
             return null;
         }
+
         @Override
         public TopicAdmin getTopicAdmin() {
             return null;

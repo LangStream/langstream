@@ -333,12 +333,12 @@ def init_agent(configuration, context) -> Agent:
     module_name = full_class_name[: -len(class_name) - 1]
     module = importlib.import_module(module_name)
     agent = getattr(module, class_name)()
-    context_impl = AgentContextImpl(configuration, context)
+    context_impl = DefaultAgentContext(configuration, context)
     call_method_if_exists(agent, "init", configuration, context_impl)
     return agent
 
 
-class AgentContextImpl(AgentContext):
+class DefaultAgentContext(AgentContext):
     def __init__(self, configuration: dict, context: dict):
         self.configuration = configuration
         self.context = context

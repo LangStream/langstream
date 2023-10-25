@@ -65,10 +65,6 @@ RecordType = Union[Record, dict, list, tuple]
 class AgentContext(ABC):
     """The Agent context interface"""
 
-    def __init__(self):
-        """Initialize the agent context."""
-        pass
-
     @abstractmethod
     def get_persistent_state_directory(self):
         """Return a path pointing to the stateful agent directory. Return None if not configured in the agent."""

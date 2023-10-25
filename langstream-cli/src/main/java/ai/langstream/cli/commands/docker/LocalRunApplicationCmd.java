@@ -93,6 +93,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             description = "Start the UI")
     private boolean startUI = true;
 
+    @CommandLine.Option(names = {"-up", "--ui-port"}, description = "Port for the local webserver and UI. If 0, a random port will be used.", defaultValue = "8092")
+    private int uiPort = 8092;
+
     @CommandLine.Option(
             names = {"--only-agent"},
             description = "Run only one agent")
@@ -495,6 +498,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         final String finalBody = body;
         final String mermaidDefinition = MermaidAppDiagramGenerator.generate(finalBody);
         UIAppCmd.startServer(
+                uiPort,
                 () -> {
                     final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
                     appModel.setTenant(tenant);
@@ -506,7 +510,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     return appModel;
                 },
                 "ws://localhost:8091",
-                getTailLogSupplier(outputLog));
+                getTailLogSupplier(outputLog),
+                getLogger());
     }
 
     private UIAppCmd.LogSupplier getTailLogSupplier(Path outputLog) {

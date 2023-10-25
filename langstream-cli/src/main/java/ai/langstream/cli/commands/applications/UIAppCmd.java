@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.applications;
 
+import ai.langstream.cli.CLILogger;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
 import io.undertow.Handlers;
@@ -56,6 +57,9 @@ public class UIAppCmd extends BaseApplicationCmd {
     @CommandLine.Parameters(description = "Application ID")
     private String applicationId;
 
+    @CommandLine.Option(names = {"-p", "--port"}, description = "Port for the local webserver and UI. If 0, a random port will be used. ", defaultValue = "8092")
+    private int port = 8092;
+
     @Override
     @SneakyThrows
     public void run() {
@@ -91,16 +95,14 @@ public class UIAppCmd extends BaseApplicationCmd {
                         }
                     }
                 };
-        final Undertow server = startServer(() -> appModel, apiGatewayUrl, logSupplier);
-        final int port =
-                ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
-        log("Started UI at http://localhost:" + port);
+        startServer(port, () -> appModel, apiGatewayUrl, logSupplier, getLogger());
         Thread.sleep(Long.MAX_VALUE);
     }
 
     @SneakyThrows
     public static Undertow startServer(
-            Supplier<AppModel> appModel, String apiGatewayUrl, LogSupplier logsStream) {
+            int port, Supplier<AppModel> appModel, String apiGatewayUrl, LogSupplier logsStream,
+            CLILogger logger) {
         String forwardHost;
         if (apiGatewayUrl.startsWith("wss://")) {
             forwardHost = "https://" + apiGatewayUrl.substring("wss://".length());
@@ -138,7 +140,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                     }
                 };
 
-        AtomicInteger port = new AtomicInteger();
+        AtomicInteger actualPort = new AtomicInteger();
 
         ResourceHandler resourceHandler =
                 Handlers.resource(
@@ -146,7 +148,7 @@ public class UIAppCmd extends BaseApplicationCmd {
         HttpHandler appConfigHandler =
                 exchange -> {
                     final AppModel result = appModel.get();
-                    result.setBaseUrl("ws://localhost:" + port.get());
+                    result.setBaseUrl("ws://localhost:" + actualPort.get());
                     final String json = jsonBodyWriter.writeValueAsString(result);
                     exchange.getResponseHeaders()
                             .put(HttpString.tryFromString("Content-Type"), "application/json");
@@ -161,13 +163,14 @@ public class UIAppCmd extends BaseApplicationCmd {
 
         Undertow server =
                 Undertow.builder()
-                        .addHttpListener(0, "localhost")
+                        .addHttpListener(port, "localhost")
                         .setHandler(routingHandler)
                         .build();
         server.start();
-        port.set(((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
+        actualPort.set(((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
-        openBrowserAtPort("open", port.get());
+        logger.log("Started UI at http://localhost:" + actualPort.get());
+        openBrowserAtPort("open", actualPort.get());
 
         return server;
     }

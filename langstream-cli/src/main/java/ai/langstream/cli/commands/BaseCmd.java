@@ -118,6 +118,7 @@ public abstract class BaseCmd implements Runnable {
     }
 
     @CommandLine.Spec protected CommandLine.Model.CommandSpec command;
+    @Getter
     private final CLILogger logger = new CLILoggerImpl(() -> getRootCmd(), () -> command);
     private final GithubRepositoryDownloader githubRepositoryDownloader =
             new GithubRepositoryDownloader(

@@ -1,0 +1,29 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+configuration:
+  defaults:
+    globals:
+      github-event: "PULLREQUESTCOMMENT"
+  dependencies:
+    - name: "Apache Camel GitHub component"
+      url: "https://repo1.maven.org/maven2/org/apache/camel/camel-github/4.1.0/camel-github-4.1.0.jar"
+      sha512sum: "f40e55ddfde21e11e6a26fbb50e4f75df37976c673dbc4aeeaa350257b0179f4a9a71f099f8ac3cbc60cc9d8ff9559984a304fb7d6785bcfb22a9943ceb8d7bd"
+      type: "java-library"
+    - name: "Apache Camel GitHub component - dependency"
+      url: "https://repo1.maven.org/maven2/org/eclipse/mylyn/github/org.eclipse.egit.github.core/2.1.5/org.eclipse.egit.github.core-2.1.5.jar"
+      sha512sum: "4fab14efed656b6705ad74ab9c05a346fe4fdc737b1b5130842aee7ebba98b895b7cb8c35d15e3da150116f445ae3b5c88daaaa5319c39144cb365247b9d0630"
+      type: "java-library"

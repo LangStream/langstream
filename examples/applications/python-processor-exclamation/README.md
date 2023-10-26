@@ -6,7 +6,7 @@ The code in `example.py` adds an exclamation mark to the end of a string message
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/python-processor-exclamation -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/python-processor-exclamation
 ```
 
 ## Talk with the Chat bot using the CLI
@@ -16,29 +16,13 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ./bin/langstream gateway chat test -cg consume-output -pg produce-input -p sessionId=$(uuidgen)
 ```
 
-## Start a Producer
-```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
-```
+# How to import the dependencies
 
-Insert a String:
+If you want to try to import the requirements.txt file you can use this command
 
 ```
-> Hello World
+./bin/langstream python load-pip-requirements -app examples/applications/python-processor-exclamation
 ```
 
-
-## Start a Consumer
-
-Start a Kafka Consumer on a terminal
-
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
-```
-
-You should see the message with an exclamation mark at the end:
-
-```
-Hello World!
-``` 
-
+This step is not needed to run the sample application, but you can use use this sample application
+to get started with your own Python processor code.

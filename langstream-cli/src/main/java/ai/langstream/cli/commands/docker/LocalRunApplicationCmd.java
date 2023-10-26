@@ -26,6 +26,7 @@ import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
+import ai.langstream.cli.util.DockerImageUtils;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.io.IOException;
@@ -156,20 +157,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     @SneakyThrows
     public void run() {
 
-        if (dockerImageVersion != null && dockerImageVersion.endsWith("-SNAPSHOT")) {
-            // built-from-sources, not a release
-            dockerImageVersion = "latest-dev";
-        }
+        DockerImageUtils.DockerImage dockerImage =
+                DockerImageUtils.computeDockerImage(dockerImageVersion, dockerImageName);
 
-        if (dockerImageName == null) {
-            if (dockerImageVersion != null && dockerImageVersion.equals("latest-dev")) {
-                // built-from-sources, not a release
-                dockerImageName = "langstream/langstream-runtime-tester";
-            } else {
-                // default to latest
-                dockerImageName = "ghcr.io/langstream/langstream-runtime-tester";
-            }
-        }
         startBroker = !dryRun && startBroker;
         startDatabase = !dryRun && startDatabase;
         startS3 = !dryRun && startS3;
@@ -201,7 +191,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         log("Start S3: " + startS3);
         log("Start Database: " + startDatabase);
         log("Start Webservices " + startWebservices);
-        log("Using docker image: " + dockerImageName + ":" + dockerImageVersion);
+        log("Using docker image: " + dockerImage.getFullName());
 
         if (appDirectory == null) {
             throw new IllegalArgumentException("application files are required");
@@ -271,7 +261,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 startS3,
                 startWebservices,
                 startDatabase,
-                dryRun);
+                dryRun,
+                dockerImage);
     }
 
     private void cleanEnvironment() {
@@ -312,12 +303,13 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startS3,
             boolean startWebservices,
             boolean startDatabase,
-            boolean dryRun)
+            boolean dryRun,
+            DockerImageUtils.DockerImage dockerImage)
             throws Exception {
         final File appTmp = prepareAppDirectory(appDirectory);
         File tmpInstanceFile = prepareInstanceFile(instanceContents);
         File tmpSecretsFile = prepareSecretsFile(secretsContents);
-        String imageName = dockerImageName + ":" + dockerImageVersion;
+        String imageName = dockerImage.getFullName();
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
         commandLine.add("run");

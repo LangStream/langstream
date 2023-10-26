@@ -58,4 +58,14 @@ public interface AgentCode extends AutoCloseable {
      * @return information about the agent
      */
     List<AgentStatusResponse> getAgentStatus();
+
+    /**
+     * Gracefully restart the agent.
+     *
+     * @throws Exception
+     */
+    default void restart() throws Exception {
+        throw new UnsupportedOperationException(
+                "Restart is not supported for agent type " + agentType());
+    }
 }

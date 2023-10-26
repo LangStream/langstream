@@ -240,4 +240,11 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         }
         return result;
     }
+
+    @Override
+    public void restart() throws Exception {
+        for (AgentProcessor processor : processors) {
+            processor.restart();
+        }
+    }
 }

@@ -24,22 +24,48 @@ import ai.langstream.apigateway.LangStreamApiGateway;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.impl.storage.GlobalMetadataStoreManager;
+import ai.langstream.runtime.agent.api.AgentAPIController;
+import ai.langstream.runtime.agent.api.AgentInfoServlet;
+import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import io.prometheus.client.hotspot.DefaultExports;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 @Slf4j
 public class Main {
     public static void main(String... args) {
         try {
+
+
             String tenant = System.getenv().getOrDefault("LANSGSTREAM_TESTER_TENANT", "tenant");
             String applicationId =
                     System.getenv().getOrDefault("LANSGSTREAM_TESTER_APPLICATIONID", "app");
@@ -137,10 +163,15 @@ public class Main {
                 agentsIdToKeepInStats.add(singleAgentId);
             }
 
+
+
+            Server server = null;
             try (LocalApplicationRunner runner =
                     new LocalApplicationRunner(
                             Paths.get(agentsDirectory), codeDirectory, basePersistentStatePath); ) {
 
+                server = bootstrapHttpServer(runner);
+                server.start();
                 InMemoryApplicationStore.setAgentsInfoCollector(runner);
                 InMemoryApplicationStore.setFilterAgents(agentsIdToKeepInStats);
 
@@ -176,6 +207,10 @@ public class Main {
 
                     runner.executeAgentRunners(applicationRuntime, agentsToRun);
                 }
+            } finally {
+                if (server != null) {
+                    server.stop();
+                }
             }
 
         } catch (Throwable error) {
@@ -188,5 +223,52 @@ public class Main {
         return new ObjectMapper(new YAMLFactory())
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    }
+
+    private static Server bootstrapHttpServer(LocalApplicationRunner runner) throws Exception {
+        DefaultExports.initialize();
+        Server server = new Server(8790);
+        log.info("Started local agent controller service at port 8790");
+        String url = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":8790";
+        log.info("The addresses should be {}/metrics and {}/info}", url, url);
+        ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/");
+        server.setHandler(context);
+        context.addServlet(new ServletHolder(new MetricsHttpServlet()), "/metrics");
+        context.addServlet(new ServletHolder(new AgentControllerServlet(runner)), "/info");
+        server.start();
+        return server;
+    }
+
+    private static class AgentControllerServlet extends HttpServlet {
+        private static final ObjectMapper MAPPER = new ObjectMapper();
+
+        private final LocalApplicationRunner agentAPIController;
+
+        public AgentControllerServlet(LocalApplicationRunner runner) {
+            this.agentAPIController = runner;
+        }
+
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+            resp.setContentType("application/json");
+            String uri = req.getRequestURI();
+            if (uri.endsWith("/restart")) {
+                try {
+                    Collection<AgentAPIController> agents = agentAPIController.collectAgentsStatus().values();
+                    List<Map<String, Object>> result = new ArrayList<>();
+                    for (AgentAPIController controller : agents) {
+                        result.add(controller.restart());
+                    }
+                    MAPPER.writeValue(resp.getOutputStream(), result);
+                } catch (Throwable error) {
+                    log.error("Error while restarting the agents");
+                    resp.getOutputStream().write((error + "").getBytes());
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                }
+            } else {
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            }
+        }
     }
 }

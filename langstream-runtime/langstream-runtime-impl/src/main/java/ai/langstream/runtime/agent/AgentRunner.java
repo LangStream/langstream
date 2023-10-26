@@ -39,7 +39,7 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.nar.NarFileHandler;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
@@ -91,7 +91,8 @@ public class AgentRunner {
         void handleError(Throwable error);
     }
 
-    private static Server bootstrapHttpServer(AgentInfo agentInfo) throws Exception {
+    private static Server bootstrapHttpServer(AgentAPIController agentAPIController)
+            throws Exception {
         DefaultExports.initialize();
         Server server = new Server(8080);
         log.info("Started metrics and agent server on port 8080");
@@ -101,7 +102,7 @@ public class AgentRunner {
         context.setContextPath("/");
         server.setHandler(context);
         context.addServlet(new ServletHolder(new MetricsHttpServlet()), "/metrics");
-        context.addServlet(new ServletHolder(new AgentInfoServlet(agentInfo)), "/info");
+        context.addServlet(new ServletHolder(new AgentInfoServlet(agentAPIController)), "/info");
         server.start();
         return server;
     }
@@ -111,7 +112,7 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             Path basePersistentStateDirectory,
-            AgentInfo agentInfo,
+            AgentAPIController agentAPIController,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer,
@@ -123,7 +124,7 @@ public class AgentRunner {
                         codeDirectory,
                         agentsDirectory,
                         basePersistentStateDirectory,
-                        agentInfo,
+                        agentAPIController,
                         continueLoop,
                         beforeStopSource,
                         startHttpServer,
@@ -135,7 +136,7 @@ public class AgentRunner {
             Path codeDirectory,
             Path agentsDirectory,
             Path basePersistentStateDirectory,
-            AgentInfo agentInfo,
+            AgentAPIController agentAPIController,
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer,
@@ -181,14 +182,14 @@ public class AgentRunner {
                 AgentCodeAndLoader agentCode = initAgent(configuration, agentCodeRegistry);
                 Server server = null;
                 try {
-                    server = startHttpServer ? bootstrapHttpServer(agentInfo) : null;
+                    server = startHttpServer ? bootstrapHttpServer(agentAPIController) : null;
                     runJavaAgent(
                             configuration,
                             continueLoop,
                             agentId,
                             topicConnectionsRuntime,
                             agentCode,
-                            agentInfo,
+                            agentAPIController,
                             beforeStopSource,
                             codeDirectory,
                             basePersistentStateDirectory);
@@ -243,7 +244,7 @@ public class AgentRunner {
             String agentId,
             TopicConnectionsRuntime topicConnectionsRuntime,
             AgentCodeAndLoader agentCodeWithLoader,
-            AgentInfo agentInfo,
+            AgentAPIController agentAPIController,
             Runnable beforeStopSource,
             Path codeDirectory,
             Path basePersistentStateDirectory)
@@ -302,7 +303,7 @@ public class AgentRunner {
                     mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
                     mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
                 }
-                agentInfo.watchProcessor(mainProcessor);
+                agentAPIController.watchProcessor(mainProcessor);
 
                 AgentSource source = null;
                 if (agentCodeWithLoader.isSource()) {
@@ -318,7 +319,7 @@ public class AgentRunner {
                     source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
                     source.init(Map.of());
                 }
-                agentInfo.watchSource(source);
+                agentAPIController.watchSource(source);
 
                 AgentSink sink = null;
                 if (agentCodeWithLoader.isSink()) {
@@ -332,7 +333,7 @@ public class AgentRunner {
                     sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
                     sink.init(Map.of());
                 }
-                agentInfo.watchSink(sink);
+                agentAPIController.watchSink(sink);
 
                 String onBadRecord =
                         configuration

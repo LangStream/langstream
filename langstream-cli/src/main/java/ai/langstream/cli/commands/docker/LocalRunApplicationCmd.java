@@ -359,6 +359,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-p");
         commandLine.add("8090:8090");
 
+        // agent control
+        commandLine.add("-p");
+        commandLine.add("8790:8790");
+
         if (memory != null && !memory.isEmpty()) {
             commandLine.add("--memory");
             commandLine.add(memory);

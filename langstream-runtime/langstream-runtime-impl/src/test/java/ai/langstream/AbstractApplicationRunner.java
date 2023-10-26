@@ -29,7 +29,7 @@ import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.nio.file.Files;
@@ -169,7 +169,7 @@ public abstract class AbstractApplicationRunner {
                         .build();
     }
 
-    public record AgentRunResult(Map<String, AgentInfo> info) {}
+    public record AgentRunResult(Map<String, AgentAPIController> info) {}
 
     protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime) throws Exception {
         String runnerExecutionId = UUID.randomUUID().toString();
@@ -177,7 +177,7 @@ public abstract class AbstractApplicationRunner {
                 "{} Starting Agent Runners. Running {} pods",
                 runnerExecutionId,
                 runtime.secrets.size());
-        Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
+        Map<String, AgentAPIController> allAgentsInfo = new ConcurrentHashMap<>();
         try {
             List<RuntimePodConfiguration> pods = new ArrayList<>();
             runtime.secrets()
@@ -212,8 +212,9 @@ public abstract class AbstractApplicationRunner {
                                         "{} AgentPod {} Started",
                                         runnerExecutionId,
                                         podConfiguration.agent().agentId());
-                                AgentInfo agentInfo = new AgentInfo();
-                                allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
+                                AgentAPIController agentAPIController = new AgentAPIController();
+                                allAgentsInfo.put(
+                                        podConfiguration.agent().agentId(), agentAPIController);
                                 AtomicInteger numLoops = new AtomicInteger();
                                 for (String agentWithDisk :
                                         podConfiguration.agent().agentsWithDisk()) {
@@ -232,16 +233,16 @@ public abstract class AbstractApplicationRunner {
                                         codeDirectory,
                                         agentsDirectory,
                                         basePersistenceDirectory,
-                                        agentInfo,
+                                        agentAPIController,
                                         () -> {
                                             log.info(
                                                     "Num loops {}/{}", numLoops.get(), maxNumLoops);
                                             return numLoops.incrementAndGet() <= maxNumLoops;
                                         },
-                                        () -> validateAgentInfoBeforeStop(agentInfo),
+                                        () -> validateAgentInfoBeforeStop(agentAPIController),
                                         false,
                                         narFileHandler);
-                                List<?> infos = agentInfo.serveWorkerStatus();
+                                List<?> infos = agentAPIController.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",
                                         runnerExecutionId,
@@ -287,7 +288,7 @@ public abstract class AbstractApplicationRunner {
         return new AgentRunResult(allAgentsInfo);
     }
 
-    protected void validateAgentInfoBeforeStop(AgentInfo agentInfo) {}
+    protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
 
     @AfterEach
     public void resetNumLoops() {

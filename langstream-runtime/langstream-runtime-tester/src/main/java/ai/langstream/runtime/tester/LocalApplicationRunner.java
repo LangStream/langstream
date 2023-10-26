@@ -27,7 +27,7 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -75,7 +75,7 @@ public class LocalApplicationRunner
 
     final AtomicBoolean started = new AtomicBoolean();
 
-    final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
+    final Map<String, AgentAPIController> allAgentsInfo = new ConcurrentHashMap<>();
 
     public LocalApplicationRunner(
             Path agentsDirectory, Path codeDirectory, Path basePersistentStateDirectory)
@@ -160,11 +160,11 @@ public class LocalApplicationRunner
     }
 
     @Override
-    public Map<String, AgentInfo> collectAgentsStatus() {
+    public Map<String, AgentAPIController> collectAgentsStatus() {
         return new HashMap<>(allAgentsInfo);
     }
 
-    public record AgentRunResult(Map<String, AgentInfo> info) {}
+    public record AgentRunResult(Map<String, AgentAPIController> info) {}
 
     public void start() {
         kubeServer.start();
@@ -222,19 +222,19 @@ public class LocalApplicationRunner
                                         "{} AgentPod {} Started",
                                         runnerExecutionId,
                                         podConfiguration.agent().agentId());
-                                AgentInfo agentInfo = new AgentInfo();
-                                allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
+                                AgentAPIController agentAPIController = new AgentAPIController();
+                                allAgentsInfo.put(podConfiguration.agent().agentId(), agentAPIController);
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
                                         basePersistentStateDirectory,
-                                        agentInfo,
+                                        agentAPIController,
                                         continueLoop::get,
                                         () -> {},
                                         false,
                                         narFileHandler);
-                                List<?> infos = agentInfo.serveWorkerStatus();
+                                List<?> infos = agentAPIController.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",
                                         runnerExecutionId,

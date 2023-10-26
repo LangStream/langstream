@@ -86,10 +86,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
     @Override
     public synchronized void close() throws Exception {
-        if (request != null) {
-            request.onCompleted();
-        }
-        super.close();
+        stop();
     }
 
     private SourceRecordAndResult fromGrpc(
@@ -162,5 +159,12 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
                         new RuntimeException("gRPC server completed the stream unexpectedly"));
             }
         };
+    }
+
+    protected synchronized void stop() throws Exception {
+        if (request != null) {
+            request.onCompleted();
+        }
+        super.stop();
     }
 }

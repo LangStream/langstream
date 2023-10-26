@@ -59,7 +59,11 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
     @Override
     public GatewayAuthenticationResult authenticate(GatewayRequestContext context) {
         try {
-            GoogleIdToken idToken = verifier.verify(context.credentials());
+            final String credentials = context.credentials();
+            if (credentials == null) {
+                return GatewayAuthenticationResult.authenticationFailed("Token not found.");
+            }
+            GoogleIdToken idToken = verifier.verify(credentials);
             if (idToken != null) {
                 final GoogleIdToken.Payload payload = idToken.getPayload();
                 Map<String, String> result = new HashMap<>();

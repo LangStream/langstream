@@ -19,6 +19,9 @@ import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.websocket.WebSocketClient;
 import jakarta.websocket.CloseReason;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -82,6 +85,11 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
             description = "Test credentials for the gateway.")
     private String testCredentials;
 
+    @CommandLine.Option(
+            names = {"--protocol"},
+            description = "Protocol to use: http or ws", defaultValue = "ws")
+    private Protocols protocol = Protocols.ws;
+
     @Override
     @SneakyThrows
     public void run() {
@@ -93,9 +101,23 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                         params,
                         Map.of(),
                         credentials,
-                        testCredentials);
+                        testCredentials,
+                        protocol);
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
+
+        final ProduceRequest produceRequest =
+                new ProduceRequest(messageKey, messageValue, headers);
+        final String json = messageMapper.writeValueAsString(produceRequest);
+
+        if (protocol == Protocols.http) {
+            produceHttp(producePath, connectTimeout, json);
+        } else {
+            produceWebSocket(producePath, connectTimeout, json);
+        }
+    }
+
+    private void produceWebSocket(String producePath, Duration connectTimeout, String json) throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client =
                 new WebSocketClient(
@@ -128,11 +150,23 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                                     }
                                 })
                         .connect(URI.create(producePath), connectTimeout)) {
-            final ProduceRequest produceRequest =
-                    new ProduceRequest(messageKey, messageValue, headers);
-            final String json = messageMapper.writeValueAsString(produceRequest);
+
             client.send(json);
             countDownLatch.await();
         }
+    }
+
+    private void produceHttp(String producePath, Duration connectTimeout, String json) throws Exception {
+        final HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(producePath))
+                .header("Content-Type", "application/json")
+                .version(HttpClient.Version.HTTP_1_1)
+                .POST(HttpRequest.BodyPublishers.ofString(json));
+        if (connectTimeout != null) {
+            builder.timeout(connectTimeout);
+        }
+        final HttpRequest request = builder.build();
+        final HttpResponse<String> response =
+                getClient().getHttpClientFacade().http(request, HttpResponse.BodyHandlers.ofString());
+        log(response.body());
     }
 }

@@ -21,6 +21,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
 import java.util.Map;
@@ -51,28 +52,48 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    Gateway.GatewayType gatewayType() {
+    public Gateway.GatewayType gatewayType() {
         return Gateway.GatewayType.consume;
     }
 
     @Override
-    String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("tenant");
     }
 
     @Override
-    String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
     @Override
-    String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("gateway");
     }
 
     @Override
-    protected List<String> getAllRequiredParameters(Gateway gateway) {
-        return gateway.getParameters();
+    public GatewayRequestHandler.GatewayRequestValidator validator() {
+        return new GatewayRequestHandler.GatewayRequestValidator() {
+            @Override
+            public List<String> getAllRequiredParameters(Gateway gateway) {
+                return gateway.getParameters();
+            }
+
+            @Override
+            public void validateOptions(Map<String, String> options) {
+                for (Map.Entry<String, String> option : options.entrySet()) {
+                    switch (option.getKey()) {
+                        case "position":
+                            if (!StringUtils.hasText(option.getValue())) {
+                                throw new IllegalArgumentException("'position' cannot be blank");
+                            }
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unknown option " + option.getKey());
+                    }
+                }
+            }
+        };
     }
 
     @Override
@@ -92,19 +113,15 @@ public class ConsumeHandler extends AbstractHandler {
         } else {
             messageFilters = null;
         }
-
-        setupReader(
-                context.attributes(),
-                context.gateway().getTopic(),
-                context.application().getInstance().streamingCluster(),
+        setupReader(context.gateway().getTopic(),
                 messageFilters,
-                context.options());
+                context);
         sendClientConnectedEvent(context);
     }
 
     @Override
     public void onOpen(WebSocketSession session, AuthenticatedGatewayRequestContext context) {
-        startReadingMessages(session, context, executor);
+        startReadingMessages(session, executor);
     }
 
     @Override
@@ -121,18 +138,4 @@ public class ConsumeHandler extends AbstractHandler {
         stopReadingMessages(webSocketSession);
     }
 
-    @Override
-    void validateOptions(Map<String, String> options) {
-        for (Map.Entry<String, String> option : options.entrySet()) {
-            switch (option.getKey()) {
-                case "position":
-                    if (!StringUtils.hasText(option.getValue())) {
-                        throw new IllegalArgumentException("'position' cannot be blank");
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown option " + option.getKey());
-            }
-        }
-    }
 }

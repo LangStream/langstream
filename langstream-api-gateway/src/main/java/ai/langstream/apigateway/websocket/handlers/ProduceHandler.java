@@ -21,7 +21,10 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -44,54 +47,38 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    Gateway.GatewayType gatewayType() {
+    public Gateway.GatewayType gatewayType() {
         return Gateway.GatewayType.produce;
     }
 
     @Override
-    String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("tenant");
     }
 
     @Override
-    String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
     @Override
-    String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("gateway");
     }
 
     @Override
-    protected List<String> getAllRequiredParameters(Gateway gateway) {
-        return gateway.getParameters();
+    public GatewayRequestHandler.GatewayRequestValidator validator() {
+        return new ProduceGateway.ProduceGatewayRequestValidator();
     }
 
     @Override
     public void onBeforeHandshakeCompleted(
             AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
-        final Gateway gateway = context.gateway();
-        final Gateway.ProduceOptions produceOptions = gateway.getProduceOptions();
-        final List<Header> commonHeaders;
-        if (produceOptions != null) {
-            commonHeaders =
-                    getProducerCommonHeaders(
-                            produceOptions.headers(),
-                            context.userParameters(),
-                            context.principalValues());
-        } else {
-            commonHeaders = null;
-        }
-        setupProducer(
-                context.attributes(),
-                gateway.getTopic(),
-                context.application().getInstance().streamingCluster(),
-                commonHeaders,
-                context.tenant(),
-                context.applicationId(),
-                gateway.getId());
+        final List<Header> commonHeaders =
+                ProduceGateway.getProducerCommonHeaders(context.gateway().getProduceOptions(), context);
+        setupProducer(context.gateway().getTopic(), commonHeaders, context);
+
         sendClientConnectedEvent(context);
     }
 
@@ -112,14 +99,7 @@ public class ProduceHandler extends AbstractHandler {
     public void onClose(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            CloseStatus status) {}
-
-    @Override
-    void validateOptions(Map<String, String> options) {
-        for (Map.Entry<String, String> option : options.entrySet()) {
-            switch (option.getKey()) {
-                default -> throw new IllegalArgumentException("Unknown option " + option.getKey());
-            }
-        }
+            CloseStatus status) {
+        closeProduceGateway(webSocketSession);
     }
 }

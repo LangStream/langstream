@@ -66,7 +66,8 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
     public GatewayAuthenticationResult authenticate(GatewayRequestContext context) {
         String role;
         try {
-            role = authenticationProviderToken.authenticate(context.credentials());
+            final String credentials = context.credentials();
+            role = authenticationProviderToken.authenticate(credentials == null ? "" : credentials);
         } catch (AuthenticationProviderToken.AuthenticationException ex) {
             return GatewayAuthenticationResult.authenticationFailed(ex.getMessage());
         }

@@ -84,7 +84,15 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
             }
         }
         if (requestBuilder.getRecordsCount() > 0) {
-            request.onNext(requestBuilder.build());
+            try {
+                request.onNext(requestBuilder.build());
+            } catch (IllegalStateException stopped) {
+                if (restarting.get()) {
+                    log.info("Ignoring error during restart {}", stopped + "");
+                } else {
+                    throw stopped;
+                }
+            }
         }
     }
 
@@ -173,11 +181,13 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
         };
     }
 
-    protected synchronized void stop() throws Exception {
+    protected void stop() throws Exception {
         log.info("Restarting...");
         restarting.set(true);
-        if (request != null) {
-            request.onCompleted();
+        synchronized(this) {
+            if (request != null) {
+                request.onCompleted();
+            }
         }
         super.stop();
     }

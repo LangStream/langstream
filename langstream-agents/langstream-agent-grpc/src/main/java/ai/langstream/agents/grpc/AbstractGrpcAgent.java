@@ -102,21 +102,25 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     }
 
     protected synchronized void stop() throws Exception {
-        stopChannel(true);
+        stopChannel(false);
     }
 
-    public synchronized void stopChannel(boolean wait) throws Exception {
-        if (channel != null) {
-            ManagedChannel shutdown = channel.shutdown();
+    public void stopChannel(boolean wait) throws Exception {
+        ManagedChannel currentChannel;
+        synchronized(this) {
+            currentChannel = channel;
+        }
+        if (currentChannel != null) {
+            ManagedChannel shutdown = currentChannel.shutdown();
             if (wait) {
-                shutdown.awaitTermination(1, TimeUnit.MINUTES);
+                shutdown.awaitTermination(10, TimeUnit.SECONDS);
             }
         }
     }
 
     @Override
     public synchronized void close() throws Exception {
-        stopChannel(false);
+        stopChannel(true);
     }
 
     protected Object fromGrpc(Value value) throws IOException {

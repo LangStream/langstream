@@ -30,6 +30,8 @@ import ai.langstream.cli.util.DockerImageUtils;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -97,6 +99,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             names = {"--start-ui"},
             description = "Start the UI")
     private boolean startUI = true;
+
+    @CommandLine.Option(
+            names = {"--watch-files"},
+            description = "Start the UI")
+    private boolean watchFiles = true;
 
     @CommandLine.Option(
             names = {"-up", "--ui-port"},
@@ -387,7 +394,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
 
         try (WatchService watcher = FileSystems.getDefault().newWatchService(); ) {
-            startWatchService(appTmp.toPath(), watcher);
+            if (watchFiles) {
+                startWatchService(appTmp.toPath(), watcher);
+            }
 
             final Path outputLog = Files.createTempFile("langstream", ".log");
             log("Logging to file: " + outputLog.toAbsolutePath());
@@ -420,13 +429,32 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         ApplicationWatcher.watchApplication(
                 applicationDirectory,
                 file -> {
-                    if (file.endsWith(".py")) {
+                    if (file.endsWith("/python") || file.endsWith(".py")) {
                         log("A python file has changed, restarting the application");
+                        restartAgents();
                     } else {
-                        log("A file has changed");
+                        log("A file has changed: " + file);
                     }
                 },
                 watcher);
+    }
+
+    private static void restartAgents() {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL("http://localhost:7890/commands/restart");
+            System.out.println("Calling " + url + " to restart the agents");
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("POST");
+            Object content = urlConnection.getContent();
+            System.out.println("Response: " + content);
+        } catch (Exception e) {
+            System.err.println("Could not restart the agents: " + e.getMessage());
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
     }
 
     private File prepareSecretsFile(String secretsContents) throws IOException {

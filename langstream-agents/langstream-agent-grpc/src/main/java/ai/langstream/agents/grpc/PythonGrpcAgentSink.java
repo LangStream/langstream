@@ -42,4 +42,17 @@ public class PythonGrpcAgentSink extends GrpcAgentSink {
         if (server != null) server.close(false);
         super.close();
     }
+
+    @Override
+    protected synchronized void stop() throws Exception {
+        if (server != null) server.close(true);
+    }
+
+    @Override
+    public void restart() throws Exception {
+        super.stop();
+        stop();
+        start();
+        super.start();
+    }
 }

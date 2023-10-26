@@ -15,6 +15,8 @@
  */
 package ai.langstream.deployer.k8s.agents;
 
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Data;
 
 @Data
@@ -42,4 +44,8 @@ public class AgentResourceUnitConfiguration {
     private int readinessProbeInitialDelaySeconds = 10;
     private int readinessProbePeriodSeconds = 30;
     private int readinessProbeTimeoutSeconds = 5;
+
+    private Map<String, String> storageClassesMapping = new HashMap<>();
+    private String defaultStorageClass = "default";
+    private String defaultStorageDiskSize = "128M";
 }

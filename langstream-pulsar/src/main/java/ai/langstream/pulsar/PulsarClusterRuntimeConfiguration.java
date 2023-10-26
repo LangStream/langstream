@@ -15,20 +15,26 @@
  */
 package ai.langstream.pulsar;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class PulsarClusterRuntimeConfiguration {
+public record PulsarClusterRuntimeConfiguration(
+        Map<String, Object> admin,
+        Map<String, Object> service,
+        Map<String, Object> authentication,
+        @JsonProperty("default-tenant") String defaultTenant,
+        @JsonProperty("default-namespace") String defaultNamespace,
+        @JsonProperty("default-retention-policies") RetentionPolicies defaultRetentionPolicies) {
+    public record RetentionPolicies(
+            @JsonProperty("retention-time-in-minutes") Integer retentionTimeInMinutes,
+            @JsonProperty("retention-size-in-mb") Long retentionSizeInMB) {}
 
-    private Map<String, Object> admin;
-    private Map<String, Object> service;
-
-    private Map<String, Object> authentication;
-    private String defaultTenant = "public";
-    private String defaultNamespace = "default";
+    public PulsarClusterRuntimeConfiguration {
+        if (defaultTenant == null) {
+            defaultTenant = "public";
+        }
+        if (defaultNamespace == null) {
+            defaultNamespace = "public";
+        }
+    }
 }

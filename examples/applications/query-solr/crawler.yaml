@@ -24,7 +24,6 @@ assets:
     creation-mode: create-if-not-exists
     deletion-mode: delete
     config:
-      collection-name: "documents"
       datasource: "SolrDataSource"
       create-statements:
         - api: "/api/collections"
@@ -144,7 +143,6 @@ pipeline:
     input: chunks-topic
     configuration:
       datasource: "SolrDataSource"
-      collection-name: "documents"
       fields:
         - name: "id"
           expression: "fn:concat(value.filename, value.chunk_id)"

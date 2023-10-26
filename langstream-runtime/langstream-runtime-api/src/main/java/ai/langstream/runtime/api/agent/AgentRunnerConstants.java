@@ -23,4 +23,7 @@ public class AgentRunnerConstants {
     public static final String DOWNLOADED_CODE_PATH_ENV_DEFAULT = "/app-code-download";
     public static final String AGENTS_ENV = "LANGSTREAM_AGENT_RUNNER_AGENTS";
     public static final String AGENTS_ENV_DEFAULT = "/app/agents";
+    public static final String PERSISTENT_VOLUMES_PATH =
+            "LANGSTREAM_AGENT_RUNNER_PERSISTENT_VOLUMES_PATH";
+    public static final String PERSISTENT_VOLUMES_PATH_DEFAULT = "/persistent-state";
 }

@@ -36,11 +36,25 @@ if [ ! -d langstream-cli/target/cli ]; then
   ./mvnw clean install -DskipTests -pl langstream-cli -am
 fi
 popd > /dev/null
-LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-"conf/cli.yaml"}
-if [ "$LANGSTREAM_CLI_CONFIG" == "conf/cli.yaml" ]; then
-  echo "Using development CLI config file $(realpath $LANGSTREAM_CLI_CONFIG). To use the global config file, set LANGSTREAM_CLI_CONFIG=\$HOME/.langstream/config"
+config_specified=false
+for arg in "$@"
+do
+    if [ "$arg" == "--conf" ]; then
+        config_specified=true
+        break
+    fi
+done
+config_param=""
+
+if ! $config_specified ; then
+  LANGSTREAM_CLI_CONFIG=${LANGSTREAM_CLI_CONFIG:-"conf/cli.yaml"}
+  if [ "$LANGSTREAM_CLI_CONFIG" == "conf/cli.yaml" ]; then
+    echo "Using development CLI config file $(realpath $LANGSTREAM_CLI_CONFIG). To use the global config file, set LANGSTREAM_CLI_CONFIG=\$HOME/.langstream/config"
+  fi
+  config_param="--conf $LANGSTREAM_CLI_CONFIG"
 fi
 
-"$ROOT_DIR/langstream-cli/target/cli/bin/langstream" --conf "$LANGSTREAM_CLI_CONFIG" "$@"
+
+"$ROOT_DIR/langstream-cli/target/cli/bin/langstream" $config_param "$@"
 
 

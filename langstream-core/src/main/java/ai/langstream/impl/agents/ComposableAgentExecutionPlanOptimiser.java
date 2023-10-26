@@ -17,6 +17,7 @@ package ai.langstream.impl.agents;
 
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
+import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -50,7 +51,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         && Objects.equals(
                                 "true",
                                 agent2.getConfiguration().getOrDefault("composable", "true") + "")
-                        && Objects.equals(agent1.getResourcesSpec(), agent2.getResourcesSpec())
+                        && compareResourcesNoDisk(
+                                agent1.getResourcesSpec(), agent2.getResourcesSpec())
                         && Objects.equals(agent1.getErrorsSpec(), agent2.getErrorsSpec()));
         if (log.isDebugEnabled()) {
             log.debug("canMerge {}", previousAgent);
@@ -58,6 +60,14 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
             log.debug("canMerge RESULT: {}", result);
         }
         return result;
+    }
+
+    private static boolean compareResourcesNoDisk(ResourcesSpec a, ResourcesSpec b) {
+        Integer parallismA = a != null ? a.parallelism() : null;
+        Integer parallismB = b != null ? b.parallelism() : null;
+        Integer sizeA = a != null ? a.size() : null;
+        Integer sizeB = b != null ? b.size() : null;
+        return Objects.equals(parallismA, parallismB) && Objects.equals(sizeA, sizeB);
     }
 
     @Override
@@ -105,7 +115,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 agent1.overrideConfigurationAfterMerge(
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         newAgent1Configuration,
-                        agent2.getOutputConnectionImplementation());
+                        agent2.getOutputConnectionImplementation(),
+                        agent2.getDisks());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -154,7 +165,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                 agent1.overrideConfigurationAfterMerge(
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         result,
-                        agent2.getOutputConnectionImplementation());
+                        agent2.getOutputConnectionImplementation(),
+                        agent2.getDisks());
             }
             log.info("Agent 1 modified: {}", agent1);
             if (agent2.getInputConnectionImplementation() != null) {

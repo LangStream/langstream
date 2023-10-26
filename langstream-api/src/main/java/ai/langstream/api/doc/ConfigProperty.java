@@ -28,4 +28,6 @@ public @interface ConfigProperty {
     String description() default "";
 
     String defaultValue() default "";
+
+    ExtendedValidationType extendedValidationType() default ExtendedValidationType.NONE;
 }

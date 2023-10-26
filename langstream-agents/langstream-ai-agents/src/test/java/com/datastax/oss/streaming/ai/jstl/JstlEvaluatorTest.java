@@ -18,7 +18,7 @@ package com.datastax.oss.streaming.ai.jstl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import com.datastax.oss.streaming.ai.Utils;
@@ -36,7 +36,7 @@ public class JstlEvaluatorTest {
 
     @ParameterizedTest
     @MethodSource("methodInvocationExpressionProvider")
-    void testMethodInvocationsDisabled(String expression, TransformContext context) {
+    void testMethodInvocationsDisabled(String expression, MutableRecord context) {
         assertThrows(
                 MethodNotFoundException.class,
                 () -> {
@@ -47,7 +47,7 @@ public class JstlEvaluatorTest {
 
     @ParameterizedTest
     @MethodSource("functionExpressionProvider")
-    void testFunctions(String expression, TransformContext context, Object expectedValue) {
+    void testFunctions(String expression, MutableRecord context, Object expectedValue) {
         assertEquals(
                 expectedValue,
                 new JstlEvaluator<>(String.format("${%s}", expression), Object.class)
@@ -56,7 +56,7 @@ public class JstlEvaluatorTest {
 
     @Test
     void testPrimitiveValue() {
-        TransformContext primitiveStringContext =
+        MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "");
 
         String value =
@@ -67,7 +67,7 @@ public class JstlEvaluatorTest {
 
     @Test
     void testNowFunction() {
-        TransformContext primitiveStringContext =
+        MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "");
 
         long expectedMillis = 123L;
@@ -82,7 +82,7 @@ public class JstlEvaluatorTest {
 
     @Test
     void testTimestampAddFunctionsNow() {
-        TransformContext primitiveStringContext =
+        MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "");
 
         long nowMillis = 5000L;
@@ -100,7 +100,7 @@ public class JstlEvaluatorTest {
      * @return {"expression", "transform context"}
      */
     public static Object[][] methodInvocationExpressionProvider() {
-        TransformContext primitiveStringContext =
+        MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "header-key");
 
         return new Object[][] {
@@ -116,13 +116,13 @@ public class JstlEvaluatorTest {
      * @return {"expression", "context", "expected value"}
      */
     public static Object[][] functionExpressionProvider() {
-        TransformContext primitiveBytesContext =
+        MutableRecord primitiveBytesContext =
                 Utils.createContextWithPrimitiveRecord(
                         Schema.BYTES, "Test-Message ".getBytes(StandardCharsets.UTF_8), "");
-        TransformContext primitiveInstantContext =
+        MutableRecord primitiveInstantContext =
                 Utils.createContextWithPrimitiveRecord(
                         Schema.INSTANT, Instant.parse("2017-01-02T00:01:02Z"), "");
-        TransformContext chronoUnitBytesContext =
+        MutableRecord chronoUnitBytesContext =
                 Utils.createContextWithPrimitiveRecord(
                         Schema.BYTES, "millis".getBytes(StandardCharsets.UTF_8), "");
         long millis = Instant.parse("2017-01-02T00:01:02Z").toEpochMilli();

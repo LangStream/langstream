@@ -25,34 +25,37 @@ import org.apache.pulsar.client.api.PulsarClient;
 public class PulsarClientUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public static PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
-        final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
-                getPulsarClusterRuntimeConfiguration(streamingCluster);
-        Map<String, Object> adminConfig = pulsarClusterRuntimeConfiguration.getAdmin();
+    public static PulsarAdmin buildPulsarAdmin(
+            PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration) throws Exception {
+        Map<String, Object> adminConfig = pulsarClusterRuntimeConfiguration.admin();
         if (adminConfig == null) {
             adminConfig = new HashMap<>();
         } else {
             adminConfig = new HashMap<>(adminConfig);
         }
-        if (pulsarClusterRuntimeConfiguration.getAuthentication() != null) {
-            adminConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
+        if (pulsarClusterRuntimeConfiguration.authentication() != null) {
+            adminConfig.putAll(pulsarClusterRuntimeConfiguration.authentication());
         }
         adminConfig.putIfAbsent("serviceUrl", "http://localhost:8080");
         return PulsarAdmin.builder().loadConf(adminConfig).build();
+    }
+
+    public static PulsarAdmin buildPulsarAdmin(StreamingCluster streamingCluster) throws Exception {
+        return buildPulsarAdmin(getPulsarClusterRuntimeConfiguration(streamingCluster));
     }
 
     public static PulsarClient buildPulsarClient(StreamingCluster streamingCluster)
             throws Exception {
         final PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration =
                 getPulsarClusterRuntimeConfiguration(streamingCluster);
-        Map<String, Object> clientConfig = pulsarClusterRuntimeConfiguration.getService();
+        Map<String, Object> clientConfig = pulsarClusterRuntimeConfiguration.service();
         if (clientConfig == null) {
             clientConfig = new HashMap<>();
         } else {
             clientConfig = new HashMap<>(clientConfig);
         }
-        if (pulsarClusterRuntimeConfiguration.getAuthentication() != null) {
-            clientConfig.putAll(pulsarClusterRuntimeConfiguration.getAuthentication());
+        if (pulsarClusterRuntimeConfiguration.authentication() != null) {
+            clientConfig.putAll(pulsarClusterRuntimeConfiguration.authentication());
         }
         clientConfig.putIfAbsent("serviceUrl", "pulsar://localhost:6650");
         return PulsarClient.builder().loadConf(clientConfig).build();

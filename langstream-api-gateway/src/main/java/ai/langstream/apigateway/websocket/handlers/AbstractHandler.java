@@ -27,7 +27,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
-import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
@@ -44,7 +43,6 @@ import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -354,11 +352,13 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                         .getTopicConnectionsRuntime(streamingCluster)
                         .asTopicConnectionsRuntime();
 
+        topicConnectionsRuntime.init(streamingCluster);
+
         try (final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
                         "langstream-events",
                         streamingCluster,
-                        Map.of("topic", gateway.getEventsTopic())); ) {
+                        Map.of("topic", gateway.getEventsTopic()))) {
             producer.start();
 
             final EventSources.GatewaySource source =
@@ -491,12 +491,12 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return messageHeaders;
     }
 
-    private static String computeOffset(TopicReadResult readResult) throws JsonProcessingException {
-        final OffsetPerPartition offsetPerPartition = readResult.partitionsOffsets();
-        if (offsetPerPartition == null) {
+    private static String computeOffset(TopicReadResult readResult) {
+        final byte[] offset = readResult.offset();
+        if (offset == null) {
             return null;
         }
-        return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(offsetPerPartition));
+        return Base64.getEncoder().encodeToString(offset);
     }
 
     protected static List<Function<Record, Boolean>> createMessageFilters(
@@ -551,15 +551,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                         .getTopicConnectionsRuntime(streamingCluster)
                         .asTopicConnectionsRuntime();
 
+        topicConnectionsRuntime.init(streamingCluster);
+
         final String positionParameter = options.getOrDefault("position", "latest");
         TopicOffsetPosition position =
                 switch (positionParameter) {
                     case "latest" -> TopicOffsetPosition.LATEST;
                     case "earliest" -> TopicOffsetPosition.EARLIEST;
                     default -> TopicOffsetPosition.absolute(
-                            new String(
-                                    Base64.getDecoder().decode(positionParameter),
-                                    StandardCharsets.UTF_8));
+                            Base64.getDecoder().decode(positionParameter));
                 };
         TopicReader reader =
                 topicConnectionsRuntime.createReader(
@@ -588,6 +588,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(streamingCluster)
                         .asTopicConnectionsRuntime();
+
+        topicConnectionsRuntime.init(streamingCluster);
 
         final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(

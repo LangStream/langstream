@@ -18,6 +18,7 @@ package ai.langstream.runtime.tester;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
@@ -44,7 +45,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +67,8 @@ public class LocalApplicationRunner
 
     final Path codeDirectory;
 
+    final Path basePersistentStateDirectory;
+
     final AtomicBoolean continueLoop = new AtomicBoolean(true);
 
     final CountDownLatch exited = new CountDownLatch(1);
@@ -75,9 +77,12 @@ public class LocalApplicationRunner
 
     final Map<String, AgentInfo> allAgentsInfo = new ConcurrentHashMap<>();
 
-    public LocalApplicationRunner(Path agentsDirectory, Path codeDirectory) throws Exception {
+    public LocalApplicationRunner(
+            Path agentsDirectory, Path codeDirectory, Path basePersistentStateDirectory)
+            throws Exception {
         this.codeDirectory = codeDirectory;
         this.agentsDirectory = agentsDirectory;
+        this.basePersistentStateDirectory = basePersistentStateDirectory;
         List<URL> customLib = AgentRunner.buildCustomLibClasspath(codeDirectory);
         this.narFileHandler =
                 new NarFileHandler(
@@ -131,6 +136,8 @@ public class LocalApplicationRunner
         ExecutionPlan implementation =
                 applicationDeployer.createImplementation(appId, applicationInstance);
 
+        ensureDiskDirectories(implementation);
+
         applicationDeployer.setup(tenant, implementation);
 
         applicationDeployer.deploy(tenant, implementation, null);
@@ -140,6 +147,16 @@ public class LocalApplicationRunner
 
         return new ApplicationRuntime(
                 tenant, appId, applicationInstance, implementation, secrets, applicationDeployer);
+    }
+
+    private void ensureDiskDirectories(ExecutionPlan implementation) throws IOException {
+        for (AgentNode value : implementation.getAgents().values()) {
+            if (value.getDisks() != null) {
+                for (String s : value.getDisks().keySet()) {
+                    Files.createDirectories(basePersistentStateDirectory.resolve(s));
+                }
+            }
+        }
     }
 
     @Override
@@ -187,7 +204,7 @@ public class LocalApplicationRunner
 
             // execute all the pods
             ExecutorService executorService = Executors.newCachedThreadPool();
-            List<CompletableFuture> futures = new ArrayList<>();
+            List<CompletableFuture<?>> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
                 persistPodConfiguration(podConfiguration);
                 CompletableFuture<?> handle = new CompletableFuture<>();
@@ -211,6 +228,7 @@ public class LocalApplicationRunner
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
+                                        basePersistentStateDirectory,
                                         agentInfo,
                                         continueLoop::get,
                                         () -> {},
@@ -240,16 +258,20 @@ public class LocalApplicationRunner
                         });
             }
             try {
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-            } catch (ExecutionException executionException) {
+                CompletionWaiter waiter = new CompletionWaiter(futures);
+                waiter.awaitCompletion(Integer.MAX_VALUE, TimeUnit.SECONDS);
+            } catch (Throwable executionException) {
                 log.error(
                         "Some error occurred while executing the agent",
                         executionException.getCause());
                 // unwrap the exception in order to easily perform assertions
-                if (executionException.getCause() instanceof Exception) {
-                    throw (Exception) executionException.getCause();
+                if (executionException instanceof RuntimeException re) {
+                    throw re;
+                }
+                if (executionException instanceof Exception e) {
+                    throw e;
                 } else {
-                    throw executionException;
+                    throw new RuntimeException(executionException);
                 }
             }
             executorService.shutdown();

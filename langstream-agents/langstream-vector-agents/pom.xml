@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-agents</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.3.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-vector-agents</artifactId>
@@ -30,6 +30,17 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>2.21.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -77,6 +88,15 @@
       <version>9.3.0</version>
     </dependency>
     <dependency>
+      <groupId>org.opensearch.client</groupId>
+      <artifactId>opensearch-java</artifactId>
+      <version>2.6.0</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>opensearch</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
@@ -110,15 +130,22 @@
       <artifactId>cassandra</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+        <groupId>org.opensearch</groupId>
+        <artifactId>opensearch-testcontainers</artifactId>
+        <version>2.0.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-maven-plugin</artifactId>
-        <extensions>true</extensions>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>nifi-maven-plugin</artifactId>
+        <version>${project.version}</version>
         <configuration>
           <classifier>nar</classifier>
+          <skipDocGeneration>true</skipDocGeneration>
         </configuration>
         <executions>
           <execution>

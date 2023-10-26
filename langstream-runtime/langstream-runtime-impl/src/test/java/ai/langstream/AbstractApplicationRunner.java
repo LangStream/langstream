@@ -15,10 +15,6 @@
  */
 package ai.langstream;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -32,16 +28,14 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
-import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentInfo;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.fabric8.kubernetes.api.model.Secret;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -52,23 +46,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Header;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
+    private static final int DEDAULT_NUM_LOOPS = 5;
     public static final Path agentsDirectory;
 
     static {
@@ -78,21 +67,20 @@ public abstract class AbstractApplicationRunner {
 
     @RegisterExtension protected static final KubeTestServer kubeServer = new KubeTestServer();
 
-    @RegisterExtension
-    protected static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
-
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
-    private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    @Getter private static Path basePersistenceDirectory;
 
-    private Path codeDirectory;
+    private static Path codeDirectory;
 
-    public Path getCodeDirectory() {
-        return codeDirectory;
+    private int maxNumLoops = DEDAULT_NUM_LOOPS;
+
+    public int getMaxNumLoops() {
+        return maxNumLoops;
     }
 
-    public void setCodeDirectory(Path codeDirectory) {
-        this.codeDirectory = codeDirectory;
+    public void setMaxNumLoops(int maxNumLoops) {
+        this.maxNumLoops = maxNumLoops;
     }
 
     protected record ApplicationRuntime(
@@ -156,37 +144,18 @@ public abstract class AbstractApplicationRunner {
         return new ApplicationRuntime(tenant, appId, applicationInstance, implementation, secrets);
     }
 
-    protected String buildInstanceYaml() {
-        String inputTopic = "input-topic-" + UUID.randomUUID();
-        String outputTopic = "output-topic-" + UUID.randomUUID();
-        String streamTopic = "stream-topic-" + UUID.randomUUID();
-        return """
-                instance:
-                  globals:
-                    input-topic: %s
-                    output-topic: %s
-                    stream-topic: %s
-                  streamingCluster:
-                    type: "kafka"
-                    configuration:
-                      admin:
-                        bootstrap.servers: "%s"
-                  computeCluster:
-                     type: "kubernetes"
-                """
-                .formatted(
-                        inputTopic, outputTopic, streamTopic, kafkaContainer.getBootstrapServers());
-    }
-
     @BeforeAll
     public static void setup() throws Exception {
-        Path codeDirectory = Paths.get("target/test-jdbc-drivers");
+        codeDirectory = Paths.get("target/test-jdbc-drivers");
+        basePersistenceDirectory =
+                Files.createTempDirectory("langstream-agents-tests-persistent-state");
         narFileHandler =
                 new NarFileHandler(
                         agentsDirectory,
                         AgentRunner.buildCustomLibClasspath(codeDirectory),
                         Thread.currentThread().getContextClassLoader());
-        topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
+        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         final AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
@@ -198,121 +167,6 @@ public abstract class AbstractApplicationRunner {
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
                         .build();
-    }
-
-    protected KafkaProducer<String, String> createProducer() {
-        return new KafkaProducer<>(
-                Map.of(
-                        "bootstrap.servers",
-                        kafkaContainer.getBootstrapServers(),
-                        "key.serializer",
-                        "org.apache.kafka.common.serialization.StringSerializer",
-                        "value.serializer",
-                        "org.apache.kafka.common.serialization.StringSerializer"));
-    }
-
-    protected void sendMessage(String topic, Object content, KafkaProducer producer)
-            throws Exception {
-        sendMessage(topic, content, List.of(), producer);
-    }
-
-    protected void sendMessage(
-            String topic, Object content, List<Header> headers, KafkaProducer producer)
-            throws Exception {
-        sendMessage(topic, "key", content, headers, producer);
-    }
-
-    protected void sendMessage(
-            String topic, Object key, Object content, List<Header> headers, KafkaProducer producer)
-            throws Exception {
-        producer.send(
-                        new ProducerRecord<>(
-                                topic, null, System.currentTimeMillis(), key, content, headers))
-                .get();
-        producer.flush();
-    }
-
-    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
-        List<ConsumerRecord> result = new ArrayList<>();
-        List<Object> received = new ArrayList<>();
-
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .untilAsserted(
-                        () -> {
-                            ConsumerRecords<String, String> poll =
-                                    consumer.poll(Duration.ofSeconds(2));
-                            for (ConsumerRecord record : poll) {
-                                log.info("Received message {}", record);
-                                received.add(record.value());
-                                result.add(record);
-                            }
-                            log.info("Result:  {}", received);
-                            received.forEach(r -> log.info("Received |{}|", r));
-
-                            assertEquals(expected.size(), received.size());
-                            for (int i = 0; i < expected.size(); i++) {
-                                Object expectedValue = expected.get(i);
-                                Object actualValue = received.get(i);
-                                if (expectedValue instanceof Consumer fn) {
-                                    fn.accept(actualValue);
-                                } else if (expectedValue instanceof byte[]) {
-                                    assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
-                                } else {
-                                    log.info("expected: {}", expectedValue);
-                                    log.info("got: {}", actualValue);
-                                    assertEquals(expectedValue, actualValue);
-                                }
-                            }
-                        });
-
-        return result;
-    }
-
-    protected List<ConsumerRecord> waitForMessagesInAnyOrder(
-            KafkaConsumer consumer, Collection<String> expected) {
-        List<ConsumerRecord> result = new ArrayList<>();
-        List<Object> received = new ArrayList<>();
-
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .untilAsserted(
-                        () -> {
-                            ConsumerRecords<String, String> poll =
-                                    consumer.poll(Duration.ofSeconds(2));
-                            for (ConsumerRecord record : poll) {
-                                log.info("Received message {}", record);
-                                received.add(record.value());
-                                result.add(record);
-                            }
-                            log.info("Result: {}", received);
-                            received.forEach(r -> log.info("Received |{}|", r));
-
-                            assertEquals(expected.size(), received.size());
-                            for (Object expectedValue : expected) {
-                                // this doesn't work for byte[]
-                                assertFalse(expectedValue instanceof byte[]);
-                                assertTrue(
-                                        received.contains(expectedValue),
-                                        "Expected value "
-                                                + expectedValue
-                                                + " not found in "
-                                                + received);
-                            }
-
-                            for (Object receivedValue : received) {
-                                // this doesn't work for byte[]
-                                assertFalse(receivedValue instanceof byte[]);
-                                assertTrue(
-                                        expected.contains(receivedValue),
-                                        "Received value "
-                                                + receivedValue
-                                                + " not found in "
-                                                + expected);
-                            }
-                        });
-
-        return result;
     }
 
     public record AgentRunResult(Map<String, AgentInfo> info) {}
@@ -341,7 +195,7 @@ public abstract class AbstractApplicationRunner {
                             });
             // execute all the pods
             ExecutorService executorService = Executors.newCachedThreadPool();
-            List<CompletableFuture> futures = new ArrayList<>();
+            List<CompletableFuture<?>> futures = new ArrayList<>();
             for (RuntimePodConfiguration podConfiguration : pods) {
                 CompletableFuture<?> handle = new CompletableFuture<>();
                 futures.add(handle);
@@ -361,14 +215,28 @@ public abstract class AbstractApplicationRunner {
                                 AgentInfo agentInfo = new AgentInfo();
                                 allAgentsInfo.put(podConfiguration.agent().agentId(), agentInfo);
                                 AtomicInteger numLoops = new AtomicInteger();
+                                for (String agentWithDisk :
+                                        podConfiguration.agent().agentsWithDisk()) {
+                                    Path directory =
+                                            basePersistenceDirectory.resolve(agentWithDisk);
+                                    if (!Files.isDirectory(directory)) {
+                                        log.info(
+                                                "Provisioning directory {} for stateful agent {}",
+                                                directory,
+                                                agentWithDisk);
+                                        Files.createDirectory(directory);
+                                    }
+                                }
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         codeDirectory,
                                         agentsDirectory,
+                                        basePersistenceDirectory,
                                         agentInfo,
                                         () -> {
-                                            log.info("Num loops {}", numLoops.get());
-                                            return numLoops.incrementAndGet() <= 10;
+                                            log.info(
+                                                    "Num loops {}/{}", numLoops.get(), maxNumLoops);
+                                            return numLoops.incrementAndGet() <= maxNumLoops;
                                         },
                                         () -> validateAgentInfoBeforeStop(agentInfo),
                                         false,
@@ -419,83 +287,11 @@ public abstract class AbstractApplicationRunner {
         return new AgentRunResult(allAgentsInfo);
     }
 
-    private volatile boolean validateConsumerOffsets = true;
+    protected void validateAgentInfoBeforeStop(AgentInfo agentInfo) {}
 
-    public boolean isValidateConsumerOffsets() {
-        return validateConsumerOffsets;
-    }
-
-    public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
-        this.validateConsumerOffsets = validateConsumerOffsets;
-    }
-
-    private void validateAgentInfoBeforeStop(AgentInfo agentInfo) {
-        if (!validateConsumerOffsets) {
-            return;
-        }
-        agentInfo
-                .serveWorkerStatus()
-                .forEach(
-                        workerStatus -> {
-                            String agentType = workerStatus.getAgentType();
-                            log.info("Checking Agent type {}", agentType);
-                            switch (agentType) {
-                                case "topic-source":
-                                    Map<String, Object> info = workerStatus.getInfo();
-                                    log.info("Topic source info {}", info);
-                                    Map<String, Object> consumerInfo =
-                                            (Map<String, Object>) info.get("consumer");
-                                    if (consumerInfo != null) {
-                                        Map<String, Object> committedOffsets =
-                                                (Map<String, Object>)
-                                                        consumerInfo.get("committedOffsets");
-                                        log.info("Committed offsets {}", committedOffsets);
-                                        committedOffsets.forEach(
-                                                (topic, offset) -> {
-                                                    assertNotNull(offset);
-                                                    assertTrue(((Number) offset).intValue() >= 0);
-                                                });
-                                        Map<String, Object> uncommittedOffsets =
-                                                (Map<String, Object>)
-                                                        consumerInfo.get("uncommittedOffsets");
-                                        log.info("Uncommitted offsets {}", uncommittedOffsets);
-                                        uncommittedOffsets.forEach(
-                                                (topic, number) -> {
-                                                    assertNotNull(number);
-                                                    assertTrue(
-                                                            ((Number) number).intValue() <= 0,
-                                                            "for topic "
-                                                                    + topic
-                                                                    + " we have some uncommitted offsets: "
-                                                                    + number);
-                                                });
-                                    }
-                                default:
-                                    // ignore
-                            }
-                        });
-    }
-
-    protected KafkaConsumer<String, String> createConsumer(String topic) {
-        KafkaConsumer<String, String> consumer =
-                new KafkaConsumer<>(
-                        Map.of(
-                                "bootstrap.servers",
-                                kafkaContainer.getBootstrapServers(),
-                                "key.deserializer",
-                                "org.apache.kafka.common.serialization.StringDeserializer",
-                                "value.deserializer",
-                                "org.apache.kafka.common.serialization.StringDeserializer",
-                                "group.id",
-                                "testgroup-" + UUID.randomUUID(),
-                                "auto.offset.reset",
-                                "earliest"));
-        consumer.subscribe(List.of(topic));
-        return consumer;
-    }
-
-    protected static AdminClient getKafkaAdmin() {
-        return kafkaContainer.getAdmin();
+    @AfterEach
+    public void resetNumLoops() {
+        setMaxNumLoops(DEDAULT_NUM_LOOPS);
     }
 
     @AfterAll

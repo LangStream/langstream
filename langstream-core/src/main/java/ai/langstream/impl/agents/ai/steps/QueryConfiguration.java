@@ -17,6 +17,7 @@ package ai.langstream.impl.agents.ai.steps;
 
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
+import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.impl.agents.ai.GenAIToolKitFunctionAgentProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -83,7 +84,8 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    but be like "record.fieldname" in order to replace or set a field in each record
                    with the results of the query. In the query parameters you can refer to the
                    record fields using "record.field".
-                   """)
+                   """,
+            extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
     @JsonProperty("loop-over")
     private String loopOver;
 
@@ -91,7 +93,8 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
             description =
                     """
                    Fields of the record to use as input parameters for the query.
-                   """)
+                   """,
+            extendedValidationType = ExtendedValidationType.EL_EXPRESSION)
     private List<String> fields;
 
     @ConfigProperty(
@@ -119,4 +122,25 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
                    """,
             required = true)
     private String datasource;
+
+    @ConfigProperty(
+            description =
+                    """
+                   Execution mode: query or execute. In query mode, the query is executed and the results are returned. In execute mode, the query is executed and the result is the number of rows affected (depending on the database).
+                   """,
+            defaultValue = "query")
+    private Mode mode = Mode.query;
+
+    @ConfigProperty(
+            description =
+                    """
+                   List of fields to use as generated keys. The generated keys are returned in the output, depending on the database.
+                   """)
+    @JsonProperty("generated-keys")
+    private List<String> generatedKeys;
+
+    enum Mode {
+        query,
+        execute
+    }
 }

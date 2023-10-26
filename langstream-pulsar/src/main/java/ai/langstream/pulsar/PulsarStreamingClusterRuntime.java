@@ -24,7 +24,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,9 +41,9 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
         SchemaDefinition keySchema = topicDefinition.getKeySchema();
         SchemaDefinition valueSchema = topicDefinition.getValueSchema();
         String name = topicDefinition.getName();
-        String tenant = config.getDefaultTenant();
+        String tenant = config.defaultTenant();
         String creationMode = topicDefinition.getCreationMode();
-        String namespace = config.getDefaultNamespace();
+        String namespace = config.defaultNamespace();
         PulsarName topicName = new PulsarName(tenant, namespace, name);
         return new PulsarTopic(
                 topicName,
@@ -53,18 +52,17 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
                 valueSchema,
                 creationMode,
                 topicDefinition.getDeletionMode(),
-                topicDefinition.isImplicit());
+                topicDefinition.isImplicit(),
+                topicDefinition.getOptions());
     }
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
             AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
-        Map<String, Object> configuration = new HashMap<>();
+        Map<String, Object> configuration = pulsarTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
                 "subscriptionName", key -> "langstream-agent-" + agentImplementation.getId());
-
-        configuration.put("topic", pulsarTopic.name().toPulsarName());
         return configuration;
     }
 
@@ -73,12 +71,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
             AgentNode agentImplementation,
             ConnectionImplementation outputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
-
-        Map<String, Object> configuration = new HashMap<>();
-        // TODO: handle other configurations and schema
-
-        configuration.put("topic", pulsarTopic.name().toPulsarName());
-        return configuration;
+        return pulsarTopic.createProducerConfiguration();
     }
 
     public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(

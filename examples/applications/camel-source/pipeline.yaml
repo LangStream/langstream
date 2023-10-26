@@ -1,0 +1,36 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+topics:
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "read-from-github"
+    type: "camel-source"
+
+    configuration:
+      component-uri: "github:${globals.github-event}/${secrets.camel-github-source.branch}"
+      component-options:
+         oauthToken: "${secrets.camel-github-source.oauthToken}"
+         repoName: "${secrets.camel-github-source.repoName}"
+         repoOwner: "${secrets.camel-github-source.repoOwner}"
+  - name: "keep only the contents of the comment"
+    type: "compute"
+    output: "output-topic"
+    configuration:
+        fields:
+           - name: "value"
+             expression: "value.body"

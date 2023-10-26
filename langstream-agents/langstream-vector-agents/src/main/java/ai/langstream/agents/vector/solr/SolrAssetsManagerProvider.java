@@ -63,13 +63,7 @@ public class SolrAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public boolean assetExists() throws Exception {
-            String collectionName = getCollectionName();
-            log.info("Handling SOLR collection {}", collectionName);
             return describeCollection();
-        }
-
-        private String getCollectionName() {
-            return datasource.getClientConfig().getCollectionName();
         }
 
         @Override
@@ -84,20 +78,16 @@ public class SolrAssetsManagerProvider implements AssetManagerProvider {
         }
 
         private boolean describeCollection() throws IOException, InterruptedException {
-            String schemaUrl = datasource.getCollectionUrl() + "/schema";
-            HttpResponse<String> get =
-                    httpClient.send(
-                            HttpRequest.newBuilder().uri(URI.create(schemaUrl)).GET().build(),
-                            HttpResponse.BodyHandlers.ofString());
-            String currentSchema = get.body();
-            log.info("Describe collection {}", getCollectionName());
-            log.info("Result: {}", currentSchema);
-            if (get.statusCode() == 404) {
+            String collectionUrl = datasource.getRESTCollectionUrl();
+            String result = execute("GET", collectionUrl);
+            if (result == null) { // this should have been 404, but actually Solr 9.3 returns 400
+                log.info("Collection {} does not exist", datasource.getCollectionName());
                 return false;
             }
-            if (get.statusCode() != 200) {
-                throw new IOException("Error while querying collection schema: " + get.body());
-            }
+            String schemaUrl = datasource.getCollectionUrl() + "/schema";
+            String currentSchema = execute("GET", schemaUrl);
+            log.info("Describe collection {}", datasource.getCollectionName());
+            log.info("Result: {}", currentSchema);
             return true;
         }
 
@@ -140,7 +130,39 @@ public class SolrAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public boolean deleteAssetIfExists() throws Exception {
-            return false;
+            boolean exists = describeCollection();
+            if (!exists) {
+                return false;
+            }
+            String collectionUrl = datasource.getRESTCollectionUrl();
+            ;
+            log.info("Deleting collection {}", datasource.getCollectionName());
+            execute("DELETE", collectionUrl);
+            return true;
+        }
+
+        private String execute(String method, String url) throws IOException, InterruptedException {
+            HttpResponse<String> response =
+                    httpClient.send(
+                            HttpRequest.newBuilder()
+                                    .uri(URI.create(url))
+                                    .method(method, HttpRequest.BodyPublishers.noBody())
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString());
+            log.info("{} {}: Status code {}", method, url, response.statusCode());
+            if (response.statusCode()
+                            == 400 // this should have been 404, but actually Solr 9.3 returns 400
+                    || response.statusCode() == 404) {
+                return null;
+            }
+            if (response.statusCode() != 200) {
+                throw new IOException(
+                        "Error while calling url "
+                                + url
+                                + ", http status code is "
+                                + response.statusCode());
+            }
+            return response.body();
         }
 
         @Override

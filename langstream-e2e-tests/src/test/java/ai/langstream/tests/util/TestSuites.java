@@ -19,6 +19,7 @@ public class TestSuites {
 
     public static final String CATEGORY_PYTHON = "python";
     public static final String CATEGORY_OTHER = "other";
+    public static final String CATEGORY_CLI = "cli";
 
     public static final String CATEGORY_NEEDS_CREDENTIALS = "needs-credentials";
 }

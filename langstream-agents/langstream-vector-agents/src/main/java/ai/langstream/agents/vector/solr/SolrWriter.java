@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.vector.solr;
 
-import static ai.langstream.ai.agents.commons.TransformContext.recordToTransformContext;
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
@@ -95,12 +95,12 @@ public class SolrWriter implements VectorDatabaseWriterProvider {
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                TransformContext transformContext = recordToTransformContext(record, true);
+                MutableRecord mutableRecord = recordToMutableRecord(record, true);
 
                 SolrInputDocument document = new SolrInputDocument();
                 fields.forEach(
                         (name, evaluator) -> {
-                            Object value = evaluator.evaluate(transformContext);
+                            Object value = evaluator.evaluate(mutableRecord);
                             if (log.isDebugEnabled()) {
                                 log.debug(
                                         "setting value {} ({}) for field {}",

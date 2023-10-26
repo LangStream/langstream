@@ -18,7 +18,11 @@ package ai.langstream.api.runner.topics;
 import java.util.Map;
 
 public interface TopicConnectionProvider {
-    TopicConsumer createConsumer(String agentId, Map<String, Object> config);
+    default TopicConsumer createConsumer(String agentId, Map<String, Object> config) {
+        throw new UnsupportedOperationException("Consumer not supported");
+    }
 
-    TopicProducer createProducer(String agentId, String topic, Map<String, Object> config);
+    default TopicProducer createProducer(String agentId, String topic, Map<String, Object> config) {
+        throw new UnsupportedOperationException("Producer not supported");
+    }
 }

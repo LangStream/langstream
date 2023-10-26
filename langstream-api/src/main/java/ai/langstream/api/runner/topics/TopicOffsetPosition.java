@@ -15,7 +15,7 @@
  */
 package ai.langstream.api.runner.topics;
 
-public record TopicOffsetPosition(Position position, String offset) {
+public record TopicOffsetPosition(Position position, byte[] offset) {
 
     public enum Position {
         Latest,
@@ -27,7 +27,7 @@ public record TopicOffsetPosition(Position position, String offset) {
     public static final TopicOffsetPosition EARLIEST =
             new TopicOffsetPosition(Position.Earliest, null);
 
-    public static TopicOffsetPosition absolute(String offset) {
+    public static TopicOffsetPosition absolute(byte[] offset) {
         return new TopicOffsetPosition(Position.Absolute, offset);
     }
 }

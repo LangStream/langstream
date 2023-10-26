@@ -42,7 +42,7 @@ public class DoubleBytesConverter implements BytesConverter<Double> {
             return null;
         }
         if (bytes.length != 8) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by DoubleBytesConverter is not 8");
         }
         long value = 0;

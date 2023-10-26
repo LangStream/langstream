@@ -38,16 +38,8 @@ const Message = ({ message }: Props): JSX.Element => {
       sx={[
         {
           marginBottom: 1,
-          width: '70%',
-          maxWidth: '70%',
-        },
-        !message.yours && {
-          marginLeft: 0,
-          marginRight: 'auto',
-        },
-        message.yours && {
-          marginLeft: 'auto',
-          marginRight: 0,
+          width: '100%',
+          maxWidth: '100%',
         },
       ]}
     >
@@ -59,20 +51,15 @@ const Message = ({ message }: Props): JSX.Element => {
             flexDirection: 'column',
             justifyContent: 'space-between',
           },
-          !message.yours && {
-            marginLeft: 2,
-            marginRight: 0,
-          },
-          message.yours && {
-            marginLeft: 0,
-            marginRight: 2,
-          },
         ]}
       >
         <Typography
           color="text.secondary"
           fontSize="caption.fontSize"
-          sx={{ fontStyle: 'italic', marginBottom: 1 }}
+          sx={[
+            { fontStyle: 'italic', marginBottom: 1 },
+            message.yours && { textAlign: 'right', mr: 1 }
+          ]}
         >
           {fullTimestampMessage}
         </Typography>

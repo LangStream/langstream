@@ -569,6 +569,11 @@ public class AppResourcesFactory {
     }
 
     public static void validateApplicationId(String applicationId) throws IllegalArgumentException {
+        if (applicationId.length() <= 1) {
+            throw new IllegalArgumentException(
+                    ("Application id '%s' is too short. Must be at least 2 characters long.")
+                            .formatted(applicationId));
+        }
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(applicationId).matches()) {
             throw new IllegalArgumentException(
                     ("Application id '%s' contains illegal characters. Allowed characters are alphanumeric and "

@@ -15,10 +15,18 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -27,10 +35,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class FlowControlRunnerIT extends AbstractApplicationRunner {
+class FlowControlRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
-    public void testSimpleFlowControl() throws Exception {
+    public void testDispatch() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
@@ -100,7 +108,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
      * "output" the processor behaves like a sink (no output)
      */
     @Test
-    public void testSimpleFlowControlNoDefaultDestination() throws Exception {
+    public void testDispatchNoDefaultDestination() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
@@ -162,7 +170,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
     }
 
     @Test
-    public void testSimpleFlowControlDefaultToAnotherAgent() throws Exception {
+    public void testDispatchDefaultToAnotherAgent() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
@@ -203,7 +211,6 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                            expression: "'modified'"
                                 """);
 
-        // query the database with re-rank
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
@@ -232,6 +239,126 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                 waitForMessages(consumer, List.of("modified"));
                 waitForMessages(consumer1, List.of("for-topic1"));
                 waitForMessages(consumer2, List.of("for-topic2"));
+            }
+        }
+    }
+
+    @Test
+    public void testTimerSource() throws Exception {
+        setMaxNumLoops(10);
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                topics:
+                                  - name: "timer-source-output-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "Timer"
+                                    type: "timer-source"
+                                    id: step1
+                                    output: timer-source-output-topic
+                                    configuration:
+                                      period-seconds: 1
+                                      fields:
+                                         - name: "key.id"
+                                           expression: "fn:uuid()"
+                                         - name: "value.stringpayload"
+                                           expression: "'constant-payload'"
+                                         - name: "value.intpayload"
+                                           expression: "42"
+                                         - name: "properties.foo"
+                                           expression: "'bar'"
+                                """);
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaConsumer<String, String> consumer =
+                    createConsumer("timer-source-output-topic"); ) {
+                executeAgentRunners(applicationRuntime);
+                waitForMessages(
+                        consumer,
+                        new BiConsumer<List<ConsumerRecord>, List<Object>>() {
+                            @Override
+                            @SneakyThrows
+                            public void accept(
+                                    List<ConsumerRecord> consumerRecords, List<Object> objects) {
+                                assertTrue(objects.size() > 1);
+                                Object o = objects.get(0);
+                                log.info("Received {}", o);
+                                assertEquals(
+                                        "{\"intpayload\":42,\"stringpayload\":\"constant-payload\"}",
+                                        o);
+                                ConsumerRecord consumerRecord = consumerRecords.get(0);
+                                Object key = consumerRecord.key();
+                                log.info("Received key {}", key);
+                                Map<String, Object> jsonKey =
+                                        new ObjectMapper().readValue(key.toString(), Map.class);
+                                // try to parse the UUID
+                                UUID.fromString(jsonKey.get("id").toString());
+                                assertEquals(
+                                        "bar",
+                                        new String(
+                                                consumerRecord.headers().lastHeader("foo").value(),
+                                                StandardCharsets.UTF_8));
+                            }
+                        });
+            }
+        }
+    }
+
+    @Test
+    public void testTriggerEventProcessor() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                topics:
+                                  - name: "input-topic-splitter"
+                                    creation-mode: create-if-not-exists
+                                  - name: "side-topic"
+                                    creation-mode: create-if-not-exists
+                                  - name: "output-topic-chunks"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "Chunk some text"
+                                    id: step1
+                                    type: "text-splitter"
+                                    input: input-topic-splitter
+                                    configuration:
+                                      chunk_size: 5
+                                      chunk_overlap: 0
+                                  - name: "Trigger event on last chunk"
+                                    type: "trigger-event"
+                                    output: output-topic-chunks
+                                    configuration:
+                                      destination: side-topic
+                                      when: fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)
+                                      fields:
+                                         - name: "properties.foo"
+                                           expression: "'bar'"
+                                """);
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer();
+                    KafkaConsumer<String, String> consumer = createConsumer("output-topic-chunks");
+                    KafkaConsumer<String, String> consumerSideTopic =
+                            createConsumer("side-topic"); ) {
+
+                sendMessage("input-topic-splitter", "some very long text. end", producer);
+
+                executeAgentRunners(applicationRuntime);
+                waitForMessages(consumer, List.of("some very long", "text. end"));
+
+                // the side topic receives only the last chunk
+                waitForMessages(consumerSideTopic, List.of("text. end"));
             }
         }
     }

@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -39,7 +38,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
+class CassandraAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =

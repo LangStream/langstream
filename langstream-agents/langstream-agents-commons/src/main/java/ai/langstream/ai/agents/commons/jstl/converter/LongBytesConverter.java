@@ -41,7 +41,7 @@ public class LongBytesConverter implements BytesConverter<Long> {
             return null;
         }
         if (bytes.length != 8) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by LongBytesConverter is not 8");
         }
         long value = 0L;

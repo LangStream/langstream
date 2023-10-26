@@ -15,7 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.jstl;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELException;
@@ -30,6 +30,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Setter;
@@ -255,7 +257,7 @@ public class JstlFunctions {
             }
             // nulls are always filtered out
             if (o != null) {
-                TransformContext context = new TransformContext();
+                MutableRecord context = new MutableRecord();
                 context.setRecordObject(o);
                 boolean evaluate = predicate.test(context);
                 if (log.isDebugEnabled()) {
@@ -319,6 +321,40 @@ public class JstlFunctions {
 
     public static Instant now() {
         return Instant.now(clock);
+    }
+
+    public static String uuid() {
+        return UUID.randomUUID().toString();
+    }
+
+    public static int random(Object max) {
+        if (max == null) {
+            throw new IllegalArgumentException("max cannot be null for fn:random(max)");
+        }
+        Integer maxValue = (Integer) toInt(max);
+        return ThreadLocalRandom.current().nextInt(maxValue);
+    }
+
+    public static java.sql.Timestamp toSQLTimestamp(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof java.sql.Timestamp t) {
+            return t;
+        } else if (input instanceof Instant i) {
+            return java.sql.Timestamp.from(i);
+        } else if (input instanceof String s) {
+            return java.sql.Timestamp.valueOf(s);
+        } else if (input instanceof Number) {
+            return new java.sql.Timestamp(((Number) input).longValue());
+        } else {
+            throw new IllegalArgumentException(
+                    "Cannot convert "
+                            + input
+                            + " ("
+                            + input.getClass()
+                            + ") to a java.sql.Timestamp");
+        }
     }
 
     public static Instant timestampAdd(Object input, Object delta, Object unit) {

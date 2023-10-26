@@ -15,12 +15,15 @@
  */
 package ai.langstream.impl.uti;
 
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
+import ai.langstream.api.doc.ConfigPropertyModel;
+import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
@@ -42,6 +45,7 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfig;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,8 +53,10 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 
+@Slf4j
 public class ClassConfigValidator {
 
     static final ObjectMapper jsonWriter =
@@ -150,15 +156,8 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        final EntityRef ref =
-                () ->
-                        "agent configuration (agent: '%s', type: '%s')"
-                                .formatted(
-                                        agentConfiguration.getName() == null
-                                                ? agentConfiguration.getId()
-                                                : agentConfiguration.getName(),
-                                        agentConfiguration.getType());
-        validateModelFromClass(ref, modelClazz, asMap, allowUnknownProperties);
+        validateModelFromClass(
+                new AgentEntityRef(agentConfiguration), modelClazz, asMap, allowUnknownProperties);
     }
 
     @AllArgsConstructor
@@ -199,6 +198,22 @@ public class ClassConfigValidator {
         }
     }
 
+    @AllArgsConstructor
+    public static class AgentEntityRef implements EntityRef {
+
+        private final AgentConfiguration agentConfiguration;
+
+        @Override
+        public String ref() {
+            return "agent configuration (agent: '%s', type: '%s')"
+                    .formatted(
+                            agentConfiguration.getName() == null
+                                    ? agentConfiguration.getId()
+                                    : agentConfiguration.getName(),
+                            agentConfiguration.getType());
+        }
+    }
+
     @SneakyThrows
     public static void validateAssetModelFromClass(
             AssetDefinition asset,
@@ -227,28 +242,15 @@ public class ClassConfigValidator {
                 agentConfigurationModel.getProperties(),
                 allowUnknownProperties);
 
-        try {
-            convertValidatedConfiguration(asMap, modelClazz);
-        } catch (IllegalArgumentException ex) {
-            if (ex.getCause() instanceof MismatchedInputException mismatchedInputException) {
-                final String property =
-                        mismatchedInputException.getPath().stream()
-                                .map(r -> r.getFieldName())
-                                .collect(Collectors.joining("."));
-                throw new IllegalArgumentException(
-                        formatErrString(
-                                entityRef,
-                                property,
-                                "has a wrong data type. Expected type: "
-                                        + mismatchedInputException.getTargetType().getName()));
-            } else {
-                throw ex;
-            }
-        }
+        validateConversion(asMap, modelClazz, entityRef);
     }
 
     public static String formatErrString(EntityRef entityRef, String property, String message) {
         return "Found error on %s. Property '%s' %s".formatted(entityRef.ref(), property, message);
+    }
+
+    public static String formatErrString(EntityRef entityRef, String message) {
+        return "Found error on %s. %s".formatted(entityRef.ref(), message);
     }
 
     private static void validateProperties(
@@ -309,6 +311,9 @@ public class ClassConfigValidator {
                     propertyValue.getProperties(),
                     false);
         }
+        if (propertyValue.getExtendedValidationType() != null) {
+            validateExtendedValidationType(propertyValue.getExtendedValidationType(), actualValue);
+        }
     }
 
     @Data
@@ -317,6 +322,7 @@ public class ClassConfigValidator {
         private boolean required;
         private String description;
         private String defaultValue;
+        private ExtendedValidationType extendedValidationType;
     }
 
     @Data
@@ -373,6 +379,10 @@ public class ClassConfigValidator {
             newProp.setDescription(
                     property.getDescription() == null ? null : property.getDescription().strip());
             newProp.setDefaultValue(property.getDefaultValue());
+            if (property.getExtendedValidationType() != null
+                    && property.getExtendedValidationType() != ExtendedValidationType.NONE) {
+                newProp.setExtendedValidationType(property.getExtendedValidationType());
+            }
         }
 
         if (value.getProperties() != null) {
@@ -426,6 +436,10 @@ public class ClassConfigValidator {
                                                 && !annotation.defaultValue().isEmpty()) {
                                             model.setDefaultValue(annotation.defaultValue());
                                         }
+                                        if (annotation.extendedValidationType() != null) {
+                                            model.setExtendedValidationType(
+                                                    annotation.extendedValidationType());
+                                        }
                                     }
                                 }
 
@@ -451,5 +465,85 @@ public class ClassConfigValidator {
         }
 
         return null;
+    }
+
+    @SneakyThrows
+    public static Map<String, Object> validateGenericClassAndApplyDefaults(
+            EntityRef entityRef,
+            Class modelClazz,
+            Map<String, Object> inputValue,
+            boolean allowUnknownProperties) {
+
+        final Map asMap =
+                validatorMapper.readValue(validatorMapper.writeValueAsBytes(inputValue), Map.class);
+
+        final Map<String, ai.langstream.api.doc.ConfigPropertyModel> properties =
+                readPropertiesFromClass(modelClazz);
+
+        validateProperties(entityRef, null, asMap, properties, allowUnknownProperties);
+
+        validateConversion(asMap, modelClazz, entityRef);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        properties
+                .entrySet()
+                .forEach(
+                        e -> {
+                            Object value = inputValue.get(e.getKey());
+                            if (value == null
+                                    && !e.getValue().isRequired()
+                                    && e.getValue().getDefaultValue() != null) {
+                                value = e.getValue().getDefaultValue();
+                            }
+                            if (value != null) {
+                                result.put(e.getKey(), value);
+                            }
+                        });
+        return result;
+    }
+
+    private static void validateConversion(
+            Map<String, Object> asMap, Class modelClazz, EntityRef entityRef) {
+        try {
+            convertValidatedConfiguration(asMap, modelClazz);
+        } catch (IllegalArgumentException ex) {
+            if (ex.getCause() instanceof MismatchedInputException mismatchedInputException) {
+                final String property =
+                        mismatchedInputException.getPath().stream()
+                                .map(r -> r.getFieldName())
+                                .collect(Collectors.joining("."));
+                throw new IllegalArgumentException(
+                        formatErrString(
+                                entityRef,
+                                property,
+                                "has a wrong data type. Expected type: "
+                                        + mismatchedInputException.getTargetType().getName()));
+            } else {
+                throw ex;
+            }
+        }
+    }
+
+    private static void validateExtendedValidationType(
+            ExtendedValidationType extendedValidationType, Object actualValue) {
+        switch (extendedValidationType) {
+            case EL_EXPRESSION -> {
+                if (actualValue instanceof String expression) {
+                    log.info("Validating EL expression: {}", expression);
+                    new JstlEvaluator(actualValue.toString(), Object.class);
+                } else if (actualValue instanceof Collection collection) {
+                    log.info("Validating EL expressions {}", collection);
+                    for (Object o : collection) {
+                        if (o == null) {
+                            throw new IllegalArgumentException(
+                                    "A null value is not allowed in a list of EL expressions");
+                        }
+                        new JstlEvaluator(o.toString(), Object.class);
+                    }
+                }
+            }
+            case NONE -> {}
+        }
     }
 }

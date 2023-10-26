@@ -109,6 +109,7 @@ const useWebSockets = () => {
   const consumerWs = useRef<WebSocket>();
   const producerWs = useRef<WebSocket>();
   const [messages, setMessages] = useState<WsMessage[]>([]);
+  const [waitingForMessage, setWaitingForMessage] = useState<boolean>(false);
   const nextId = useRef<number>(1);
 
   useEffect(() => {
@@ -202,6 +203,7 @@ const useWebSockets = () => {
       const { offset, record } =
         JSON.parse(data);
       const { key, value, headers } = record;
+      setWaitingForMessage(false);
       setMessages(m => {
         if (!headers?.["stream-index"] || headers?.["stream-index"] === "1") {
           return [
@@ -282,6 +284,7 @@ const useWebSockets = () => {
             yours: true,
           },
         ]);
+        setWaitingForMessage(true);
         producerWs.current.send(JSON.stringify({ value: message }));
       } else {
         // noop
@@ -301,6 +304,7 @@ const useWebSockets = () => {
     isPaused: connectionDetails.isPaused,
     messages,
     sendMessage,
+    waitingForMessage
   };
 };
 

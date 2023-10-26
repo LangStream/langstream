@@ -16,7 +16,7 @@
 package com.datastax.oss.streaming.ai;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
@@ -106,7 +106,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
     }
 
     private static int computeHashForRecord(RecordHolder record) {
-        Object key = record.transformContext.getKeyObject();
+        Object key = record.mutableRecord.getKeyObject();
         if (key != null) {
             return Objects.hashCode(key);
         } else {
@@ -129,8 +129,8 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
 
         try {
             for (RecordHolder holder : records) {
-                TransformContext transformContext = holder.transformContext();
-                JsonRecord jsonRecord = transformContext.toJsonRecord();
+                MutableRecord mutableRecord = holder.mutableRecord();
+                JsonRecord jsonRecord = mutableRecord.toJsonRecord();
                 if (loopOverAccessor == null) {
                     String text = template.execute(jsonRecord);
                     texts.add(text);
@@ -138,7 +138,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                             new TextAndReference(
                                     text,
                                     (List<Double> embeddingsForText) -> {
-                                        transformContext.setResultField(
+                                        mutableRecord.setResultField(
                                                 embeddingsForText,
                                                 embeddingsFieldName,
                                                 Schema.createArray(
@@ -148,7 +148,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                                         holder.handle().complete(null);
                                     }));
                 } else {
-                    List<Object> nestedRecords = loopOverAccessor.evaluate(transformContext);
+                    List<Object> nestedRecords = loopOverAccessor.evaluate(mutableRecord);
                     List<Map<String, Object>> newList = new CopyOnWriteArrayList<>();
                     AtomicInteger remaining = new AtomicInteger(nestedRecords.size());
 
@@ -174,7 +174,7 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
                                                 log.info("final list {}", newList);
                                                 // all the nested records are done, we can override
                                                 // the field, in the original record
-                                                transformContext.setResultField(
+                                                mutableRecord.setResultField(
                                                         newList,
                                                         loopOverFieldName,
                                                         Schema.createArray(
@@ -239,12 +239,12 @@ public class ComputeAIEmbeddingsStep implements TransformStep {
         }
     }
 
-    record RecordHolder(TransformContext transformContext, CompletableFuture<?> handle) {}
+    record RecordHolder(MutableRecord mutableRecord, CompletableFuture<?> handle) {}
 
     @Override
-    public CompletableFuture<?> processAsync(TransformContext transformContext) {
+    public CompletableFuture<?> processAsync(MutableRecord mutableRecord) {
         CompletableFuture<?> handle = new CompletableFuture<>();
-        batchExecutor.add(new RecordHolder(transformContext, handle));
+        batchExecutor.add(new RecordHolder(mutableRecord, handle));
         return handle;
     }
 }

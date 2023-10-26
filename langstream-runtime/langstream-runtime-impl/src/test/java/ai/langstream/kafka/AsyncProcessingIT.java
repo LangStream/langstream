@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
 import java.util.HashSet;
@@ -35,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
-class AsyncProcessingIT extends AbstractApplicationRunner {
+class AsyncProcessingIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testProcessMultiThreadOutOfOrder() throws Exception {

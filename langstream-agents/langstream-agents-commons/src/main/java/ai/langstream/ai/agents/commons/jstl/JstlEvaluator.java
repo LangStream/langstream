@@ -15,7 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.jstl;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
@@ -177,11 +177,23 @@ public class JstlEvaluator<T> {
                 .mapFunction("fn", "now", JstlFunctions.class.getMethod("now"));
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction("fn", "uuid", JstlFunctions.class.getMethod("uuid"));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction("fn", "random", JstlFunctions.class.getMethod("random", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction(
                         "fn",
                         "timestampAdd",
                         JstlFunctions.class.getMethod(
                                 "timestampAdd", Object.class, Object.class, Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "toSQLTimestamp",
+                        JstlFunctions.class.getMethod("toSQLTimestamp", Object.class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(
@@ -206,8 +218,8 @@ public class JstlEvaluator<T> {
                                 "dateadd", Object.class, Object.class, Object.class));
     }
 
-    public T evaluate(TransformContext transformContext) {
-        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(transformContext);
+    public T evaluate(MutableRecord mutableRecord) {
+        JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
         FACTORY.createValueExpression(expressionContext, "${key}", Object.class)
                 .setValue(expressionContext, adapter.getKey());
         FACTORY.createValueExpression(expressionContext, "${value}", Object.class)
@@ -234,7 +246,7 @@ public class JstlEvaluator<T> {
 
             // this is a very common error, so we provide a better error message
             if (expression.startsWith("value.")) {
-                Object valueObject = transformContext.getValueObject();
+                Object valueObject = mutableRecord.getValueObject();
                 if (valueObject instanceof String s) {
                     try {
                         new ObjectMapper().readValue(s, Object.class);
@@ -251,6 +263,17 @@ public class JstlEvaluator<T> {
             }
             throw new IllegalArgumentException(notFound);
         }
+    }
+
+    public T evaluateRawContext(Map<String, Object> context) {
+        for (Map.Entry<String, Object> stringObjectEntry : context.entrySet()) {
+            FACTORY.createValueExpression(
+                            expressionContext,
+                            "${%s}".formatted(stringObjectEntry.getKey()),
+                            Object.class)
+                    .setValue(expressionContext, stringObjectEntry.getValue());
+        }
+        return this.valueExpression.getValue(expressionContext);
     }
 
     public String toString() {

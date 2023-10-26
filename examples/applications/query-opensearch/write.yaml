@@ -1,0 +1,72 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "Index Products on Vector Database"
+topics:
+  - name: "vectors-topic"
+    creation-mode: create-if-not-exists
+assets:
+  - name: "os-index"
+    asset-type: "opensearch-index"
+    creation-mode: create-if-not-exists
+    config:
+      datasource: "opensearch-datasource"
+      settings: |
+        {
+             "index": {
+                   "knn": true,
+                   "knn.algo_param.ef_search": 100
+             }
+         }
+      mappings: |
+        {
+             "properties": {
+                   "content": {
+                         "type": "text"
+                   },
+                   "embeddings": {
+                         "type": "knn_vector",
+                         "dimension": 1536
+                   }
+             }
+         }
+errors:
+    on-failure: skip
+pipeline:
+  - name: "convert-to-json"
+    type: "document-to-json"
+    input: "vectors-topic"
+    configuration:
+      text-field: "document"
+  - name: "compute-embeddings"
+    type: "compute-ai-embeddings"
+    configuration:
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.embeddings"
+      text: "{{ value.document }}"
+      batch-size: 10
+      flush-interval: 500
+  - name: "Write to vector db"
+    type: "vector-db-sink"
+    configuration:
+      datasource: "opensearch-datasource"
+      bulk-parameters:
+        refresh: "wait_for" # this is not compatible with AWS OpenSearch, set to false if using AWS OpenSearch
+      fields:
+        - name: "embeddings"
+          expression: "value.embeddings"
+        - name: "content"
+          expression: "value.document"

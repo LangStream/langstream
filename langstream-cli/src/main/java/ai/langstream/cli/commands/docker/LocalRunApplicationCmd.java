@@ -20,29 +20,44 @@ import ai.langstream.admin.client.AdminClientConfiguration;
 import ai.langstream.admin.client.http.GenericRetryExecution;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.NoRetryPolicy;
+import ai.langstream.cli.LangStreamCLI;
+import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
 import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.lang3.SystemUtils;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "run", header = "Run on a docker container a LangStream application")
 public class LocalRunApplicationCmd extends BaseDockerCmd {
 
-    @CommandLine.Parameters(description = "Name of the application")
-    private String name;
+    protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
+
+    private static final Set<Path> temporaryFiles = ConcurrentHashMap.newKeySet();
+    private static final AtomicReference<ProcessHandle> dockerProcess = new AtomicReference<>();
+
+    @CommandLine.Parameters(description = "ID of the application")
+    private String applicationId;
 
     @CommandLine.Option(
             names = {"-app", "--application"},
@@ -79,6 +94,12 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             names = {"--start-ui"},
             description = "Start the UI")
     private boolean startUI = true;
+
+    @CommandLine.Option(
+            names = {"-up", "--ui-port"},
+            description = "Port for the local webserver and UI. If 0, a random port will be used.",
+            defaultValue = "8092")
+    private int uiPort = 8092;
 
     @CommandLine.Option(
             names = {"--only-agent"},
@@ -126,6 +147,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     "Dry-run mode. Do not deploy the application but only resolves placeholders and display the result.")
     private boolean dryRun;
 
+    @CommandLine.Option(
+            names = {"--tenant"},
+            description = "Tenant name. Default to local-docker-run")
+    private String tenant = "default";
+
     @Override
     @SneakyThrows
     public void run() {
@@ -159,8 +185,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
         final File secretsFile = checkFileExistsOrDownload(secretFilePath);
 
-        log("Tenant " + getTenant());
-        log("Application " + name);
+        log("Tenant: " + tenant);
+        log("Application: " + applicationId);
         log("Application directory: " + appDirectory.getAbsolutePath());
         if (singleAgentId != null && !singleAgentId.isEmpty()) {
             log("Filter agent: " + singleAgentId);
@@ -175,6 +201,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         log("Start S3: " + startS3);
         log("Start Database: " + startDatabase);
         log("Start Webservices " + startWebservices);
+        log("Using docker image: " + dockerImageName + ":" + dockerImageVersion);
 
         if (appDirectory == null) {
             throw new IllegalArgumentException("application files are required");
@@ -229,9 +256,13 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             secretsContents = null;
         }
 
+        updateLocalDockerRunProfile(tenant);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(this::cleanEnvironment));
+
         executeOnDocker(
-                getTenant(),
-                name,
+                tenant,
+                applicationId,
                 singleAgentId,
                 appDirectory,
                 instanceContents,
@@ -241,6 +272,33 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 startWebservices,
                 startDatabase,
                 dryRun);
+    }
+
+    private void cleanEnvironment() {
+        if (dockerProcess.get() != null) {
+            dockerProcess.get().destroyForcibly();
+        }
+        if (temporaryFiles.isEmpty()) {
+            return;
+        }
+        log("Cleaning environment");
+        for (Path temporaryFile : temporaryFiles) {
+            debug("Deleting temporary file: " + temporaryFile);
+            FileUtils.deleteQuietly(temporaryFile.toFile());
+        }
+    }
+
+    private void updateLocalDockerRunProfile(String tenant) {
+        updateConfig(
+                langStreamCLIConfig -> {
+                    final NamedProfile profile = new NamedProfile();
+                    profile.setName(LOCAL_DOCKER_RUN_PROFILE);
+                    profile.setTenant(tenant);
+                    profile.setWebServiceUrl("http://localhost:8090");
+                    profile.setApiGatewayUrl("ws://localhost:8091");
+                    langStreamCLIConfig.updateProfile(LOCAL_DOCKER_RUN_PROFILE, profile);
+                    log("profile " + LOCAL_DOCKER_RUN_PROFILE + " updated");
+                });
     }
 
     private void executeOnDocker(
@@ -256,13 +314,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             boolean startDatabase,
             boolean dryRun)
             throws Exception {
-        File tmpInstanceFile = Files.createTempFile("instance", ".yaml").toFile();
-        Files.write(tmpInstanceFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
-        File tmpSecretsFile = null;
-        if (secretsContents != null) {
-            tmpSecretsFile = Files.createTempFile("secrets", ".yaml").toFile();
-            Files.write(tmpSecretsFile.toPath(), secretsContents.getBytes(StandardCharsets.UTF_8));
-        }
+        final File appTmp = prepareAppDirectory(appDirectory);
+        File tmpInstanceFile = prepareInstanceFile(instanceContents);
+        File tmpSecretsFile = prepareSecretsFile(secretsContents);
         String imageName = dockerImageName + ":" + dockerImageVersion;
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
@@ -290,7 +344,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         }
 
         commandLine.add("-v");
-        commandLine.add(appDirectory.getAbsolutePath() + ":/code/application");
+        commandLine.add(appTmp.getAbsolutePath() + ":/code/application");
         commandLine.add("-v");
         commandLine.add(tmpInstanceFile.getAbsolutePath() + ":/code/instance.yaml");
         if (tmpSecretsFile != null) {
@@ -341,13 +395,83 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                         .redirectErrorStream(true)
                         .redirectOutput(outputLog.toFile());
         Process process = processBuilder.start();
-        Executors.newSingleThreadExecutor().execute(() -> tailLogSysOut(outputLog));
+        dockerProcess.set(process.toHandle());
+        CompletableFuture.runAsync(
+                () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
 
         if (startUI) {
             Executors.newSingleThreadExecutor()
                     .execute(() -> startUI(tenant, applicationId, outputLog, process));
         }
-        process.waitFor();
+        final int exited = process.waitFor();
+        // wait for the log to be printed
+        Thread.sleep(1000);
+        if (exited != 0) {
+            throw new RuntimeException("Process exited with code " + exited);
+        }
+    }
+
+    private File prepareSecretsFile(String secretsContents) throws IOException {
+        File tmpSecretsFile = null;
+        if (secretsContents != null) {
+            tmpSecretsFile = createReadableTempFile("secrets", secretsContents);
+        }
+        return tmpSecretsFile;
+    }
+
+    private File prepareInstanceFile(String instanceContents) throws IOException {
+        return createReadableTempFile("instance", instanceContents);
+    }
+
+    private File prepareAppDirectory(File appDirectory) throws IOException {
+        // depending on the docker engine, we should ensure the permissions are properly set.
+        // On MacOs, Docker runs on a VM, so the user mapping between the host and the container is
+        // performed by the engine.
+        // On Linux, we need to make sure all the mounted volumes are readable from others because
+        // the docker container runs with a different user than the file owner.
+        if (SystemUtils.IS_OS_MAC) {
+            return appDirectory;
+        }
+        final File appTmp = generateTempFile("app");
+        FileUtils.copyDirectory(appDirectory, appTmp);
+        makeDirOrFileReadable(appTmp);
+        return appTmp;
+    }
+
+    private static File createReadableTempFile(String prefix, String instanceContents)
+            throws IOException {
+        File tempFile = generateTempFile(prefix);
+        Files.write(tempFile.toPath(), instanceContents.getBytes(StandardCharsets.UTF_8));
+        makeDirOrFileReadable(tempFile);
+        return tempFile;
+    }
+
+    private static void makeDirOrFileReadable(File file) throws IOException {
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                makeDirOrFileReadable(child);
+            }
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"));
+        } else {
+            Files.setPosixFilePermissions(
+                    file.toPath(), PosixFilePermissions.fromString("rw-r--r--"));
+        }
+    }
+
+    @SneakyThrows
+    private static File generateTempFile(String prefix) {
+        Path home = LangStreamCLI.getLangstreamCLIHomeDirectory();
+        final String generatedName = ".langstream_" + prefix + "_" + System.nanoTime();
+        if (home == null) {
+            home = new File(".").toPath();
+        } else {
+            home = home.resolve("tmp");
+            Files.createDirectories(home);
+        }
+        File tempFile = home.resolve(generatedName).toFile();
+        temporaryFiles.add(tempFile.toPath());
+        return tempFile;
     }
 
     private void startUI(String tenant, String applicationId, Path outputLog, Process process) {
@@ -383,6 +507,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         final String finalBody = body;
         final String mermaidDefinition = MermaidAppDiagramGenerator.generate(finalBody);
         UIAppCmd.startServer(
+                uiPort,
                 () -> {
                     final UIAppCmd.AppModel appModel = new UIAppCmd.AppModel();
                     appModel.setTenant(tenant);
@@ -394,7 +519,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                     return appModel;
                 },
                 "ws://localhost:8091",
-                getTailLogSupplier(outputLog));
+                getTailLogSupplier(outputLog),
+                getLogger());
     }
 
     private UIAppCmd.LogSupplier getTailLogSupplier(Path outputLog) {

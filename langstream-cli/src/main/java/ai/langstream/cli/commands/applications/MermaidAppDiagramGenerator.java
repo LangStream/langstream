@@ -239,7 +239,11 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyResources(ApplicationModel model, Map<String, Object> application) {
-        ((Map<String, Object>) asMap(application.get("resources")))
+        final Map<String, Object> resources = asMap(application.get("resources"));
+        if (resources == null) {
+            return;
+        }
+        resources
                 .entrySet()
                 .forEach(
                         entry -> {
@@ -261,28 +265,30 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyPipelines(ApplicationModel model, Map<String, Object> application) {
-        asList(application.get("modules"))
-                .forEach(
-                        module -> {
-                            applyTopics(model, asMap(module));
+        final List modules = asList(application.get("modules"));
+        if (modules == null) {
+            return;
+        }
+        modules.forEach(
+                module -> {
+                    applyTopics(model, asMap(module));
 
-                            asList(asMap(module).get("pipelines"))
-                                    .forEach(
-                                            p -> {
-                                                final Map pipeline = asMap(p);
-                                                List<Agent> agents = new ArrayList<>();
+                    asList(asMap(module).get("pipelines"))
+                            .forEach(
+                                    p -> {
+                                        final Map pipeline = asMap(p);
+                                        List<Agent> agents = new ArrayList<>();
 
-                                                for (Object ag : asList(pipeline.get("agents"))) {
+                                        for (Object ag : asList(pipeline.get("agents"))) {
 
-                                                    final Map agentMap = asMap(ag);
-                                                    final Agent agent = parseAgent(model, agentMap);
-                                                    agents.add(agent);
-                                                }
-                                                final String id = (String) pipeline.get("id");
-                                                model.getPipelines()
-                                                        .add(new Pipeline(id, id, agents));
-                                            });
-                        });
+                                            final Map agentMap = asMap(ag);
+                                            final Agent agent = parseAgent(model, agentMap);
+                                            agents.add(agent);
+                                        }
+                                        final String id = (String) pipeline.get("id");
+                                        model.getPipelines().add(new Pipeline(id, id, agents));
+                                    });
+                });
     }
 
     private static Agent parseAgent(ApplicationModel model, Map agentMap) {
@@ -340,7 +346,10 @@ public class MermaidAppDiagramGenerator {
                                                                     .equals("open-ai-configuration")
                                                             || r.getOriginalType()
                                                                     .equals(
-                                                                            "hugging-face-configuration"))
+                                                                            "hugging-face-configuration")
+                                                            || r.getOriginalType()
+                                                                    .equals(
+                                                                            "bedrock-configuration"))
                                     .findFirst()
                                     .orElse(null);
                     if (resource != null) {
@@ -367,7 +376,11 @@ public class MermaidAppDiagramGenerator {
     }
 
     private static void applyGateway(ApplicationModel model, Map<String, Object> application) {
-        final List<Object> gateways = asList(asMap(application.get("gateways")).get("gateways"));
+        final Map gatewaysObject = asMap(application.get("gateways"));
+        if (gatewaysObject == null) {
+            return;
+        }
+        final List<Object> gateways = asList(gatewaysObject.get("gateways"));
         if (gateways != null) {
             gateways.forEach(
                     e -> {

@@ -42,7 +42,7 @@ pipeline:
       datasource: "SolrDataSource"
       query: |
         {
-          "q": "{!knn f=embeddings topK=10}?"
+          "q": "{!knn f=embeddings topK=5}?"
         }
       fields:
         - "fn:toListOfFloat(value.question_embeddings)"

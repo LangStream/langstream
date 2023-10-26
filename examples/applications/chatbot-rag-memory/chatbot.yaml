@@ -15,13 +15,13 @@
 #
 
 topics:
-  - name: "{{ globals.questionsTopic }}"
+  - name: "${globals.questionsTopic}"
     creation-mode: create-if-not-exists
     deletion-mode: delete
-  - name: "{{ globals.answersTopic }}"
+  - name: "${globals.answersTopic}"
     creation-mode: create-if-not-exists
     deletion-mode: delete
-  - name: "{{ globals.logTopic }}"
+  - name: "${globals.logTopic}"
     creation-mode: create-if-not-exists
     deletion-mode: delete
 assets:
@@ -29,18 +29,18 @@ assets:
     asset-type: "astra-keyspace"
     creation-mode: create-if-not-exists
     config:
-      keyspace: "{{ globals.vectorKeyspace}}"
+      keyspace: "${globals.vectorKeyspace}"
       datasource: "AstraDatasource"
   - name: "vector-table-chat"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
-      table-name: "{{ globals.vectorTable}}"
-      keyspace: "{{ globals.vectorKeyspace}}"
+      table-name: "${globals.vectorTable}"
+      keyspace: "${globals.vectorKeyspace}"
       datasource: "AstraDatasource"
       create-statements:
         - >
-          CREATE TABLE IF NOT EXISTS {{ globals.vectorKeyspace}}.{{ globals.vectorTable }} (  
+          CREATE TABLE IF NOT EXISTS ${globals.vectorKeyspace}.${globals.vectorTable} (  
             filename TEXT,
             chunk_id int,
             num_tokens int,
@@ -50,18 +50,18 @@ assets:
             PRIMARY KEY (filename, chunk_id)
             );
         - >
-          CREATE CUSTOM INDEX IF NOT EXISTS {{ globals.vectorIndex }} 
-          ON {{ globals.vectorKeyspace}}.{{ globals.vectorTable }}(embeddings_vector) USING 'StorageAttachedIndex';
+          CREATE CUSTOM INDEX IF NOT EXISTS ${globals.vectorIndex} 
+          ON ${globals.vectorKeyspace}.${globals.vectorTable}(embeddings_vector) USING 'StorageAttachedIndex';
   - name: "convo-memory-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
-      table-name: "{{ globals.chatTable}}"
-      keyspace: "{{ globals.vectorKeyspace}}"
+      table-name: "${globals.chatTable}"
+      keyspace: "${globals.vectorKeyspace}"
       datasource: "AstraDatasource"
       create-statements:
         - >
-          CREATE TABLE IF NOT EXISTS {{ globals.vectorKeyspace}}.{{ globals.chatTable }} (
+          CREATE TABLE IF NOT EXISTS ${globals.vectorKeyspace}.${globals.chatTable} (
             sessionId TEXT,
             timestamp TIMEUUID,
             question TEXT,
@@ -77,7 +77,7 @@ pipeline:
   - name: "convert-to-structure"
     id: "convert-to-structure"
     type: "document-to-json"
-    input: "{{ globals.questionsTopic }}"
+    input: "${globals.questionsTopic}"
     configuration:
       text-field: "questionNoContext"
   - name: "Query Chat History"
@@ -85,79 +85,80 @@ pipeline:
     type: "query"
     configuration:
       datasource: "AstraDatasource"         
-      query: "select question,answer from {{ globals.vectorKeyspace}}.{{ globals.chatTable}} where sessionid = ? limit 3"
+      query: "select question,answer from ${globals.vectorKeyspace}.${globals.chatTable} where sessionid = ? limit 3"
       output-field: "value.history"
       fields:
         - "value.sessionid"    
   - name: "Update question based on chat history"
     type: "ai-chat-completions"
     configuration:
-      model: "{{ globals.chatModelName }}" 
+      model: "${globals.chatModelName}" 
       completion-field: "value.question"
       log-field: "value.chatHistoryPrompt"
       stream: false
       messages:
         - role: system
           content: |
-              You are a conversational intepreter for a converstation between a user and 
-              a bot who is an expert on {{ globals.assistantType}}.
+              You are a conversational interpreter for a conversation between a user and 
+              a bot who is an expert on ${globals.assistantType}.
               
               The user will give you a question without context. You will reformulate the question
               to take into account the context of the conversation. You should assume the question
-              is related to {{ globals.assistantType}}. You should also consult with the Chat History
+              is related to ${globals.assistantType}. You should also consult with the Chat History
               below when reformulating the question. For example,
               you will substitute pronouns for mostly likely noun in the conversation
               history. 
               
               When reformulating the question give higher value to the latest question and response
               in the Chat History. The chat history is in reverse chronological order, so the most 
-              recent exhange is at the top.
+              recent exchange is at the top.
 
-              Only respond with the reformulated question. If there is no chat history, then respond only with the question unchanaged.
+              Only respond with the reformulated question. If there is no chat history, then respond 
+              only with the question unchanged.
 
               Chat History:
               =============
-              {{%# value.history}}
-              User: {{% question}}  Assistant: {{% answer}}
+              {{# value.history}}
+              User: {{ question}}  Assistant: {{ answer}}
               -----------------------------------------------
-              {{%/ value.history}}
+              {{/ value.history}}
         - role: user
-          content: "{{% value.questionNoContext}}"
+          content: "{{ value.questionNoContext}}"
   - name: "compute-embeddings"
     id: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
       model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.question_embeddings"
-      text: "{{% value.question }}"
+      text: "{{ value.question }}"
   - name: "lookup-related-documents-in-llm"
     type: "query"
     configuration:
       datasource: "AstraDatasource"
-      query: "SELECT text FROM {{ globals.vectorKeyspace}}.{{ globals.vectorTable}} ORDER BY embeddings_vector ANN OF ? LIMIT 4"
+      query: "SELECT text FROM ${globals.vectorKeyspace}.${globals.vectorTable} ORDER BY embeddings_vector ANN OF ? LIMIT 4"
       fields:
         - "value.question_embeddings"
       output-field: "value.related_documents"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
-    output: "{{ globals.logTopic }}"
+    output: "${globals.logTopic}"
     configuration:
-      model: "{{ globals.chatModelName }}" # This needs to be set to the model deployment name, not the base name
+      model: "${globals.chatModelName}" # This needs to be set to the model deployment name, not the base name
       completion-field: "value.answer"
       log-field: "value.prompt"
-      stream-to-topic: "{{ globals.answersTopic }}"
+      stream-to-topic: "${globals.answersTopic}"
       stream-response-completion-field: "value"
       min-chunks-per-message: 20
       messages:
         - role: system
           content: |
-              You are a helpful assistant for {{ globals.assistantType}}. 
+              You are a helpful assistant for ${globals.assistantType}. 
 
-              A user is going to ask a questions. Refer to the Related Documents below 
-              when answering to their questions. Use them as much as possible
+              A user is going to ask a question. Refer to the Related Documents below 
+              when answering their question. Use them as much as possible
               when answering the question. If you do not know the answer, say so.
 
-              Do not answer questions not related to {{ globals.assistantType}}.
+              Do not answer questions not related to ${globals.assistantType}.
 
               When answering questions, take into consideration the history of the 
               chat converastion, which is listed below under Chat History. The chat history 
@@ -166,22 +167,22 @@ pipeline:
               Related Documents:
               ==================
 
-              {{%# value.related_documents}}
-              {{% text}}
-              {{%/ value.related_documents}}
+              {{# value.related_documents}}
+              {{ text}}
+              {{/ value.related_documents}}
 
               Chat History:
               =============
-              {{%# value.history}}
-              User: {{% question }}  Assistant: {{% answer}}
+              {{# value.history}}
+              User: {{ question }}  Assistant: {{ answer}}
               -----------------------------------------------
-              {{%/ value.history}}
+              {{/ value.history}}
         - role: user
-          content: "{{% value.question}}"
+          content: "{{ value.question}}"
   - name: "Write conversation history to Astra"
     type: "vector-db-sink"
-    input: "{{ globals.logTopic }}"
+    input: "${globals.logTopic}"
     configuration:
       datasource: "AstraVector"
-      table: "{{ globals.vectorKeyspace}}.{{ globals.chatTable}}"
+      table: "${globals.vectorKeyspace}.${globals.chatTable}"
       mapping: "sessionid=value.sessionid,question=value.questionNoContext,answer=value.answer,prompt=value.prompt,timestamp=now()"

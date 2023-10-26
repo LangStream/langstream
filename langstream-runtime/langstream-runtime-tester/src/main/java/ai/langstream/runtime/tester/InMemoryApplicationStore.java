@@ -175,7 +175,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
         Map<String, AgentResourcesFactory.AgentRunnerSpec> agentRunnerSpecMap = new HashMap<>();
         agentRunners.forEach(
                 (agentId, agentRunnerDefinition) -> {
-                    log.info("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
+                    log.debug("Adding agent id {} (def {})", agentId, agentRunnerDefinition);
 
                     if (filterAgents != null
                             && !filterAgents.contains(agentRunnerDefinition.getAgentId())) {

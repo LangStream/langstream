@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.streaming.ai.streaming;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 
 public interface StreamingAnswersConsumer {
-    void streamAnswerChunk(int index, String message, boolean last, TransformContext outputMessage);
+    void streamAnswerChunk(int index, String message, boolean last, MutableRecord outputMessage);
 
     default void close() {}
 }

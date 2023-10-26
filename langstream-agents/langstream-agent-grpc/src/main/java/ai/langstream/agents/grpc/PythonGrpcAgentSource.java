@@ -30,7 +30,9 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
 
     @Override
     public void start() throws Exception {
-        server = new PythonGrpcServer(agentContext.getCodeDirectory(), configuration);
+        server =
+                new PythonGrpcServer(
+                        agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
         channel = server.start();
         super.start();
     }

@@ -21,6 +21,8 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +149,16 @@ public class SolrDataSource implements DataSourceProvider {
             if (client != null) {
                 client.close();
             }
+        }
+
+        public String getRESTCollectionUrl() {
+            return getBaseUrl()
+                    + "/api/collections/"
+                    + URLEncoder.encode(getCollectionName(), StandardCharsets.UTF_8);
+        }
+
+        public String getCollectionName() {
+            return getClientConfig().getCollectionName();
         }
     }
 }

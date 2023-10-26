@@ -21,7 +21,7 @@
 
   <groupId>ai.langstream</groupId>
   <artifactId>langstream-ai</artifactId>
-  <version>0.2.1-SNAPSHOT</version>
+  <version>0.3.2-SNAPSHOT</version>
   <name>LangStream</name>
   <description>LangStream is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
@@ -55,7 +55,7 @@
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
     <failsafe-plugin.version>3.1.2</failsafe-plugin.version>
-    <jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
+    <jib-maven-plugin.version>3.4.0</jib-maven-plugin.version>
     <spring-boot.version>3.0.7</spring-boot.version>
     <zip4j.version>2.11.5</zip4j.version>
     <picocli.version>4.7.4</picocli.version>
@@ -74,7 +74,8 @@
     <prometheus.version>0.16.0</prometheus.version>
     <jetty.version>11.0.14</jetty.version>
     <license-maven-plugin.version>4.1</license-maven-plugin.version>
-    <djl.version>0.22.1</djl.version>
+    <djl.version>0.24.0</djl.version>
+    <pytorch.version>2.0.1</pytorch.version>
     <json-schema-validator.version>1.0.72</json-schema-validator.version>
     <tomcat-embed-el.version>10.1.4</tomcat-embed-el.version>
     <commons-collections4.version>4.4</commons-collections4.version>
@@ -177,6 +178,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-client</artifactId>
+        <version>${pulsar.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pulsar</groupId>
         <artifactId>pulsar-client-original</artifactId>
         <version>${pulsar.version}</version>
       </dependency>
@@ -258,14 +264,17 @@
       <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-jni</artifactId>
-        <version>2.0.0-${djl.version}</version>
+        <version>${pytorch.version}-${djl.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.djl.pytorch</groupId>
+        <artifactId>pytorch-engine</artifactId>
+        <version>${djl.version}</version>
       </dependency>
       <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-native-cpu</artifactId>
-        <!--classifier>osx-aarch64</classifier-->
-        <classifier>osx-x86_64</classifier>
-        <version>2.0.0</version>
+        <version>${pytorch.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.avro</groupId>
@@ -815,6 +824,7 @@
         <module>langstream-api-gateway</module>
         <module>langstream-api-gateway-auth</module>
         <module>langstream-runtime</module>
+        <module>nifi-maven-plugin</module>
       </modules>
     </profile>
     <profile>

@@ -1,0 +1,38 @@
+#
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+configuration:
+  resources:
+    - type: "datasource"
+      name: "JdbcDatasource"
+      configuration:
+        service: "jdbc"
+        driverClass: "org.postgresql.Driver"
+        url: "jdbc:postgresql://host.docker.internal:5432/"
+        user: "postgres"
+        password: "password"
+    - type: "open-ai-configuration"
+      name: "OpenAI Azure configuration"
+      configuration:
+        url: "${secrets.open-ai.url}"
+        access-key: "${secrets.open-ai.access-key}"
+        provider: "${secrets.open-ai.provider}"
+  dependencies:
+    - name: "PostGRES JDBC Driver"
+      url: "https://jdbc.postgresql.org/download/postgresql-42.6.0.jar"
+      sha512sum: "ec3b57d8377715ef6286d457b610a2e056aa99dbf036f750c5e07370fc8b01414b2aef5e0232d561c50f22abf0da961ee432e53734cc193a3e9bdaf6231d4fa1"
+      type: "java-library"

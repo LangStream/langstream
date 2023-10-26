@@ -226,4 +226,12 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                             """)
     @JsonProperty(value = "ai-service")
     private String aiService;
+
+    @ConfigProperty(
+            description =
+                    """
+                    Additional options for the model configuration. The structure depends on the model and AI provider.
+                    """)
+    @JsonProperty(value = "options")
+    private Map<String, Object> options;
 }

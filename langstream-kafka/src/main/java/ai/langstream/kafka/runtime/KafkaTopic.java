@@ -50,7 +50,7 @@ public record KafkaTopic(
         if (options == null) {
             options = new HashMap<>();
         } else {
-            options = new HashMap<>();
+            options = new HashMap<>(options);
         }
     }
 

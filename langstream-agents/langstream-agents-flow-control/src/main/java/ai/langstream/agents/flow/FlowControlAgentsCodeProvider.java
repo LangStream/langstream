@@ -15,15 +15,23 @@
  */
 package ai.langstream.agents.flow;
 
+import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
-import ai.langstream.api.runner.code.AgentProcessor;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class FlowControlAgentsCodeProvider implements AgentCodeProvider {
 
-    private static final Map<String, Supplier<AgentProcessor>> FACTORIES =
-            Map.of("dispatch", DispatchAgent::new);
+    private static final Map<String, Supplier<AgentCode>> FACTORIES =
+            Map.of(
+                    "dispatch",
+                    DispatchAgent::new,
+                    "trigger-event",
+                    TriggerEventProcessor::new,
+                    "timer-source",
+                    TimerSource::new,
+                    "log-event",
+                    LogEventProcessor::new);
 
     @Override
     public boolean supports(String agentType) {
@@ -31,7 +39,7 @@ public class FlowControlAgentsCodeProvider implements AgentCodeProvider {
     }
 
     @Override
-    public AgentProcessor createInstance(String agentType) {
+    public AgentCode createInstance(String agentType) {
         return FACTORIES.get(agentType).get();
     }
 }

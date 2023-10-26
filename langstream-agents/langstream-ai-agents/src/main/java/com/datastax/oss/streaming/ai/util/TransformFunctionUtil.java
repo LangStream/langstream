@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.util;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.azure.ai.openai.OpenAIAsyncClient;
@@ -349,32 +349,38 @@ public class TransformFunctionUtil {
     }
 
     public static TransformStep newQuery(QueryConfig config, QueryStepDataSource dataSource) {
-        config.getFields()
-                .forEach(
-                        field -> {
-                            if (config.getLoopOver() != null && !config.getLoopOver().isEmpty()) {
-                                if (!field.contains("record.")) {
-                                    throw new IllegalArgumentException(
-                                            String.format(
-                                                    "Invalid field name for query step (with loop-over you must use record.xxx: %s",
-                                                    field));
+        if (config.getFields() != null) {
+            config.getFields()
+                    .forEach(
+                            field -> {
+                                if (config.getLoopOver() != null
+                                        && !config.getLoopOver().isEmpty()) {
+                                    if (!field.contains("record.") && !field.contains("fn:now")) {
+                                        throw new IllegalArgumentException(
+                                                String.format(
+                                                        "Invalid field name for query step (with loop-over you must use record.xxx: %s",
+                                                        field));
+                                    }
+                                } else {
+                                    if (!FIELD_NAMES.contains(field)
+                                            && !field.contains("value.")
+                                            && !field.contains("key.")
+                                            && !field.contains("fn:now")
+                                            && !field.contains("properties.")) {
+                                        throw new IllegalArgumentException(
+                                                String.format(
+                                                        "Invalid field name for query step: %s",
+                                                        field));
+                                    }
                                 }
-                            } else {
-                                if (!FIELD_NAMES.contains(field)
-                                        && !field.contains("value.")
-                                        && !field.contains("key.")
-                                        && !field.contains("properties.")) {
-                                    throw new IllegalArgumentException(
-                                            String.format(
-                                                    "Invalid field name for query step: %s",
-                                                    field));
-                                }
-                            }
-                        });
+                            });
+        }
         return QueryStep.builder()
                 .outputFieldName(config.getOutputField())
                 .query(config.getQuery())
                 .loopOver(config.getLoopOver())
+                .generatedKeys(config.getGeneratedKeys())
+                .mode(config.getMode())
                 .onlyFirst(config.isOnlyFirst())
                 .fields(config.getFields())
                 .dataSource(dataSource)
@@ -382,19 +388,18 @@ public class TransformFunctionUtil {
     }
 
     public static void processTransformSteps(
-            TransformContext transformContext, Collection<StepPredicatePair> steps)
-            throws Exception {
+            MutableRecord mutableRecord, Collection<StepPredicatePair> steps) throws Exception {
         for (StepPredicatePair pair : steps) {
-            processStep(transformContext, pair);
+            processStep(mutableRecord, pair);
         }
     }
 
-    public static void processStep(TransformContext transformContext, StepPredicatePair pair)
+    public static void processStep(MutableRecord mutableRecord, StepPredicatePair pair)
             throws Exception {
         TransformStep step = pair.getTransformStep();
-        Predicate<TransformContext> predicate = pair.getPredicate();
-        if (predicate == null || predicate.test(transformContext)) {
-            step.process(transformContext);
+        Predicate<MutableRecord> predicate = pair.getPredicate();
+        if (predicate == null || predicate.test(mutableRecord)) {
+            step.process(mutableRecord);
         }
     }
 

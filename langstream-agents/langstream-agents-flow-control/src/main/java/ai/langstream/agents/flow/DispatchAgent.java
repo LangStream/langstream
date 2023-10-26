@@ -15,7 +15,7 @@
  */
 package ai.langstream.agents.flow;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
@@ -113,7 +113,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     public void processRecord(Record record, RecordSink recordSink) {
         try {
-            TransformContext context = TransformContext.recordToTransformContext(record, true);
+            MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
 
             for (Route r : routes) {
                 boolean test = r.predicate.test(context);

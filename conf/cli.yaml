@@ -14,6 +14,16 @@
 # limitations under the License.
 #
 
-webServiceUrl: http://localhost:8090
-apiGatewayUrl: ws://localhost:8091
-tenant: default
+---
+webServiceUrl: "http://localhost:8090"
+apiGatewayUrl: "ws://localhost:8091"
+tenant: "default"
+token: null
+profiles:
+  local-docker-run:
+    webServiceUrl: "http://localhost:8090"
+    apiGatewayUrl: "ws://localhost:8091"
+    tenant: "default"
+    token: null
+    name: "local-docker-run"
+currentProfile: "default"

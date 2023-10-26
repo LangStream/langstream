@@ -68,23 +68,34 @@
                 <div class="text-white w-full text-xs mb-2 h-full" id="logs">
                 </div>
             </div>
-            <div class="flex w-full">
-                <label class="block text-gray-700 text-xs p-3">
+            <div class="flex w-full items-center p-3">
+                <label class="text-gray-700 text-xs mr-3">
                     Auto scroll
                 </label>
                 <input type="checkbox"
-                       class="border rounded-l-lg p-3 "
+                       checked
+                       class="border rounded-l-lg mr-3"
                        id="auto-scroll-logs"/>
-
-                <label class="block text-gray-700 text-xs p-3">
+            
+                <label class="text-gray-700 text-xs mr-3">
                     Stop tailing
                 </label>
                 <input type="checkbox"
-                       class="border rounded-l-lg p-3 "
+                       class="border rounded-l-lg mr-3"
                        id="stop-tailing"
                        onchange="onChangeStopTailing()"
                 />
+                <div class="ml-auto flex items-center">
+                    <label for="log-filter" class="text-gray-700 text-xs mr-2">Filter by severity</label>
+                    <select id="log-filter" class="border rounded-lg p-2 text-xs border rounded-lg focus:outline-none focus:ring focus:border-blue-300" onchange="filterLogs()">
+                        <option value="ALL">ALL</option>
+                        <option value="ERROR">ERROR</option>
+                        <option value="WARN">WARN</option>
+                        <option value="INFO">INFO</option>
+                    </select>
+                </div>
             </div>
+            
         </div>
         <!--Gateway-->
         <div class="flex flex-col  flex-1 min-w-4xl max-w-5xl w-full mx-auto bg-white shadow-lg rounded-lg" style="height: 38rem; max-height: 38rem;">
@@ -131,6 +142,7 @@
                         Render Markdown
                     </label>
                     <input type="checkbox"
+                           checked
                            class="border rounded-l-lg p-3 "
                            id="render-markdown" />
                 </div>
@@ -162,9 +174,10 @@
             document.getElementById("tab-home").style.display = "flex"
             document.getElementById("tab-button-home").classList.add(selectedClass)
             document.getElementById("tab-button-connect").classList.remove(selectedClass)
-            window.mermaid.run({
-                querySelector: '.mermaid',
+            window.mermaid.render('graphDiv', handler.applicationConfig.mermaidDefinition).then(result => {
+                document.getElementById('app-mermaid-box').innerHTML = result.svg;
             });
+
         } else {
             document.getElementById("tab-home").style.display = "none"
             document.getElementById("tab-connect").style.display = "flex"
@@ -421,7 +434,6 @@
 
     function onSetup(applicationConfig) {
         window.mermaid.initialize({
-            securityLevel: 'loose',
             theme: 'default',
             fontSize: 24,
             startOnLoad: false
@@ -550,6 +562,19 @@
 
     }
 
+    function filterLogs() {
+        const filterValue = document.getElementById('log-filter').value;
+        const logEntries = document.getElementById('logs').getElementsByTagName('p');
+        for (let i = 0; i < logEntries.length; i++) {
+            const logEntry = logEntries[i];
+            if (filterValue === 'ALL' || logEntry.textContent.includes(filterValue)) {
+                logEntry.style.display = 'block';
+            } else {
+                logEntry.style.display = 'none';
+            }
+        }
+    }
+
     function onLineRead(text) {
         const logsEl = document.getElementById('logs');
         if (logsEl.style.display === "none") {
@@ -562,6 +587,7 @@
         if (document.getElementById("auto-scroll-logs").checked) {
             document.getElementById('logs-box').scrollTop = document.getElementById('logs-box').scrollHeight;
         }
+        filterLogs();
     }
 
     async function readLine(reader) {

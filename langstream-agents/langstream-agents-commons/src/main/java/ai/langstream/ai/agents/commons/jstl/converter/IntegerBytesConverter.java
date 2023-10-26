@@ -34,7 +34,7 @@ public class IntegerBytesConverter implements BytesConverter<Integer> {
             return null;
         }
         if (bytes.length != 4) {
-            throw new SchemaSerializationException(
+            throw new SerializationException(
                     "Size of data received by IntegerBytesConverter is not 4");
         }
         int value = 0;

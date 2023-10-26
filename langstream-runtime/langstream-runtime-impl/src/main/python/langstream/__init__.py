@@ -15,14 +15,7 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-)
+from .api import Agent, Record, RecordType, Sink, Source, Processor, AgentContext
 from .util import SimpleRecord, AvroValue
 
 __all__ = [
@@ -34,4 +27,5 @@ __all__ = [
     "Processor",
     "SimpleRecord",
     "AvroValue",
+    "AgentContext",
 ]

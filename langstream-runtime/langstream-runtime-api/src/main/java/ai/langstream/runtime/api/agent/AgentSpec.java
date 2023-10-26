@@ -16,6 +16,7 @@
 package ai.langstream.runtime.api.agent;
 
 import java.util.Map;
+import java.util.Set;
 
 public record AgentSpec(
         ComponentType componentType,
@@ -24,7 +25,8 @@ public record AgentSpec(
         String applicationId,
         String agentType,
         Map<String, Object> configuration,
-        Map<String, Object> errorHandlerConfiguration) {
+        Map<String, Object> errorHandlerConfiguration,
+        Set<String> agentsWithDisk) {
     public enum ComponentType {
         PROCESSOR,
         SOURCE,

@@ -29,6 +29,8 @@ public class TransformStepConfig {
 
     @JsonProperty private HuggingFaceConfig huggingface;
 
+    @JsonProperty private BedrockConfig bedrock;
+
     @JsonProperty private Map<String, Object> datasource;
 
     @JsonProperty private boolean attemptJsonConversion = true;

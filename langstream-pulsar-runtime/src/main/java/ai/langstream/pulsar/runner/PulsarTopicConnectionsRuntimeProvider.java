@@ -16,6 +16,8 @@
 package ai.langstream.pulsar.runner;
 
 import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static ai.langstream.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
+import static java.util.Map.entry;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.SchemaDefinition;
@@ -23,7 +25,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.topics.OffsetPerPartition;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
@@ -35,9 +36,20 @@ import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClientUtils;
+import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
 import ai.langstream.pulsar.PulsarTopic;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,14 +63,19 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -66,6 +83,8 @@ import org.apache.pulsar.common.schema.SchemaType;
 
 @Slf4j
 public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     @Override
     public boolean supports(String streamingClusterType) {
         return "pulsar".equals(streamingClusterType);
@@ -100,42 +119,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            final TopicConsumer consumer = createConsumer(null, streamingCluster, configuration);
-            switch (initialPosition.position()) {
-                case Earliest -> copy.put(
-                        "subscriptionInitialPosition", SubscriptionInitialPosition.Earliest);
-                case Latest -> copy.put(
-                        "subscriptionInitialPosition", SubscriptionInitialPosition.Latest);
-                default -> throw new IllegalArgumentException(
-                        "Unsupported initial position: " + initialPosition.position());
-            }
-            return new TopicReader() {
-                @Override
-                public void start() throws Exception {
-                    consumer.start();
-                }
-
-                @Override
-                public void close() throws Exception {
-                    consumer.close();
-                }
-
-                @Override
-                public TopicReadResult read() throws Exception {
-                    final List<Record> records = consumer.read();
-                    return new TopicReadResult() {
-                        @Override
-                        public List<Record> records() {
-                            return records;
-                        }
-
-                        @Override
-                        public OffsetPerPartition partitionsOffsets() {
-                            return null;
-                        }
-                    };
-                }
-            };
+            return new PulsarTopicReader(copy, initialPosition);
         }
 
         @Override
@@ -144,6 +128,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
+            copy.remove("deadLetterTopicProducer");
             return new PulsarTopicConsumer(copy);
         }
 
@@ -153,7 +138,24 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            return new PulsarTopicProducer(copy);
+            return new PulsarTopicProducer<>(copy);
+        }
+
+        @Override
+        public TopicProducer createDeadletterTopicProducer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
+            Map<String, Object> deadletterConfiguration =
+                    (Map<String, Object>) configuration.get("deadLetterTopicProducer");
+            if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {
+                return null;
+            }
+            log.info(
+                    "Creating deadletter topic producer for agent {} using configuration {}",
+                    agentId,
+                    configuration);
+            return createProducer(agentId, streamingCluster, deadletterConfiguration);
         }
 
         @Override
@@ -168,12 +170,44 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
         @SneakyThrows
         public void deploy(ExecutionPlan applicationInstance) {
             Application logicalInstance = applicationInstance.getApplication();
-            try (PulsarAdmin admin =
-                    buildPulsarAdmin(logicalInstance.getInstance().streamingCluster())) {
+            PulsarClusterRuntimeConfiguration configuration =
+                    getPulsarClusterRuntimeConfiguration(
+                            logicalInstance.getInstance().streamingCluster());
+            try (PulsarAdmin admin = buildPulsarAdmin(configuration)) {
+                applyRetentionPolicies(
+                        admin,
+                        "%s/%s"
+                                .formatted(
+                                        configuration.defaultTenant(),
+                                        configuration.defaultNamespace()),
+                        configuration.defaultRetentionPolicies());
                 for (Topic topic : applicationInstance.getLogicalTopics()) {
                     deployTopic(admin, (PulsarTopic) topic);
                 }
             }
+        }
+
+        private static void applyRetentionPolicies(
+                PulsarAdmin admin,
+                String namespace,
+                PulsarClusterRuntimeConfiguration.RetentionPolicies policies)
+                throws PulsarAdminException {
+            if (policies == null) {
+                return;
+            }
+            if (policies.retentionSizeInMB() == null && policies.retentionTimeInMinutes() == null) {
+                return;
+            }
+            admin.namespaces()
+                    .setRetention(
+                            namespace,
+                            new RetentionPolicies(
+                                    policies.retentionTimeInMinutes() == null
+                                            ? -1
+                                            : policies.retentionTimeInMinutes(),
+                                    policies.retentionSizeInMB() == null
+                                            ? -1
+                                            : policies.retentionSizeInMB()));
         }
 
         private static void deployTopic(PulsarAdmin admin, PulsarTopic topic)
@@ -382,6 +416,101 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
         }
 
+        private class PulsarTopicReader implements TopicReader {
+            private final Map<String, Object> configuration;
+            private final MessageId startMessageId;
+
+            private Map<String, byte[]> topicMessageIds = new HashMap<>();
+
+            private Reader<GenericRecord> reader;
+
+            private PulsarTopicReader(
+                    Map<String, Object> configuration, TopicOffsetPosition initialPosition) {
+                this.configuration = configuration;
+                this.startMessageId =
+                        switch (initialPosition.position()) {
+                            case Earliest -> MessageId.earliest;
+                            case Latest, Absolute -> MessageId.latest;
+                        };
+                if (initialPosition.position() == TopicOffsetPosition.Position.Absolute) {
+                    try {
+                        this.topicMessageIds =
+                                mapper.readerForMapOf(byte[].class)
+                                        .readValue(initialPosition.offset());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            @Override
+            public void start() throws Exception {
+                String topic = (String) configuration.remove("topic");
+                reader =
+                        client.newReader(Schema.AUTO_CONSUME())
+                                .topic(topic)
+                                .startMessageId(this.startMessageId)
+                                .loadConf(configuration)
+                                .create();
+
+                reader.seek(
+                        topicPartition -> {
+                            try {
+                                String topicName = TopicName.get(topicPartition).toString();
+                                return MessageId.fromByteArray(
+                                        topicMessageIds.getOrDefault(
+                                                topicName, startMessageId.toByteArray()));
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            }
+
+            @Override
+            public void close() throws Exception {
+                if (reader != null) {
+                    reader.close();
+                }
+            }
+
+            @Override
+            public TopicReadResult read() throws Exception {
+                Message<GenericRecord> receive = reader.readNext(1, TimeUnit.SECONDS);
+                List<Record> records;
+                byte[] offset;
+                if (receive != null) {
+                    Object key = receive.getKey();
+                    Object value = receive.getValue().getNativeObject();
+                    if (value instanceof KeyValue<?, ?> kv) {
+                        key = kv.getKey();
+                        value = kv.getValue();
+                    }
+
+                    final Object finalKey = key;
+                    final Object finalValue = value;
+                    log.info("Received message: {}", receive);
+                    records = List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
+                    topicMessageIds.put(
+                            receive.getTopicName(), receive.getMessageId().toByteArray());
+                    offset = mapper.writeValueAsBytes(topicMessageIds);
+                } else {
+                    records = List.of();
+                    offset = null;
+                }
+                return new TopicReadResult() {
+                    @Override
+                    public List<Record> records() {
+                        return records;
+                    }
+
+                    @Override
+                    public byte[] offset() {
+                        return offset;
+                    }
+                };
+            }
+        }
+
         private class PulsarTopicConsumer implements TopicConsumer {
 
             private final Map<String, Object> configuration;
@@ -404,10 +533,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                                .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
-                                .subscriptionType(SubscriptionType.Failover)
-                                .ackTimeout(60000, java.util.concurrent.TimeUnit.MILLISECONDS)
                                 .subscribe();
             }
 
@@ -459,6 +587,26 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             Producer<K> producer;
             Schema<K> schema;
 
+            static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
+                    Map.ofEntries(
+                            entry(String.class, Schema.STRING),
+                            entry(Boolean.class, Schema.BOOL),
+                            entry(Byte.class, Schema.INT8),
+                            entry(Short.class, Schema.INT16),
+                            entry(Integer.class, Schema.INT32),
+                            entry(Long.class, Schema.INT64),
+                            entry(Float.class, Schema.FLOAT),
+                            entry(Double.class, Schema.DOUBLE),
+                            entry(byte[].class, Schema.BYTES),
+                            entry(Date.class, Schema.DATE),
+                            entry(Timestamp.class, Schema.TIMESTAMP),
+                            entry(Time.class, Schema.TIME),
+                            entry(LocalDate.class, Schema.LOCAL_DATE),
+                            entry(LocalTime.class, Schema.LOCAL_TIME),
+                            entry(LocalDateTime.class, Schema.LOCAL_DATE_TIME),
+                            entry(Instant.class, Schema.INSTANT),
+                            entry(ByteBuffer.class, Schema.BYTEBUFFER));
+
             public PulsarTopicProducer(Map<String, Object> configuration) {
                 this.configuration = configuration;
             }
@@ -466,12 +614,31 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
-                String topic = (String) configuration.remove("topic");
-                schema = (Schema<K>) configuration.remove("schema");
-                if (schema == null) {
-                    schema = (Schema) Schema.BYTES;
+                if (configuration.containsKey("valueSchema")) {
+                    SchemaDefinition valueSchemaDefinition =
+                            mapper.convertValue(
+                                    configuration.remove("valueSchema"), SchemaDefinition.class);
+                    Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                    if (configuration.containsKey("keySchema")) {
+                        SchemaDefinition keySchemaDefinition =
+                                mapper.convertValue(
+                                        configuration.remove("keySchema"), SchemaDefinition.class);
+                        Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                        schema =
+                                (Schema<K>)
+                                        Schema.KeyValue(
+                                                keySchema,
+                                                valueSchema,
+                                                KeyValueEncodingType.SEPARATED);
+                    } else {
+                        schema = (Schema<K>) valueSchema;
+                    }
+                    producer =
+                            client.newProducer(schema)
+                                    .topic((String) configuration.remove("topic"))
+                                    .loadConf(configuration)
+                                    .create();
                 }
-                producer = client.newProducer(schema).topic(topic).loadConf(configuration).create();
             }
 
             @Override
@@ -487,41 +654,88 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
             }
 
+            private Schema<?> getSchema(Class<?> klass) {
+                Schema<?> schema = BASE_SCHEMAS.get(klass);
+                if (schema == null) {
+                    throw new IllegalArgumentException("Cannot infer schema for " + klass);
+                }
+                return schema;
+            }
+
             @Override
             public CompletableFuture<?> write(Record r) {
                 totalIn.addAndGet(1);
+                if (schema == null) {
+                    try {
+                        if (r.value() == null) {
+                            throw new IllegalStateException(
+                                    "Cannot infer schema because value is null");
+                        }
+                        Schema<?> valueSchema = getSchema(r.value().getClass());
+                        if (r.key() != null) {
+                            Schema<?> keySchema = getSchema(r.key().getClass());
+                            schema =
+                                    (Schema<K>)
+                                            Schema.KeyValue(
+                                                    keySchema,
+                                                    valueSchema,
+                                                    KeyValueEncodingType.SEPARATED);
+                        } else {
+                            schema = (Schema<K>) valueSchema;
+                        }
+                        producer =
+                                client.newProducer(schema)
+                                        .topic((String) configuration.remove("topic"))
+                                        .loadConf(configuration)
+                                        .create();
+                    } catch (Exception e) {
+                        return CompletableFuture.failedFuture(e);
+                    }
+                }
 
                 log.info("Writing message {}", r);
-                // TODO: handle KV
 
-                return producer.newMessage()
-                        .key(r.key() != null ? r.key().toString() : null)
-                        .value(convertValue(r))
-                        .properties(
-                                r.headers().stream()
-                                        .collect(
-                                                Collectors.toMap(
-                                                        Header::key,
-                                                        h ->
-                                                                h.value() != null
-                                                                        ? h.value().toString()
-                                                                        : null)))
-                        .sendAsync();
+                TypedMessageBuilder<K> message =
+                        producer.newMessage()
+                                .properties(
+                                        r.headers().stream()
+                                                .collect(
+                                                        Collectors.toMap(
+                                                                Header::key,
+                                                                h ->
+                                                                        h.value() != null
+                                                                                ? h.value()
+                                                                                        .toString()
+                                                                                : null)));
+
+                if (schema instanceof KeyValueSchema<?, ?> keyValueSchema) {
+                    KeyValue<?, ?> keyValue =
+                            new KeyValue<>(
+                                    convertValue(r.key(), keyValueSchema.getKeySchema()),
+                                    convertValue(r.value(), keyValueSchema.getValueSchema()));
+                    message.value((K) keyValue);
+                } else {
+                    if (r.key() != null) {
+                        message.key(r.key().toString());
+                    }
+                    message.value((K) convertValue(r.value(), schema));
+                }
+
+                return message.sendAsync();
             }
 
-            private K convertValue(Record r) {
-                Object value = r.value();
+            private Object convertValue(Object value, Schema<?> schema) {
                 if (value == null) {
                     return null;
                 }
                 switch (schema.getSchemaInfo().getType()) {
                     case BYTES:
                         if (value instanceof byte[]) {
-                            return (K) value;
+                            return value;
                         }
-                        return (K) value.toString().getBytes(StandardCharsets.UTF_8);
+                        return value.toString().getBytes(StandardCharsets.UTF_8);
                     case STRING:
-                        return (K) value.toString();
+                        return value.toString();
                     default:
                         throw new IllegalArgumentException(
                                 "Unsupported output schema type " + schema);

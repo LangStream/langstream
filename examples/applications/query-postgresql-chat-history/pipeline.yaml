@@ -1,0 +1,91 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "Chat bot with Conversational history on PostgresSQL"
+topics:
+  - name: "input-topic"
+    creation-mode: create-if-not-exists
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+assets:
+  - name: "chat-history-table"
+    asset-type: "jdbc-table"
+    creation-mode: create-if-not-exists
+    config:
+      table-name: "chat_history"
+      datasource: "JdbcDatasource"
+      create-statements:
+        - |
+          CREATE TABLE chat_history (
+          session_id TEXT,
+          timestamp TIMESTAMP,
+          question TEXT,
+          answer TEXT,
+          PRIMARY KEY (session_id, timestamp));
+pipeline:
+  - name: "convert-to-structure"
+    type: "document-to-json"
+    input: "input-topic"
+    configuration:
+      text-field: "question"
+  - name: "lookup-chat-history"
+    type: "query"
+    configuration:
+      datasource: "JdbcDatasource"
+      query: "SELECT question,answer FROM chat_history where session_id=? ORDER BY TIMESTAMP DESC LIMIT 20"
+      fields:
+        - "properties.client_session_id"
+      output-field: "value.current_history"
+  - name: "ai-chat-completions"
+    type: "ai-chat-completions"
+    configuration:
+      model: "${secrets.open-ai.chat-completions-model}" # This needs to be set to the model deployment name, not the base name
+      # on the log-topic we add a field with the answer
+      completion-field: "value.answer"
+      # we are also logging the prompt we sent to the LLM
+      log-field: "value.prompt"
+      # here we configure the streaming behavior
+      # as soon as the LLM answers with a chunk we send it to the answers-topic
+      stream-to-topic: "output-topic"
+      # on the streaming answer we send the answer as whole message
+      # the 'value' syntax is used to refer to the whole value of the message
+      stream-response-completion-field: "value"
+      # we want to stream the answer as soon as we have 20 chunks
+      # in order to reduce latency for the first message the agent sends the first message
+      # with 1 chunk, then with 2 chunks....up to the min-chunks-per-message value
+      # eventually we want to send bigger messages to reduce the overhead of each message on the topic
+      min-chunks-per-message: 20
+      messages:
+        - role: system
+          content: |
+            An user is going to perform a questions, this is the history of the chat:
+            {{# value.current_history}}
+            Question: {{question}}
+            Answer: {{answer}}
+            {{/ value.current_history}}
+        - role: user
+          content: "{{value.question}}"
+  - name: "write-to-history"
+    type: "query"
+    configuration:
+      datasource: "JdbcDatasource"
+      mode: "execute"
+      query: "INSERT INTO chat_history(session_id,timestamp, question,answer) values(?,NOW() ,?,?)"
+      output-field: "value.command_result"
+      fields:
+        - "properties.client_session_id"
+        - "value.question"
+        - "value.answer"

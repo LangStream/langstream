@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -42,7 +41,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-class TextCompletionsIT extends AbstractApplicationRunner {
+class TextCompletionsIT extends AbstractKafkaApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 
@@ -191,7 +190,7 @@ class TextCompletionsIT extends AbstractApplicationRunner {
                 executeAgentRunners(applicationRuntime);
 
                 String expected =
-                        "{\"question\":\"the car\",\"answer\":\"I am an AI language model and I do not have personal experiences or the\",\"prompt\":\"{\\\"options\\\":{\\\"type\\\":\\\"ai-text-completions\\\",\\\"when\\\":null,\\\"model\\\":\\\"gpt-3.5-turbo-instruct\\\",\\\"prompt\\\":[\\\"What can you tell me about {{{ value.question }}} ?\\\"],\\\"stream-to-topic\\\":null,\\\"stream-response-completion-field\\\":null,\\\"min-chunks-per-message\\\":3,\\\"completion-field\\\":\\\"value.answer\\\",\\\"stream\\\":true,\\\"log-field\\\":\\\"value.prompt\\\",\\\"logprobs-field\\\":\\\"value.logprobs\\\",\\\"logprobs\\\":5.0,\\\"max-tokens\\\":null,\\\"temperature\\\":null,\\\"top-p\\\":null,\\\"logit-bias\\\":null,\\\"user\\\":null,\\\"stop\\\":null,\\\"presence-penalty\\\":null,\\\"frequency-penalty\\\":null},\\\"messages\\\":[\\\"What can you tell me about the car ?\\\"],\\\"model\\\":\\\"gpt-3.5-turbo-instruct\\\"}\",\"logprobs\":{\"tokens\":[\"I\",\" am\",\" an\",\" AI\",\" language\",\" model\",\" and\",\" I\",\" do\",\" not\",\" have\",\" personal\",\" experiences\",\" or\",\" the\"],\"logprobs\":[-0.50947005,-0.81064594,-0.0639758,-0.007819127,-4.2176867,-9.771052E-5,-0.38906613,-1.1028589,-0.18535662,-9.115311E-5,-0.0122308275,-0.9290634,-0.2772571,-0.06607247,-2.1178281]}}";
+                        "{\"question\":\"the car\",\"answer\":\"I am an AI language model and I do not have personal experiences or the\",\"prompt\":\"{\\\"options\\\":{\\\"type\\\":\\\"ai-text-completions\\\",\\\"when\\\":null,\\\"model\\\":\\\"gpt-3.5-turbo-instruct\\\",\\\"prompt\\\":[\\\"What can you tell me about {{{ value.question }}} ?\\\"],\\\"stream-to-topic\\\":null,\\\"stream-response-completion-field\\\":null,\\\"min-chunks-per-message\\\":3,\\\"completion-field\\\":\\\"value.answer\\\",\\\"stream\\\":true,\\\"log-field\\\":\\\"value.prompt\\\",\\\"logprobs-field\\\":\\\"value.logprobs\\\",\\\"logprobs\\\":5.0,\\\"max-tokens\\\":null,\\\"temperature\\\":null,\\\"top-p\\\":null,\\\"logit-bias\\\":null,\\\"user\\\":null,\\\"stop\\\":null,\\\"presence-penalty\\\":null,\\\"frequency-penalty\\\":null,\\\"options\\\":null},\\\"messages\\\":[\\\"What can you tell me about the car ?\\\"],\\\"model\\\":\\\"gpt-3.5-turbo-instruct\\\"}\",\"logprobs\":{\"tokens\":[\"I\",\" am\",\" an\",\" AI\",\" language\",\" model\",\" and\",\" I\",\" do\",\" not\",\" have\",\" personal\",\" experiences\",\" or\",\" the\"],\"logprobs\":[-0.50947005,-0.81064594,-0.0639758,-0.007819127,-4.2176867,-9.771052E-5,-0.38906613,-1.1028589,-0.18535662,-9.115311E-5,-0.0122308275,-0.9290634,-0.2772571,-0.06607247,-2.1178281]}}";
                 waitForMessages(consumer, List.of(expected));
             }
         }

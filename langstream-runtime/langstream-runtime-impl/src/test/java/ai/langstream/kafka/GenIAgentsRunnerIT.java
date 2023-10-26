@@ -18,7 +18,6 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -31,7 +30,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class GenIAgentsRunnerIT extends AbstractApplicationRunner {
+class GenIAgentsRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testRunAITools() throws Exception {

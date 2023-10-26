@@ -21,19 +21,17 @@
 	<parent>
 		<groupId>ai.langstream</groupId>
 		<artifactId>langstream-ai</artifactId>
-		<version>0.2.1-SNAPSHOT</version>
+		<version>0.3.2-SNAPSHOT</version>
 	</parent>
 	<groupId>ai.langstream</groupId>
 	<artifactId>langstream-api-gateway</artifactId>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.3.2-SNAPSHOT</version>
 	<name>LangStream - API Gateway</name>
 	<properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<springdoc-openapi-starter-webmvc.version>2.1.0</springdoc-openapi-starter-webmvc.version>
-		<jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
-
   </properties>
 
 	<dependencies>
@@ -110,6 +108,11 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>kafka</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>pulsar</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

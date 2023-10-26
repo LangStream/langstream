@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.grpc;
 
+import ai.langstream.api.runner.code.AgentContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
@@ -22,6 +23,7 @@ import io.grpc.ManagedChannelBuilder;
 import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,11 +33,19 @@ public class PythonGrpcServer {
 
     private final Path codeDirectory;
     private final Map<String, Object> configuration;
+    private final String agentId;
+    private final AgentContext agentContext;
     private Process pythonProcess;
 
-    public PythonGrpcServer(Path codeDirectory, Map<String, Object> configuration) {
+    public PythonGrpcServer(
+            Path codeDirectory,
+            Map<String, Object> configuration,
+            String agentId,
+            AgentContext agentContext) {
         this.codeDirectory = codeDirectory;
         this.configuration = configuration;
+        this.agentId = agentId;
+        this.agentContext = agentContext;
     }
 
     public ManagedChannel start() throws Exception {
@@ -57,6 +67,8 @@ public class PythonGrpcServer {
                                 pythonCodeDirectory.toAbsolutePath(),
                                 pythonCodeDirectory.resolve("lib").toAbsolutePath());
 
+        AgentContextConfiguration agentContextConfiguration = computeAgentContextConfiguration();
+
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily
         ProcessBuilder processBuilder =
@@ -65,7 +77,8 @@ public class PythonGrpcServer {
                                 "-m",
                                 "langstream_grpc",
                                 "[::]:%s".formatted(port),
-                                MAPPER.writeValueAsString(configuration))
+                                MAPPER.writeValueAsString(configuration),
+                                MAPPER.writeValueAsString(agentContextConfiguration))
                         .inheritIO()
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -91,6 +104,19 @@ public class PythonGrpcServer {
         return channel;
     }
 
+    private AgentContextConfiguration computeAgentContextConfiguration() {
+        final Optional<Path> persistentStateDirectoryForAgent =
+                agentContext.getPersistentStateDirectoryForAgent(agentId);
+
+        final String persistentStateDirectory =
+                persistentStateDirectoryForAgent
+                        .map(p -> p.toFile().getAbsolutePath())
+                        .orElse(null);
+        AgentContextConfiguration agentContextConfiguration =
+                new AgentContextConfiguration(persistentStateDirectory);
+        return agentContextConfiguration;
+    }
+
     public void close() throws Exception {
         if (pythonProcess != null) {
             pythonProcess.destroy();
@@ -102,4 +128,6 @@ public class PythonGrpcServer {
             }
         }
     }
+
+    public record AgentContextConfiguration(String persistentStateDirectory) {}
 }

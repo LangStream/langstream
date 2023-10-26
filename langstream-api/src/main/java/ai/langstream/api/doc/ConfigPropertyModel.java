@@ -32,4 +32,5 @@ public class ConfigPropertyModel {
     private Map<String, ConfigPropertyModel> properties;
     private ConfigPropertyModel items;
     private Object defaultValue;
+    private ExtendedValidationType extendedValidationType;
 }

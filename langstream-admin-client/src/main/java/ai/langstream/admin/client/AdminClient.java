@@ -19,6 +19,7 @@ import ai.langstream.admin.client.http.HttpClientFacade;
 import ai.langstream.admin.client.http.HttpClientProperties;
 import ai.langstream.admin.client.http.Retry;
 import ai.langstream.admin.client.model.Applications;
+import ai.langstream.admin.client.model.Archetypes;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
 import java.io.InputStream;
@@ -202,6 +203,26 @@ public class AdminClient implements AutoCloseable {
 
     public Applications applications() {
         return new ApplicationsImpl();
+    }
+
+    public Archetypes archetypes() {
+        return new ArchetypesImpl();
+    }
+
+    private class ArchetypesImpl implements Archetypes {
+        @Override
+        @SneakyThrows
+        public String list() {
+            final String tenant = configuration.getTenant();
+            return http(newGet(String.format("/archetypes/%s", tenant))).body();
+        }
+
+        @Override
+        @SneakyThrows
+        public String get(String archetype) {
+            final String tenant = configuration.getTenant();
+            return http(newGet(String.format("/archetypes/%s/%s", tenant, archetype))).body();
+        }
     }
 
     private class ApplicationsImpl implements Applications {

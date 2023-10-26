@@ -45,18 +45,7 @@ echo "                   |___/                                    ";
 
 
 get_latest_release_tarball_url() {
-  if ! command -v jq > /dev/null; then
-  	echo "Not found."
-  	echo "======================================================================================================"
-  	echo " Please install jq on your system using your favourite package manager."
-  	echo ""
-  	echo " Restart after installing jq."
-  	echo "======================================================================================================"
-  	echo " In alternative you can set a fixed LangStream CLI version by setting LANGSTREAM_CLI_URL."
-    echo "======================================================================================================"
-  	echo ""
-  	exit 1
-  fi
+
    curl -Ss https://api.github.com/repos/LangStream/langstream/releases/latest | jq -r '.assets[] | select((.name | contains("langstream-cli")) and (.name | contains(".zip"))) | .browser_download_url'
 }
 
@@ -69,6 +58,17 @@ echo ""
 echo "$(tput setaf 6)Checking archive:$(tput setaf 7)"
 if [ -z "$LANGSTREAM_CLI_URL" ]; then
   echo "$(tput setaf 2)LANGSTREAM_CLI_URL$(tput setaf 7) environment not set, checking for the latest release"
+  if ! command -v jq > /dev/null; then
+    	echo "======================================================================================================"
+    	echo " Please install jq on your system using your favourite package manager."
+    	echo ""
+    	echo " Restart after installing jq."
+    	echo "======================================================================================================"
+    	echo " In alternative you can set a fixed LangStream CLI version by setting LANGSTREAM_CLI_URL."
+      echo "======================================================================================================"
+    	echo ""
+    	exit 1
+  fi
   LANGSTREAM_CLI_URL=$(get_latest_release_tarball_url)
   echo "$(tput setaf 2)[OK]$(tput setaf 7) - Using $LANGSTREAM_CLI_URL"
 else
@@ -101,7 +101,6 @@ esac
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - Ready to install $(basename $downloaded_extracted_dir)."
 
 if ! command -v unzip > /dev/null; then
-	echo "Not found."
 	echo "======================================================================================================"
 	echo " Please install unzip on your system using your favourite package manager."
 	echo ""
@@ -113,7 +112,6 @@ fi
 echo "$(tput setaf 2)[OK]$(tput setaf 7) - unzip command is available"
 
 if ! command -v curl > /dev/null; then
-	echo "Not found."
 	echo ""
 	echo "======================================================================================================"
 	echo " Please install curl on your system using your favourite package manager."

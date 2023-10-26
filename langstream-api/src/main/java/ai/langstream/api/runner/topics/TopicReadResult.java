@@ -22,5 +22,5 @@ public interface TopicReadResult {
 
     List<Record> records();
 
-    OffsetPerPartition partitionsOffsets();
+    byte[] offset();
 }

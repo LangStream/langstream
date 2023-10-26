@@ -222,4 +222,44 @@ public class AITextCompletionsConfiguration extends BaseGenAIStepConfiguration {
                             """)
     @JsonProperty(value = "ai-service")
     private String aiService;
+
+    @Data
+    public static class BedrockOptions {
+
+        @ConfigProperty(
+                description =
+                        """
+                        Bedrock inference parameters. Consult the Bedrock documentation API reference for the configured model for more information.
+                        """)
+        @JsonProperty(value = "request-parameters")
+        private Map<String, Object> requestParameters;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Bedrock inference parameters for the prompt.
+                        The value will be injected from the top level configuration.
+                        Consult the Bedrock documentation API reference for the configured model for more information.
+                        """,
+                defaultValue = "prompt")
+        @JsonProperty(value = "request-prompt-property")
+        private String requestPromptProperty;
+
+        @ConfigProperty(
+                description =
+                        """
+                        JSTL expression for extracting the completions from the response.
+                        Consult the Bedrock documentation API reference for the configured model for more information.
+                        """)
+        @JsonProperty(value = "response-completions-expression")
+        private String responseCompletionsExpression;
+    }
+
+    @ConfigProperty(
+            description =
+                    """
+                    Additional options for the model configuration. The structure depends on the model and AI provider.
+                    """)
+    @JsonProperty(value = "options")
+    private Map<String, Object> options;
 }

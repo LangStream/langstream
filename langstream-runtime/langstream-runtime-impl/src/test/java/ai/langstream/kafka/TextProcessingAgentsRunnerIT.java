@@ -15,7 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import ai.langstream.AbstractApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
-class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
+class TextProcessingAgentsRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test
     public void testFullLanguageProcessingPipeline() throws Exception {
@@ -189,9 +188,9 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"chunk_text_length\":\"47\",\"text\":\"This text is written in English, but it is very\",\"chunk_id\":\"0\",\"chunk_num_tokens\":\"47\"}",
-                                "{\"chunk_text_length\":\"5\",\"text\":\"long,\",\"chunk_id\":\"1\",\"chunk_num_tokens\":\"5\"}",
-                                "{\"chunk_text_length\":\"40\",\"text\":\"so you may want to split it into chunks.\",\"chunk_id\":\"2\",\"chunk_num_tokens\":\"40\"}"));
+                                "{\"chunk_text_length\":\"47\",\"text\":\"This text is written in English, but it is very\",\"text_num_chunks\":\"3\",\"chunk_id\":\"0\",\"chunk_num_tokens\":\"47\"}",
+                                "{\"chunk_text_length\":\"5\",\"text\":\"long,\",\"text_num_chunks\":\"3\",\"chunk_id\":\"1\",\"chunk_num_tokens\":\"5\"}",
+                                "{\"chunk_text_length\":\"40\",\"text\":\"so you may want to split it into chunks.\",\"text_num_chunks\":\"3\",\"chunk_id\":\"2\",\"chunk_num_tokens\":\"40\"}"));
             }
         }
     }

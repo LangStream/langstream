@@ -27,6 +27,7 @@ import picocli.CommandLine;
         scope = CommandLine.ScopeType.INHERIT,
         header = "LangStream CLI",
         subcommands = {
+            RootArchetypeCmd.class,
             RootAppCmd.class,
             ConfigureCmd.class,
             RootTenantCmd.class,
@@ -55,4 +56,12 @@ public class RootCmd {
             description = "Verbose mode. Helpful for troubleshooting.")
     @Getter
     private boolean verbose = false;
+
+    @CommandLine.Option(
+            names = {"--disable-local-repositories-cache"},
+            defaultValue = "false",
+            description =
+                    "By default the repositories downloaded are cached. In case of corrupted directories, you might want to set add this parameter to always clone the repositories from scratch.")
+    @Getter
+    private boolean disableLocalRepositoriesCache = false;
 }

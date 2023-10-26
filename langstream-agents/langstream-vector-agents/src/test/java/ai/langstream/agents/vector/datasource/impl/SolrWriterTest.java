@@ -264,7 +264,9 @@ public class SolrWriterTest {
                 assertEquals(0, results3.size());
 
                 assertTrue(tableManager.assetExists());
-                tableManager.deleteAssetIfExists();
+                assertTrue(tableManager.deleteAssetIfExists());
+                assertFalse(tableManager.assetExists());
+                assertFalse(tableManager.deleteAssetIfExists());
             }
         }
     }

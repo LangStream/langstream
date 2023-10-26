@@ -102,33 +102,7 @@ public class CassandraDataSource implements QueryStepDataSource {
                             .map(v -> v == null ? "null" : v.getClass().toString())
                             .collect(Collectors.joining(",")));
         }
-        PreparedStatement preparedStatement =
-                statements.computeIfAbsent(query, q -> session.prepare(q));
-
-        ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
-        List<Object> adaptedParameters = new ArrayList<>();
-        for (int i = 0; i < variableDefinitions.size(); i++) {
-            Object value = params.get(i);
-            ColumnDefinition columnDefinition = variableDefinitions.get(i);
-            if (columnDefinition.getType() instanceof CqlVectorType && value instanceof List) {
-                CqlVectorType vectorType = (CqlVectorType) columnDefinition.getType();
-                if (vectorType.getSubtype() != DataTypes.FLOAT) {
-                    throw new IllegalArgumentException("Only VECTOR<FLOAT,x> is supported");
-                }
-                CqlVector.Builder<Float> builder = CqlVector.builder();
-                for (Object v : (List<Object>) value) {
-                    if (v instanceof Number) {
-                        builder.add(((Number) v).floatValue());
-                    } else {
-                        builder.add(Float.parseFloat(v + ""));
-                    }
-                }
-                value = builder.build();
-            }
-            adaptedParameters.add(value);
-        }
-
-        BoundStatement bind = preparedStatement.bind(adaptedParameters.toArray(new Object[0]));
+        BoundStatement bind = prepareStatement(query, params);
 
         List<Row> all = session.execute(bind).all();
         return all.stream()
@@ -153,21 +127,37 @@ public class CassandraDataSource implements QueryStepDataSource {
                 .collect(Collectors.toList());
     }
 
-    public void executeStatement(String query, List<Object> params) {
+    @Override
+    public Map<String, Object> executeStatement(
+            String query, List<String> generatedKeys, List<Object> params) {
         if (log.isDebugEnabled()) {
             log.debug(
-                    "Executing query {} with params {} ({})",
+                    "Executing statement {} with params {} ({})",
                     query,
                     params,
                     params.stream()
                             .map(v -> v == null ? "null" : v.getClass().toString())
                             .collect(Collectors.joining(",")));
         }
+        BoundStatement bind = prepareStatement(query, params);
+        session.execute(bind);
+        return Map.of();
+    }
+
+    private BoundStatement prepareStatement(String query, List<Object> params) {
         PreparedStatement preparedStatement =
                 statements.computeIfAbsent(query, q -> session.prepare(q));
 
         ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
         List<Object> adaptedParameters = new ArrayList<>();
+        if (variableDefinitions.size() != params.size()) {
+            throw new IllegalArgumentException(
+                    "Wrong number of parameters, your query needs "
+                            + variableDefinitions.size()
+                            + " parameters but you provided "
+                            + params.size()
+                            + " fields in the agent definition");
+        }
         for (int i = 0; i < variableDefinitions.size(); i++) {
             Object value = params.get(i);
             ColumnDefinition columnDefinition = variableDefinitions.get(i);
@@ -190,6 +180,20 @@ public class CassandraDataSource implements QueryStepDataSource {
         }
 
         BoundStatement bind = preparedStatement.bind(adaptedParameters.toArray(new Object[0]));
+        return bind;
+    }
+
+    public void executeStatement(String query, List<Object> params) {
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Executing query {} with params {} ({})",
+                    query,
+                    params,
+                    params.stream()
+                            .map(v -> v == null ? "null" : v.getClass().toString())
+                            .collect(Collectors.joining(",")));
+        }
+        BoundStatement bind = prepareStatement(query, params);
 
         session.execute(bind);
     }

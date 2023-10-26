@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai;
 
-import ai.langstream.ai.agents.commons.TransformContext;
+import ai.langstream.ai.agents.commons.MutableRecord;
 
 /**
  * Drops a message from further processing. Works in conjunctions with predicates to selectively
@@ -23,7 +23,7 @@ import ai.langstream.ai.agents.commons.TransformContext;
  */
 public class DropStep implements TransformStep {
     @Override
-    public void process(TransformContext transformContext) throws Exception {
-        transformContext.setDropCurrentRecord(true);
+    public void process(MutableRecord mutableRecord) throws Exception {
+        mutableRecord.setDropCurrentRecord(true);
     }
 }

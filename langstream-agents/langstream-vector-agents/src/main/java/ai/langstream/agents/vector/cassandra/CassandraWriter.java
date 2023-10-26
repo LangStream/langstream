@@ -87,20 +87,20 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                     // Cassandra
                                     configuration.put(
                                             "contactPoints",
-                                            datasource
-                                                    .getOrDefault("contact-points", "")
-                                                    .toString());
+                                            ConfigurationUtils.getString(
+                                                    "contact-points", "", datasource));
                                     configuration.put(
                                             "loadBalancing.localDc",
-                                            datasource
-                                                    .getOrDefault("loadBalancing-localDc", "")
-                                                    .toString());
+                                            ConfigurationUtils.getString(
+                                                    "loadBalancing-localDc", "", datasource));
                                     configuration.put(
                                             "port",
-                                            datasource.getOrDefault("port", "9042").toString());
+                                            ConfigurationUtils.getString(
+                                                    "port", "9042", datasource));
 
                                     String secureBundleString =
-                                            datasource.getOrDefault("secureBundle", "").toString();
+                                            ConfigurationUtils.getString(
+                                                    "secureBundle", "", datasource);
                                     // AstraDB, explicit secureBundle
                                     if (!secureBundleString.isEmpty()) {
                                         configuration.put(
@@ -115,7 +115,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                                         "database", "", datasource);
                                         String environment =
                                                 ConfigurationUtils.getString(
-                                                        "environment", "DEV", datasource);
+                                                        "environment", "PROD", datasource);
                                         if (!token.isEmpty() && !database.isEmpty()) {
                                             DatabaseClient databaseClient =
                                                     CassandraDataSource.buildAstraClient(
@@ -136,18 +136,18 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
 
                                     configuration.put(
                                             "auth.username",
-                                            datasource
-                                                    .getOrDefault(
-                                                            "username",
-                                                            datasource.getOrDefault("clientId", ""))
-                                                    .toString());
+                                            ConfigurationUtils.getString(
+                                                    "username",
+                                                    ConfigurationUtils.getString(
+                                                            "clientId", "", datasource),
+                                                    datasource));
                                     configuration.put(
                                             "auth.password",
-                                            datasource
-                                                    .getOrDefault(
-                                                            "password",
-                                                            datasource.getOrDefault("secret", ""))
-                                                    .toString());
+                                            ConfigurationUtils.getString(
+                                                    "password",
+                                                    ConfigurationUtils.getString(
+                                                            "secret", "", datasource),
+                                                    datasource));
 
                                     break;
                                 default:
@@ -161,14 +161,15 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                     });
             configuration.put(SinkUtil.NAME_OPT, "langstream");
             String table =
-                    (String)
-                            agentConfiguration.getOrDefault(
-                                    "table", agentConfiguration.get("table-name"));
+                    ConfigurationUtils.getString(
+                            "table",
+                            ConfigurationUtils.getString("table-name", "", agentConfiguration),
+                            agentConfiguration);
             String keyspace = (String) agentConfiguration.get("keyspace");
             if (keyspace != null && !keyspace.isEmpty()) {
                 table = keyspace + "." + table;
             }
-            String mapping = (String) agentConfiguration.get("mapping");
+            String mapping = ConfigurationUtils.getString("mapping", "", agentConfiguration);
             configuration.put("topics", DUMMY_TOPIC);
             configuration.put("topic." + DUMMY_TOPIC + "." + table + ".mapping", mapping);
 

@@ -26,6 +26,7 @@ from typing import Iterable, Union, List, Tuple, Any, Optional, Dict
 
 import fastavro
 import grpc
+import inspect
 
 from langstream_grpc.proto import agent_pb2_grpc
 from langstream_grpc.proto.agent_pb2 import (
@@ -43,13 +44,7 @@ from langstream_grpc.proto.agent_pb2 import (
     SinkResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
-from .api import (
-    Source,
-    Sink,
-    Processor,
-    Record,
-    Agent,
-)
+from .api import Source, Sink, Processor, Record, Agent, AgentContext
 from .util import SimpleRecord, AvroValue
 
 
@@ -324,27 +319,44 @@ class AgentService(AgentServiceServicer):
 def call_method_if_exists(klass, method, *args, **kwargs):
     method = getattr(klass, method, None)
     if callable(method):
-        return method(*args, **kwargs)
+        defined_positional_parameters_count = len(inspect.signature(method).parameters)
+        if defined_positional_parameters_count >= len(args):
+            return method(*args, **kwargs)
+        else:
+            return method(*args[:defined_positional_parameters_count], **kwargs)
     return None
 
 
-def init_agent(configuration) -> Agent:
+def init_agent(configuration, context) -> Agent:
     full_class_name = configuration["className"]
     class_name = full_class_name.split(".")[-1]
     module_name = full_class_name[: -len(class_name) - 1]
     module = importlib.import_module(module_name)
     agent = getattr(module, class_name)()
-    call_method_if_exists(agent, "init", configuration)
+    context_impl = DefaultAgentContext(configuration, context)
+    call_method_if_exists(agent, "init", configuration, context_impl)
     return agent
 
 
+class DefaultAgentContext(AgentContext):
+    def __init__(self, configuration: dict, context: dict):
+        self.configuration = configuration
+        self.context = context
+
+    def get_persistent_state_directory(self) -> str:
+        dir = self.context.get("persistentStateDirectory", "")
+        if not dir:
+            return None
+        return dir
+
+
 class AgentServer(object):
-    def __init__(self, target: str, config: str):
+    def __init__(self, target: str, config: str, context: str):
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.target = target
         self.grpc_server = grpc.server(self.thread_pool)
         self.port = self.grpc_server.add_insecure_port(target)
-        self.agent = init_agent(json.loads(config))
+        self.agent = init_agent(json.loads(config), json.loads(context))
 
     def start(self):
         call_method_if_exists(self.agent, "start")

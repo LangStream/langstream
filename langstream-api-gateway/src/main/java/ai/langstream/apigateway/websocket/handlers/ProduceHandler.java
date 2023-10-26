@@ -24,7 +24,6 @@ import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +56,8 @@ public class ProduceHandler extends AbstractHandler {
     }
 
     @Override
-    public String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
@@ -76,7 +76,8 @@ public class ProduceHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
         final List<Header> commonHeaders =
-                ProduceGateway.getProducerCommonHeaders(context.gateway().getProduceOptions(), context);
+                ProduceGateway.getProducerCommonHeaders(
+                        context.gateway().getProduceOptions(), context);
         setupProducer(context.gateway().getTopic(), commonHeaders, context);
 
         sendClientConnectedEvent(context);

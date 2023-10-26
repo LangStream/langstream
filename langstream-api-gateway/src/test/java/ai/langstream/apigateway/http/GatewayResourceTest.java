@@ -1,12 +1,25 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.apigateway.http;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
-import ai.langstream.api.events.EventRecord;
-import ai.langstream.api.events.EventSources;
-import ai.langstream.api.events.GatewayEventData;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.Gateway;
@@ -19,36 +32,23 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
-import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
-import ai.langstream.apigateway.websocket.api.ProduceRequest;
-import ai.langstream.apigateway.websocket.api.ProduceResponse;
-import ai.langstream.apigateway.websocket.handlers.TestWebSocketClient;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import jakarta.websocket.CloseReason;
-import jakarta.websocket.DeploymentException;
-import jakarta.websocket.Session;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import lombok.Cleanup;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
@@ -57,18 +57,15 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
-
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.main.allow-bean-definition-overriding=true",
+            "spring.main.allow-bean-definition-overriding=true",
         })
 @WireMockTest
 @Slf4j
@@ -90,19 +87,19 @@ abstract class GatewayResourceTest {
     protected static ApplicationStore getMockedStore(String instanceYaml) {
         ApplicationStore mock = Mockito.mock(ApplicationStore.class);
         doAnswer(
-                invocationOnMock -> {
-                    final StoredApplication storedApplication = new StoredApplication();
-                    final Application application = buildApp(instanceYaml);
-                    storedApplication.setInstance(application);
-                    return storedApplication;
-                })
+                        invocationOnMock -> {
+                            final StoredApplication storedApplication = new StoredApplication();
+                            final Application application = buildApp(instanceYaml);
+                            storedApplication.setInstance(application);
+                            return storedApplication;
+                        })
                 .when(mock)
                 .get(anyString(), anyString(), anyBoolean());
         doAnswer(
-                invocationOnMock ->
-                        ApplicationSpecs.builder()
-                                .application(buildApp(instanceYaml))
-                                .build())
+                        invocationOnMock ->
+                                ApplicationSpecs.builder()
+                                        .application(buildApp(instanceYaml))
+                                        .build())
                 .when(mock)
                 .getSpecs(anyString(), anyString());
 
@@ -123,8 +120,7 @@ abstract class GatewayResourceTest {
         return props;
     }
 
-    @Autowired
-    private TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeProvider;
+    @Autowired private TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeProvider;
 
     @NotNull
     private static Application buildApp(String instanceYaml) throws Exception {
@@ -158,8 +154,7 @@ abstract class GatewayResourceTest {
         return application;
     }
 
-    @LocalServerPort
-    int port;
+    @LocalServerPort int port;
 
     @Autowired ApplicationStore store;
 
@@ -170,7 +165,6 @@ abstract class GatewayResourceTest {
     private static String genTopic() {
         return "topic" + topicCounter.incrementAndGet();
     }
-
 
     @BeforeAll
     public static void beforeAll(WireMockRuntimeInfo wmRuntimeInfo) {
@@ -190,7 +184,6 @@ abstract class GatewayResourceTest {
         Awaitility.reset();
     }
 
-
     @SneakyThrows
     void produceAndExpectOk(String url, String content) {
         final HttpRequest request =
@@ -198,11 +191,11 @@ abstract class GatewayResourceTest {
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(content))
                         .build();
-        final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
-
     }
 
     @SneakyThrows
@@ -212,13 +205,13 @@ abstract class GatewayResourceTest {
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(content))
                         .build();
-        final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(400, response.statusCode());
         log.info("Response body: {}", response.body());
         final Map map = new ObjectMapper().readValue(response.body(), Map.class);
-        String detail = (String)map.get("detail");
+        String detail = (String) map.get("detail");
         assertTrue(detail.contains(errorMessage));
-
     }
 
     @SneakyThrows
@@ -228,10 +221,10 @@ abstract class GatewayResourceTest {
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(content))
                         .build();
-        final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(401, response.statusCode());
         log.info("Response body: {}", response.body());
-
     }
 
     @Test
@@ -253,13 +246,13 @@ abstract class GatewayResourceTest {
                                         .build()));
 
         final String url =
-                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce".formatted(port);
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
 
         produceAndExpectOk(url, "{\"value\": \"my-value\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
     }
-
 
     @Test
     void testParametersRequired() throws Exception {
@@ -281,15 +274,17 @@ abstract class GatewayResourceTest {
 
         final String content = "{\"value\": \"my-value\"}";
         produceAndExpectBadRequest(baseUrl, content, "missing required parameter session-id");
-        produceAndExpectBadRequest(baseUrl+ "?param:otherparam=1", content, "missing required parameter session-id");
-        produceAndExpectBadRequest(baseUrl+ "?param:session-id=", content, "missing required parameter session-id");
-        produceAndExpectBadRequest(baseUrl+ "?param:session-id=ok&param:another-non-declared=y", content, "unknown parameters: [another-non-declared]");
-        produceAndExpectOk(baseUrl+ "?param:session-id=1", content);
-        produceAndExpectOk(baseUrl+ "?param:session-id=string-value", content);
-
+        produceAndExpectBadRequest(
+                baseUrl + "?param:otherparam=1", content, "missing required parameter session-id");
+        produceAndExpectBadRequest(
+                baseUrl + "?param:session-id=", content, "missing required parameter session-id");
+        produceAndExpectBadRequest(
+                baseUrl + "?param:session-id=ok&param:another-non-declared=y",
+                content,
+                "unknown parameters: [another-non-declared]");
+        produceAndExpectOk(baseUrl + "?param:session-id=1", content);
+        produceAndExpectOk(baseUrl + "?param:session-id=string-value", content);
     }
-
-
 
     @Test
     void testAuthentication() throws Exception {
@@ -332,12 +327,14 @@ abstract class GatewayResourceTest {
                                         .build()));
 
         final String baseUrl =
-                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce".formatted(port);
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
 
         produceAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}");
         produceAndExpectUnauthorized(baseUrl + "?credentials=", "{\"value\": \"my-value\"}");
         produceAndExpectUnauthorized(baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
-        produceAndExpectOk(baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
+        produceAndExpectOk(
+                baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
     }
 
     @Test
@@ -378,16 +375,18 @@ abstract class GatewayResourceTest {
                                         .build()));
 
         final String baseUrl =
-                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce".formatted(port);
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
 
-
-        produceAndExpectUnauthorized(baseUrl + "?test-credentials=test", "{\"value\": \"my-value\"}");
-        produceAndExpectOk(baseUrl + "?test-credentials=test-user-password", "{\"value\": \"my-value\"}");
-        produceAndExpectUnauthorized("http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test-user-password".formatted(port), "{\"value\": \"my-value\"}");
-
+        produceAndExpectUnauthorized(
+                baseUrl + "?test-credentials=test", "{\"value\": \"my-value\"}");
+        produceAndExpectOk(
+                baseUrl + "?test-credentials=test-user-password", "{\"value\": \"my-value\"}");
+        produceAndExpectUnauthorized(
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test-user-password"
+                        .formatted(port),
+                "{\"value\": \"my-value\"}");
     }
-
-
 
     protected abstract StreamingCluster getStreamingCluster();
 
@@ -409,5 +408,4 @@ abstract class GatewayResourceTest {
                         deployer.createImplementation(
                                 "app", store.get("t", "app", false).getInstance()));
     }
-
 }

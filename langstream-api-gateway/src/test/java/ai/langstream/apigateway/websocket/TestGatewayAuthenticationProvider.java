@@ -35,7 +35,8 @@ public class TestGatewayAuthenticationProvider implements GatewayAuthenticationP
     @Override
     public GatewayAuthenticationResult authenticate(GatewayRequestContext context) {
         log.info("Authenticating {}", context.credentials());
-        if (context.credentials() != null && context.credentials().startsWith("test-user-password")) {
+        if (context.credentials() != null
+                && context.credentials().startsWith("test-user-password")) {
             return GatewayAuthenticationResult.authenticationSuccessful(
                     Map.of("login", context.credentials()));
         } else {

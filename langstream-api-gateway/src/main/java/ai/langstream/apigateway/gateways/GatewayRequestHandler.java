@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
@@ -11,7 +26,6 @@ import ai.langstream.api.model.Gateways;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.AuthenticationInterceptor;
 import ai.langstream.apigateway.websocket.impl.AuthenticatedGatewayRequestContextImpl;
 import ai.langstream.apigateway.websocket.impl.GatewayRequestContextImpl;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
@@ -20,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.util.StringUtils;
@@ -36,14 +49,12 @@ public class GatewayRequestHandler {
 
     public interface GatewayRequestValidator {
         List<String> getAllRequiredParameters(Gateway gateway);
+
         void validateOptions(Map<String, String> options);
     }
 
-
     private final ApplicationStore applicationStore;
     private final GatewayAuthenticationProvider authTestProvider;
-
-
 
     public GatewayRequestHandler(
             ApplicationStore applicationStore,
@@ -62,7 +73,6 @@ public class GatewayRequestHandler {
             log.info("No test authentication provider configured");
         }
     }
-
 
     public GatewayRequestContext validateRequest(
             String tenant,
@@ -86,10 +96,10 @@ public class GatewayRequestHandler {
             } else {
                 throw new IllegalArgumentException(
                         "invalid query parameter "
-                        + entry.getKey()
-                        + ". "
-                        + "To specify a gateway parameter, use the format param:<parameter_name>."
-                        + "To specify a option, use the format option:<option_name>.");
+                                + entry.getKey()
+                                + ". "
+                                + "To specify a gateway parameter, use the format param:<parameter_name>."
+                                + "To specify a option, use the format option:<option_name>.");
             }
         }
 
@@ -108,9 +118,9 @@ public class GatewayRequestHandler {
                                     applicationId,
                                     gateway,
                                     "missing required parameter "
-                                    + requiredParameter
-                                    + ". Required parameters: "
-                                    + requiredParameters));
+                                            + requiredParameter
+                                            + ". Required parameters: "
+                                            + requiredParameters));
                 }
                 allUserParameterKeys.remove(requiredParameter);
             }
@@ -162,8 +172,6 @@ public class GatewayRequestHandler {
         return ApplicationPlaceholderResolver.resolvePlaceholders(application);
     }
 
-
-
     private Gateway extractGateway(
             String gatewayId, Application application, Gateway.GatewayType type) {
         final Gateways gatewaysObj = application.getGateways();
@@ -186,23 +194,23 @@ public class GatewayRequestHandler {
         if (selectedGateway == null) {
             throw new IllegalArgumentException(
                     "gateway "
-                    + gatewayId
-                    + " of type "
-                    + type
-                    + " is not defined in the application");
+                            + gatewayId
+                            + " of type "
+                            + type
+                            + " is not defined in the application");
         }
         return selectedGateway;
     }
 
-
-    public AuthenticatedGatewayRequestContext authenticate(GatewayRequestContext gatewayRequestContext)
-            throws AuthFailedException {
+    public AuthenticatedGatewayRequestContext authenticate(
+            GatewayRequestContext gatewayRequestContext) throws AuthFailedException {
 
         final Gateway.Authentication authentication =
                 gatewayRequestContext.gateway().getAuthentication();
 
         if (authentication == null) {
-            return getAuthenticatedGatewayRequestContext(gatewayRequestContext, Map.of(), new HashMap<>());
+            return getAuthenticatedGatewayRequestContext(
+                    gatewayRequestContext, Map.of(), new HashMap<>());
         }
 
         final GatewayAuthenticationResult result;
@@ -210,10 +218,10 @@ public class GatewayRequestHandler {
             if (!authentication.isAllowTestMode()) {
                 throw new AuthFailedException(
                         "Gateway "
-                        + gatewayRequestContext.gateway().getId()
-                        + " of tenant "
-                        + gatewayRequestContext.tenant()
-                        + " does not allow test mode.");
+                                + gatewayRequestContext.gateway().getId()
+                                + " of tenant "
+                                + gatewayRequestContext.tenant()
+                                + " does not allow test mode.");
             }
             if (authTestProvider == null) {
                 throw new AuthFailedException("No test auth provider specified");
@@ -232,8 +240,10 @@ public class GatewayRequestHandler {
         if (!result.authenticated()) {
             throw new AuthFailedException(result.reason());
         }
-        final Map<String, String> principalValues = getPrincipalValues(result, gatewayRequestContext);
-        return getAuthenticatedGatewayRequestContext(gatewayRequestContext, principalValues, new HashMap<>());
+        final Map<String, String> principalValues =
+                getPrincipalValues(result, gatewayRequestContext);
+        return getAuthenticatedGatewayRequestContext(
+                gatewayRequestContext, principalValues, new HashMap<>());
     }
 
     private Map<String, String> getPrincipalValues(
@@ -273,8 +283,4 @@ public class GatewayRequestHandler {
                 .principalValues(principalValues)
                 .build();
     }
-
-
-
-
 }

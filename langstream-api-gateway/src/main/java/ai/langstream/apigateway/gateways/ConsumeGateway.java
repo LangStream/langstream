@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.Gateway;
@@ -45,7 +60,8 @@ public class ConsumeGateway implements Closeable {
         }
     }
 
-    public static class ProduceGatewayRequestValidator implements GatewayRequestHandler.GatewayRequestValidator {
+    public static class ProduceGatewayRequestValidator
+            implements GatewayRequestHandler.GatewayRequestValidator {
         @Override
         public List<String> getAllRequiredParameters(Gateway gateway) {
             return gateway.getParameters();
@@ -55,12 +71,12 @@ public class ConsumeGateway implements Closeable {
         public void validateOptions(Map<String, String> options) {
             for (Map.Entry<String, String> option : options.entrySet()) {
                 switch (option.getKey()) {
-                    default -> throw new IllegalArgumentException("Unknown option " + option.getKey());
+                    default -> throw new IllegalArgumentException(
+                            "Unknown option " + option.getKey());
                 }
             }
         }
     }
-
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private TopicReader reader;
@@ -72,11 +88,15 @@ public class ConsumeGateway implements Closeable {
     }
 
     @SneakyThrows
-    public void setup(String topic, List<Function<Record, Boolean>> filters, AuthenticatedGatewayRequestContext requestContext) {
+    public void setup(
+            String topic,
+            List<Function<Record, Boolean>> filters,
+            AuthenticatedGatewayRequestContext requestContext) {
         this.requestContext = requestContext;
         this.filters = filters == null ? List.of() : filters;
 
-        final StreamingCluster streamingCluster = requestContext.application().getInstance().streamingCluster();
+        final StreamingCluster streamingCluster =
+                requestContext.application().getInstance().streamingCluster();
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(streamingCluster)
@@ -84,7 +104,8 @@ public class ConsumeGateway implements Closeable {
 
         topicConnectionsRuntime.init(streamingCluster);
 
-        final String positionParameter = requestContext.options().getOrDefault("position", "latest");
+        final String positionParameter =
+                requestContext.options().getOrDefault("position", "latest");
         TopicOffsetPosition position =
                 switch (positionParameter) {
                     case "latest" -> TopicOffsetPosition.LATEST;
@@ -98,36 +119,34 @@ public class ConsumeGateway implements Closeable {
         reader.start();
     }
 
-
-    public CompletableFuture<Void> startReading(Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
+    public CompletableFuture<Void> startReading(
+            Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
         return CompletableFuture.runAsync(
-                        () -> {
+                () -> {
+                    try {
+                        final String tenant = requestContext.tenant();
 
-                            try {
-                                final String tenant = requestContext.tenant();
-
-                                final String gatewayId = requestContext.gateway().getId();
-                                final String applicationId = requestContext.applicationId();
-                                log.info(
-                                        "Started reader for gateway {}/{}/{}",
-                                        tenant,
-                                        applicationId,
-                                        gatewayId);
-                                readMessages(stop, onMessage);
-                            } catch (InterruptedException | CancellationException ex) {
-                                // ignore
-                            } catch (Throwable ex) {
-                                log.error(ex.getMessage(), ex);
-                            } finally {
-                                closeReader();
-                            }
-                        },
-                        executor);
+                        final String gatewayId = requestContext.gateway().getId();
+                        final String applicationId = requestContext.applicationId();
+                        log.info(
+                                "Started reader for gateway {}/{}/{}",
+                                tenant,
+                                applicationId,
+                                gatewayId);
+                        readMessages(stop, onMessage);
+                    } catch (InterruptedException | CancellationException ex) {
+                        // ignore
+                    } catch (Throwable ex) {
+                        log.error(ex.getMessage(), ex);
+                    } finally {
+                        closeReader();
+                    }
+                },
+                executor);
     }
-
 
     protected void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage)
             throws Exception {
@@ -163,14 +182,10 @@ public class ConsumeGateway implements Closeable {
                                     offset);
                     final String jsonMessage = mapper.writeValueAsString(message);
                     onMessage.accept(jsonMessage);
-
                 }
             }
         }
     }
-
-
-
 
     private static Map<String, String> computeMessageHeaders(Record record) {
         final Collection<Header> headers = record.headers();
@@ -192,9 +207,6 @@ public class ConsumeGateway implements Closeable {
         return Base64.getEncoder().encodeToString(offset);
     }
 
-
-
-
     private void closeReader() {
         if (reader != null) {
             try {
@@ -205,11 +217,8 @@ public class ConsumeGateway implements Closeable {
         }
     }
 
-
-
     @Override
-    public void close()  {
+    public void close() {
         closeReader();
     }
-
 }

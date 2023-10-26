@@ -34,8 +34,10 @@ import picocli.CommandLine;
 public abstract class BaseGatewayCmd extends BaseCmd {
 
     protected static final ObjectMapper messageMapper = new ObjectMapper();
+
     protected enum Protocols {
-        ws, http;
+        ws,
+        http;
     }
 
     @CommandLine.ParentCommand private RootGatewayCmd cmd;
@@ -110,7 +112,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                     applicationId,
                     gatewayId,
                     computeQueryString(systemParams, params, options));
-
         }
 
         return String.format(
@@ -130,7 +131,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     private String getApiGatewayUrl() {
         return getCurrentProfile().getApiGatewayUrl();
     }
-
 
     private String getApiGatewayUrlHttp() {
         return getApiGatewayUrl().replace("wss://", "https://").replace("ws://", "http://");

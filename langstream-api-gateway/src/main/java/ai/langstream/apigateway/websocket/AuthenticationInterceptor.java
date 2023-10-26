@@ -15,23 +15,13 @@
  */
 package ai.langstream.apigateway.websocket;
 
-import ai.langstream.api.gateway.GatewayAuthenticationProvider;
-import ai.langstream.api.gateway.GatewayAuthenticationProviderRegistry;
-import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.util.HttpUtil;
 import ai.langstream.apigateway.websocket.handlers.AbstractHandler;
-import ai.langstream.apigateway.websocket.impl.AuthenticatedGatewayRequestContextImpl;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -81,7 +71,8 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
 
             final AuthenticatedGatewayRequestContext authenticatedGatewayRequestContext;
             try {
-                authenticatedGatewayRequestContext = gatewayRequestHandler.authenticate(gatewayRequestContext);
+                authenticatedGatewayRequestContext =
+                        gatewayRequestHandler.authenticate(gatewayRequestContext);
             } catch (GatewayRequestHandler.AuthFailedException authFailedException) {
                 log.info("Authentication failed {}", authFailedException.getMessage());
                 String error = authFailedException.getMessage();
@@ -94,7 +85,8 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
             log.debug("Authentication OK");
 
             sessionAttributes.put("context", authenticatedGatewayRequestContext);
-            handler.onBeforeHandshakeCompleted(authenticatedGatewayRequestContext,
+            handler.onBeforeHandshakeCompleted(
+                    authenticatedGatewayRequestContext,
                     authenticatedGatewayRequestContext.attributes());
             return true;
         } catch (Throwable error) {
@@ -106,13 +98,10 @@ public class AuthenticationInterceptor implements HandshakeInterceptor {
         }
     }
 
-
-
     @Override
     public void afterHandshake(
             ServerHttpRequest request,
             ServerHttpResponse response,
             WebSocketHandler wsHandler,
             Exception exception) {}
-
 }

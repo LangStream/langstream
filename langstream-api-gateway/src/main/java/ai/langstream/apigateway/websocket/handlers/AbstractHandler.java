@@ -26,21 +26,17 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.api.runner.topics.TopicReadResult;
-import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -70,7 +66,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     public abstract Gateway.GatewayType gatewayType();
 
-    public abstract String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString);
+    public abstract String tenantFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString);
 
     public abstract String applicationIdFromPath(
             Map<String, String> parsedPath, Map<String, String> queryString);
@@ -78,14 +75,12 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     public abstract String gatewayFromPath(
             Map<String, String> parsedPath, Map<String, String> queryString);
 
-
     public abstract GatewayRequestHandler.GatewayRequestValidator validator();
 
     public void onBeforeHandshakeCompleted(
             AuthenticatedGatewayRequestContext gatewayRequestContext,
             Map<String, Object> attributes)
-            throws Exception {
-    }
+            throws Exception {}
 
     abstract void onOpen(
             WebSocketSession webSocketSession,
@@ -191,10 +186,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         topicConnectionsRuntime.init(streamingCluster);
 
         try (final TopicProducer producer =
-                     topicConnectionsRuntime.createProducer(
-                             "langstream-events",
-                             streamingCluster,
-                             Map.of("topic", gateway.getEventsTopic()))) {
+                topicConnectionsRuntime.createProducer(
+                        "langstream-events",
+                        streamingCluster,
+                        Map.of("topic", gateway.getEventsTopic()))) {
             producer.start();
 
             final EventSources.GatewaySource source =
@@ -230,17 +225,19 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     protected void startReadingMessages(WebSocketSession webSocketSession, Executor executor) {
         final AuthenticatedGatewayRequestContext context = getContext(webSocketSession);
-        final ConsumeGateway consumeGateway = (ConsumeGateway) context.attributes().get(ATTRIBUTE_CONSUME_GATEWAY);
-        final CompletableFuture<Void> future = consumeGateway.startReading(
-                executor,
-                () -> !webSocketSession.isOpen(),
-                message -> {
-                    try {
-                        webSocketSession.sendMessage(new TextMessage(message));
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                });
+        final ConsumeGateway consumeGateway =
+                (ConsumeGateway) context.attributes().get(ATTRIBUTE_CONSUME_GATEWAY);
+        final CompletableFuture<Void> future =
+                consumeGateway.startReading(
+                        executor,
+                        () -> !webSocketSession.isOpen(),
+                        message -> {
+                            try {
+                                webSocketSession.sendMessage(new TextMessage(message));
+                            } catch (IOException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        });
         webSocketSession.getAttributes().put("future", future);
     }
 
@@ -290,7 +287,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final ConsumeGateway consumeGateway = new ConsumeGateway(topicConnectionsRuntimeRegistry);
         context.attributes().put(ATTRIBUTE_CONSUME_GATEWAY, consumeGateway);
         consumeGateway.setup(topic, filters, context);
-
     }
 
     protected void stopReadingMessages(WebSocketSession webSocketSession) {
@@ -301,20 +297,19 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         }
     }
 
-
-    protected void setupProducer(String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context) {
+    protected void setupProducer(
+            String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context) {
         final ProduceGateway produceGateway = new ProduceGateway(topicConnectionsRuntimeRegistry);
         context.attributes().put(ATTRIBUTE_PRODUCE_GATEWAY, produceGateway);
         produceGateway.start(topic, commonHeaders, context);
     }
 
-
-    protected void produceMessage(WebSocketSession webSocketSession,
-                                  TextMessage message)
+    protected void produceMessage(WebSocketSession webSocketSession, TextMessage message)
             throws IOException {
         try {
             final AuthenticatedGatewayRequestContext context = getContext(webSocketSession);
-            final ProduceGateway produceGateway = (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
+            final ProduceGateway produceGateway =
+                    (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
             produceGateway.produceMessage(message.getPayload());
             webSocketSession.sendMessage(
                     new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
@@ -324,14 +319,14 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     }
 
     protected void closeProduceGateway(WebSocketSession webSocketSession) {
-        final ProduceGateway produceGateway = (ProduceGateway) getContext(webSocketSession).attributes().get(
-                ATTRIBUTE_PRODUCE_GATEWAY);
+        final ProduceGateway produceGateway =
+                (ProduceGateway)
+                        getContext(webSocketSession).attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
         if (produceGateway == null) {
             return;
         }
         produceGateway.close();
     }
-
 
     private static void sendResponse(
             WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
@@ -339,5 +334,4 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         webSocketSession.sendMessage(
                 new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
     }
-
 }

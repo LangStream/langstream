@@ -62,7 +62,8 @@ public class ConsumeHandler extends AbstractHandler {
     }
 
     @Override
-    public String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
@@ -113,9 +114,7 @@ public class ConsumeHandler extends AbstractHandler {
         } else {
             messageFilters = null;
         }
-        setupReader(context.gateway().getTopic(),
-                messageFilters,
-                context);
+        setupReader(context.gateway().getTopic(), messageFilters, context);
         sendClientConnectedEvent(context);
     }
 
@@ -137,5 +136,4 @@ public class ConsumeHandler extends AbstractHandler {
             CloseStatus closeStatus) {
         stopReadingMessages(webSocketSession);
     }
-
 }

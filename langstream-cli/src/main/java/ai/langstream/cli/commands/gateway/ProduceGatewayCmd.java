@@ -87,7 +87,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Option(
             names = {"--protocol"},
-            description = "Protocol to use: http or ws", defaultValue = "ws")
+            description = "Protocol to use: http or ws",
+            defaultValue = "ws")
     private Protocols protocol = Protocols.ws;
 
     @Override
@@ -106,8 +107,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
 
-        final ProduceRequest produceRequest =
-                new ProduceRequest(messageKey, messageValue, headers);
+        final ProduceRequest produceRequest = new ProduceRequest(messageKey, messageValue, headers);
         final String json = messageMapper.writeValueAsString(produceRequest);
 
         if (protocol == Protocols.http) {
@@ -117,7 +117,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         }
     }
 
-    private void produceWebSocket(String producePath, Duration connectTimeout, String json) throws Exception {
+    private void produceWebSocket(String producePath, Duration connectTimeout, String json)
+            throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         try (final WebSocketClient client =
                 new WebSocketClient(
@@ -156,17 +157,21 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         }
     }
 
-    private void produceHttp(String producePath, Duration connectTimeout, String json) throws Exception {
-        final HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(producePath))
-                .header("Content-Type", "application/json")
-                .version(HttpClient.Version.HTTP_1_1)
-                .POST(HttpRequest.BodyPublishers.ofString(json));
+    private void produceHttp(String producePath, Duration connectTimeout, String json)
+            throws Exception {
+        final HttpRequest.Builder builder =
+                HttpRequest.newBuilder(URI.create(producePath))
+                        .header("Content-Type", "application/json")
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .POST(HttpRequest.BodyPublishers.ofString(json));
         if (connectTimeout != null) {
             builder.timeout(connectTimeout);
         }
         final HttpRequest request = builder.build();
         final HttpResponse<String> response =
-                getClient().getHttpClientFacade().http(request, HttpResponse.BodyHandlers.ofString());
+                getClient()
+                        .getHttpClientFacade()
+                        .http(request, HttpResponse.BodyHandlers.ofString());
         log(response.body());
     }
 }

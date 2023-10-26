@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.Gateway;
@@ -13,15 +28,12 @@ import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +53,8 @@ public class ProduceGateway implements Closeable {
         }
     }
 
-    public static class ProduceGatewayRequestValidator implements GatewayRequestHandler.GatewayRequestValidator {
+    public static class ProduceGatewayRequestValidator
+            implements GatewayRequestHandler.GatewayRequestValidator {
         @Override
         public List<String> getAllRequiredParameters(Gateway gateway) {
             return gateway.getParameters();
@@ -51,12 +64,12 @@ public class ProduceGateway implements Closeable {
         public void validateOptions(Map<String, String> options) {
             for (Map.Entry<String, String> option : options.entrySet()) {
                 switch (option.getKey()) {
-                    default -> throw new IllegalArgumentException("Unknown option " + option.getKey());
+                    default -> throw new IllegalArgumentException(
+                            "Unknown option " + option.getKey());
                 }
             }
         }
     }
-
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private TopicProducer producer;
@@ -66,7 +79,10 @@ public class ProduceGateway implements Closeable {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
     }
 
-    public void start(String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext requestContext) {
+    public void start(
+            String topic,
+            List<Header> commonHeaders,
+            AuthenticatedGatewayRequestContext requestContext) {
         this.commonHeaders = commonHeaders == null ? List.of() : commonHeaders;
 
         setupProducer(
@@ -112,13 +128,14 @@ public class ProduceGateway implements Closeable {
         produceMessage(produceRequest);
     }
 
-
     public void produceMessage(ProduceRequest produceRequest) throws ProduceException {
         if (produceRequest.value() == null && produceRequest.key() == null) {
-            throw new ProduceException("Either key or value must be set.", ProduceResponse.Status.BAD_REQUEST);
+            throw new ProduceException(
+                    "Either key or value must be set.", ProduceResponse.Status.BAD_REQUEST);
         }
         if (producer == null) {
-            throw new ProduceException("Producer not initialized", ProduceResponse.Status.PRODUCER_ERROR);
+            throw new ProduceException(
+                    "Producer not initialized", ProduceResponse.Status.PRODUCER_ERROR);
         }
 
         final Collection<Header> headers = new ArrayList<>(commonHeaders);
@@ -127,9 +144,11 @@ public class ProduceGateway implements Closeable {
                     headers.stream().map(Header::key).collect(Collectors.toSet());
             for (Map.Entry<String, String> messageHeader : produceRequest.headers().entrySet()) {
                 if (configuredHeaders.contains(messageHeader.getKey())) {
-                    throw new ProduceException("Header "
-                                               + messageHeader.getKey()
-                                               + " is configured as parameter-level header.", ProduceResponse.Status.BAD_REQUEST);
+                    throw new ProduceException(
+                            "Header "
+                                    + messageHeader.getKey()
+                                    + " is configured as parameter-level header.",
+                            ProduceResponse.Status.BAD_REQUEST);
                 }
                 headers.add(
                         SimpleRecord.SimpleHeader.of(
@@ -151,7 +170,7 @@ public class ProduceGateway implements Closeable {
     }
 
     @Override
-    public void close()  {
+    public void close() {
 
         if (producer != null) {
             try {
@@ -160,19 +179,17 @@ public class ProduceGateway implements Closeable {
                 log.error("error closing producer", e);
             }
         }
-
     }
 
-    public static List<Header> getProducerCommonHeaders(Gateway.ProduceOptions produceOptions,
-                                                        AuthenticatedGatewayRequestContext context) {
+    public static List<Header> getProducerCommonHeaders(
+            Gateway.ProduceOptions produceOptions, AuthenticatedGatewayRequestContext context) {
         if (produceOptions != null) {
             return getProducerCommonHeaders(
-                            produceOptions.headers(),
-                            context.userParameters(),
-                            context.principalValues());
+                    produceOptions.headers(), context.userParameters(), context.principalValues());
         }
         return null;
     }
+
     public static List<Header> getProducerCommonHeaders(
             List<Gateway.KeyValueComparison> headerFilters,
             Map<String, String> passedParameters,

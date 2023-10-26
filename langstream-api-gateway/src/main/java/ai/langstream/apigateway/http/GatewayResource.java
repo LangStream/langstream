@@ -21,11 +21,9 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
-import ai.langstream.apigateway.util.HttpUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.apigateway.websocket.api.ProduceRequest;
 import ai.langstream.apigateway.websocket.api.ProduceResponse;
-
 import jakarta.validation.constraints.NotBlank;
 import java.util.HashMap;
 import java.util.List;
@@ -35,11 +33,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,20 +50,29 @@ public class GatewayResource {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final GatewayRequestHandler gatewayRequestHandler;
 
-    @PostMapping(value = "/produce/{tenant}/{application}/{gateway}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            value = "/produce/{tenant}/{application}/{gateway}",
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     ProduceResponse produce(
             WebRequest request,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway,
-            @RequestBody ProduceRequest produceRequest) throws ProduceGateway.ProduceException {
+            @RequestBody ProduceRequest produceRequest)
+            throws ProduceGateway.ProduceException {
 
-        final Map<String, String> queryString = request.getParameterMap().keySet().stream()
-                .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
+        final Map<String, String> queryString =
+                request.getParameterMap().keySet().stream()
+                        .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
         final Map<String, String> headers = new HashMap<>();
-        request.getHeaderNames().forEachRemaining(name -> headers.put(name, request.getHeader(name)));
+        request.getHeaderNames()
+                .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
         final GatewayRequestContext context =
-                gatewayRequestHandler.validateRequest(tenant, application, gateway, Gateway.GatewayType.produce,
+                gatewayRequestHandler.validateRequest(
+                        tenant,
+                        application,
+                        gateway,
+                        Gateway.GatewayType.produce,
                         queryString,
                         headers,
                         new ProduceGateway.ProduceGatewayRequestValidator());
@@ -80,12 +84,14 @@ public class GatewayResource {
         }
 
         final ProduceGateway produceGateway =
-                new ProduceGateway(topicConnectionsRuntimeRegistryProvider.getTopicConnectionsRuntimeRegistry());
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistryProvider
+                                .getTopicConnectionsRuntimeRegistry());
         final List<Header> commonHeaders =
-                ProduceGateway.getProducerCommonHeaders(context.gateway().getProduceOptions(), authContext);
+                ProduceGateway.getProducerCommonHeaders(
+                        context.gateway().getProduceOptions(), authContext);
         produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
         produceGateway.produceMessage(produceRequest);
         return ProduceResponse.OK;
-
     }
 }

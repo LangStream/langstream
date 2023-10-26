@@ -60,12 +60,13 @@ public class ChatHandler extends AbstractHandler {
     }
 
     @Override
-    public  String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("tenant");
     }
 
     @Override
-    public String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
@@ -83,8 +84,10 @@ public class ChatHandler extends AbstractHandler {
                 if (parameters == null) {
                     parameters = new ArrayList<>();
                 }
-                if (gateway.getChatOptions() != null && gateway.getChatOptions().getHeaders() != null) {
-                    for (Gateway.KeyValueComparison header : gateway.getChatOptions().getHeaders()) {
+                if (gateway.getChatOptions() != null
+                        && gateway.getChatOptions().getHeaders() != null) {
+                    for (Gateway.KeyValueComparison header :
+                            gateway.getChatOptions().getHeaders()) {
                         if (header.valueFromParameters() != null) {
                             parameters.add(header.valueFromParameters());
                         }
@@ -132,8 +135,8 @@ public class ChatHandler extends AbstractHandler {
             }
         }
         final List<Header> commonHeaders =
-                ProduceGateway.getProducerCommonHeaders(headerConfig, context.userParameters(),
-                        context.principalValues());
+                ProduceGateway.getProducerCommonHeaders(
+                        headerConfig, context.userParameters(), context.principalValues());
 
         setupProducer(chatOptions.getQuestionsTopic(), commonHeaders, context);
     }
@@ -152,9 +155,7 @@ public class ChatHandler extends AbstractHandler {
                 createMessageFilters(
                         headerFilters, context.userParameters(), context.principalValues());
 
-        setupReader(chatOptions.getAnswersTopic(),
-                messageFilters,
-                context);
+        setupReader(chatOptions.getAnswersTopic(), messageFilters, context);
     }
 
     @Override
@@ -177,5 +178,4 @@ public class ChatHandler extends AbstractHandler {
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
             CloseStatus status) {}
-
 }

@@ -292,21 +292,25 @@ abstract class ProduceConsumeHandlerTest {
                                         .parameters(List.of("session-id"))
                                         .build()));
         connectAndExpectHttpError(
-                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)), 500);
+                URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
+                500);
         connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/%s/tenant1/application1/gw?param:otherparam=1"
-                                .formatted(port, type)), 500);
+                                .formatted(port, type)),
+                500);
         connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id="
-                                .formatted(port, type)), 500);
+                                .formatted(port, type)),
+                500);
 
         connectAndExpectHttpError(
                 URI.create(
                         ("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=ok&param:another-non"
                                         + "-declared=y")
-                                .formatted(port, type)), 500);
+                                .formatted(port, type)),
+                500);
 
         connectAndExpectRunning(
                 URI.create(
@@ -465,15 +469,18 @@ abstract class ProduceConsumeHandlerTest {
         connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce"
-                                .formatted(port)), 401);
+                                .formatted(port)),
+                401);
         connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials="
-                                .formatted(port)), 401);
+                                .formatted(port)),
+                401);
         connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=error"
-                                .formatted(port)), 401);
+                                .formatted(port)),
+                401);
         connectAndExpectRunning(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=test-user-password"
@@ -605,13 +612,15 @@ abstract class ProduceConsumeHandlerTest {
                 URI.create(
                         ("ws://localhost:%d/v1/consume/tenant1/application1/consume-no-test?test-credentials=test"
                                         + "-user-password")
-                                .formatted(port)), 401);
+                                .formatted(port)),
+                401);
 
         connectAndExpectHttpError(
                 URI.create(
                         ("ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user"
                                         + "-password-but-wrong")
-                                .formatted(port)), 401);
+                                .formatted(port)),
+                401);
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
@@ -1084,15 +1093,14 @@ abstract class ProduceConsumeHandlerTest {
         return "topic" + topicCounter.incrementAndGet();
     }
 
-
     private void connectAndExpectClose(URI connectTo, CloseReason expectedCloseReason) {
         connectAndExpectClose(connectTo, expectedCloseReason, -1);
-
     }
+
     private void connectAndExpectHttpError(URI connectTo, int code) {
         connectAndExpectClose(connectTo, null, code);
-
     }
+
     @SneakyThrows
     private void connectAndExpectClose(URI connectTo, CloseReason expectedCloseReason, int code) {
         CountDownLatch countDownLatch = new CountDownLatch(1);

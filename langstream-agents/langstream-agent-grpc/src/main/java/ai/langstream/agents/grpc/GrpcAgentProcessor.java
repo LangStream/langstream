@@ -173,7 +173,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
             public void onCompleted() {
                 if (!restarting.get()) {
                     agentContext.criticalFailure(
-                        new RuntimeException("gRPC server completed the stream unexpectedly"));
+                            new RuntimeException("gRPC server completed the stream unexpectedly"));
                 } else {
                     log.info("Ignoring error server stop during restart");
                 }
@@ -184,7 +184,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
     protected void stop() throws Exception {
         log.info("Restarting...");
         restarting.set(true);
-        synchronized(this) {
+        synchronized (this) {
             if (request != null) {
                 request.onCompleted();
             }

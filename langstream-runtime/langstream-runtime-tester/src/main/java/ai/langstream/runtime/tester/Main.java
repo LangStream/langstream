@@ -25,46 +25,33 @@ import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.impl.storage.GlobalMetadataStoreManager;
 import ai.langstream.runtime.agent.api.AgentAPIController;
-import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
 import ai.langstream.webservice.LangStreamControlPlaneWebApplication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import io.prometheus.client.hotspot.DefaultExports;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
-
 @Slf4j
 public class Main {
     public static void main(String... args) {
         try {
-
 
             String tenant = System.getenv().getOrDefault("LANSGSTREAM_TESTER_TENANT", "tenant");
             String applicationId =
@@ -163,8 +150,6 @@ public class Main {
                 agentsIdToKeepInStats.add(singleAgentId);
             }
 
-
-
             Server server = null;
             try (LocalApplicationRunner runner =
                     new LocalApplicationRunner(
@@ -256,7 +241,8 @@ public class Main {
             String uri = req.getRequestURI();
             if (uri.endsWith("/restart")) {
                 try {
-                    Collection<AgentAPIController> agents = agentAPIController.collectAgentsStatus().values();
+                    Collection<AgentAPIController> agents =
+                            agentAPIController.collectAgentsStatus().values();
                     List<Map<String, Object>> result = new ArrayList<>();
                     for (AgentAPIController controller : agents) {
                         result.add(controller.restart());

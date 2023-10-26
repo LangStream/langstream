@@ -223,7 +223,8 @@ public class LocalApplicationRunner
                                         runnerExecutionId,
                                         podConfiguration.agent().agentId());
                                 AgentAPIController agentAPIController = new AgentAPIController();
-                                allAgentsInfo.put(podConfiguration.agent().agentId(), agentAPIController);
+                                allAgentsInfo.put(
+                                        podConfiguration.agent().agentId(), agentAPIController);
                                 AgentRunner.runAgent(
                                         podConfiguration,
                                         codeDirectory,

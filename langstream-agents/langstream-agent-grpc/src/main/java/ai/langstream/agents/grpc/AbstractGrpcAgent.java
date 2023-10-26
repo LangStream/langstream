@@ -107,7 +107,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     public void stopChannel(boolean wait) throws Exception {
         ManagedChannel currentChannel;
-        synchronized(this) {
+        synchronized (this) {
             currentChannel = channel;
         }
         if (currentChannel != null) {

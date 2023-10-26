@@ -1,0 +1,62 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "Write to AstraDB"
+topics:
+  - name: "chunks-topic"
+    creation-mode: create-if-not-exists
+assets:
+  - name: "documents-table"
+    asset-type: "cassandra-table"
+    creation-mode: create-if-not-exists
+    config:
+      table-name: "documents"
+      keyspace: "documents"
+      datasource: "AstraDatasource"
+      create-statements:
+        - |
+          CREATE TABLE IF NOT EXISTS documents.documents (
+          filename TEXT,
+          chunk_id int,
+          num_tokens int,
+          language TEXT,
+          text TEXT,
+          embeddings_vector VECTOR<FLOAT, 1536>,
+          PRIMARY KEY (filename, chunk_id));
+        - |
+          CREATE CUSTOM INDEX IF NOT EXISTS documents_ann_index ON documents.documents(embeddings_vector) USING 'StorageAttachedIndex';
+pipeline:
+  - name: "Delete stale chunks"
+    input: "chunks-topic"
+    type: "query"
+    configuration:
+      datasource: "AstraDatasource"
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      mode: "execute"
+      query: "DELETE FROM documents.documents WHERE filename = ? AND chunk_id > ?"
+      output-field: "value.delete-results"
+      fields:
+        - "value.filename"
+        - "fn:toInt(value.chunk_id)"
+  - name: "Write to Astra"
+    type: "vector-db-sink"
+    resources:
+      size: 2
+    configuration:
+      datasource: "AstraDatasource"
+      table-name: "documents"
+      keyspace: "documents"
+      mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"

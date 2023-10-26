@@ -55,7 +55,7 @@
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
     <failsafe-plugin.version>3.1.2</failsafe-plugin.version>
-    <jib-maven-plugin.version>3.3.1</jib-maven-plugin.version>
+    <jib-maven-plugin.version>3.4.0</jib-maven-plugin.version>
     <spring-boot.version>3.0.7</spring-boot.version>
     <zip4j.version>2.11.5</zip4j.version>
     <picocli.version>4.7.4</picocli.version>

@@ -1,0 +1,166 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+archetype:
+   id: "website-qa-chatbot"
+   title: "Website QA Chatbot"
+   labels:
+     - qa
+     - chat-bot
+     - website
+     - astra
+   description: "This archetype is a chatbot that answers questions from a website. It uses a pre-trained model from OpenAI to compute embeddings for the questions and then uses a Cassandra database to store the answers."
+   icon: "data:image/png;base64,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ADNw1Wz69bymSU6IaKbErc5Sc8Suc2cLZGbILG2xJ5wdes2xnA43Os5RVhaAYT10rVGmO07HY5etzU9P2rpjX+x6Mq7AY0gsJbvJucw5baMPVhYA15V98s8LNM7+R5fvGWBpa05bVwAO/enypTTl+/3osid5SXTm2sx15j6SvOZsamSWdEnQlewd5zTntm0+WFcAjoypm2nKVLANVBB76DbWl+Zv2fFekDHo25wAszRKvdy8h/17OKc5t22z1LoCoF3hq/5ShAkqbv6JONOzwNTG3LaqAOy7fcXvUaU8O+LcSVQcT/9VJ1b+jRw6MfXYRi44OYGc25zjyWmcWZNVBUAb4c/9M2+t9hS/v+dXM6NHjyAEPKbENsgYG/valuPWFAAzuHqWMvpGG4MWxCb6rYqbf4IAC9A3E2wpx71cD+B3nF2tKQCl0t5raIpUjNPZJGR3dmD6HxfnLLDlHOdcj4tRULnWFAD65bw2qPHW9df637o27/lf6+zKiEEeW2Is3h2Lct2KAvDRplUn02/nq6UHlt4Tj+l/zEHMBGPKdS/nY2blR7wVBWB8bPwmWkKpw4/BNvcxDi7/xR2fLDDmXOecj5uVH/lWFABX6X4/xtrch579/+WSe1/9T5ttzIJtzJhZS/clCzkvPQawHwRAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAAQaEPh/dr6OzlM6coUAAAAASUVORK5CYII="
+   sections:
+     - title: Website
+       description: "Define the website to crawl"
+       parameters:
+         - name: "website-url"
+           label: "Website URL"
+           description: "The URL of the website to crawl"
+           type: "strings-array"
+           subtype: "url"
+           required: true
+           binding: "globals.website.urls"
+           default:
+             - "https://docs.langstream.ai/"
+             - "https://langstream.ai/"
+         - name: "website-crawler-depth"
+           label: "Crawler depth"
+           description: "Maximum depth of the crawler"
+           type: "integer"
+           binding: "globals.website.max-depth"
+           default: 10
+           required: false
+     - title: OpenAI parameters
+       description: "This archetype uses a pre-trained model from OpenAI to compute embeddings for the questions. You need to provide the name of the model deployment."
+       parameters:
+         - name: "embeddings-model"
+           label: "Embeddings model"
+           description: "The name of the model deployment from OpenAI."
+           type: "string"
+           default: ""
+           required: true
+           binding: "secrets.open-ai.embeddings-model"
+         - name: "access-key"
+           label: "Access key"
+           description: "The access key for the OpenAI API."
+           type: "string"
+           required: true
+           binding: "secrets.open-ai.access-key"
+         - name: "chat-completion-model"
+           label: "Chat completion model"
+           description: "The name of the model deployment from OpenAI."
+           type: "string"
+           required: true
+           binding: "secrets.open-ai.chat-completions-model"
+     - title: Prompt
+       description: "Here you can define the prompt to send to the LLM"
+       parameters:
+          - name: "llm-prompt"
+            label: "Prompt"
+            description: "This is the template to send to the LLM"
+            type: "prompt"
+            subtype: "openai-prompt" # each LLM has its own way of defining the prompt
+            binding: "globals.llm.prompt"
+            default: |            
+              - role: system
+                content: |
+                    An user is going to perform a questions, The documents below may help you in answering to their questions.
+                    Please try to leverage them in your answer as much as possible.
+                    Take into consideration that the user is always asking questions about the LangStream project.
+                    If you provide code or YAML snippets, please explicitly state that they are examples.
+                    Do not provide information that is not related to the LangStream project.
+              
+                    Documents:
+                    {{# value.related_documents }}
+                    {{ text}}
+                    {{/ value.related_documents }}
+              - role: user
+                content: "{{ value.question }}"
+            required: true
+     - title: Astra DB parameters
+       description: "This application uses a AstraDB database to store the answers. You need to provide the connection information for the database."
+       parameters:
+          - name: "astra-database"
+            label: "Database"
+            description: "The name of the Astra DB database"
+            type: "string"
+            subtype: "astra-database"
+            binding: "secrets.astra.database"
+            required: true
+          - name: "astra-client-id"
+            label: "Client ID"
+            description: "The client ID for the Astra DB database"
+            type: "string"
+            subtype: "astra-client-id"
+            required: true
+            binding: "secrets.astra.clientId"
+          - name: "astra-client-secret"
+            label: "Client secret"
+            description: "The client secret for the Astra DB database"
+            type: "string"
+            subtype: "astra-client-secret"
+            required: true
+            binding: "secrets.astra.secret"
+          - name: "astra-token"
+            label: "Token"
+            description: "The token for the Astra DB database"
+            type: "string"
+            subtype: "astra-token"
+            binding: "secrets.astra.token"
+            required: true
+     - title: S3 Bucket parameters
+       description: "The crawler uses an S3 bucket to store the state of the crawler. You need to provide the connection information for the S3 bucket."
+       parameters:
+         - name: "s3-bucket"
+           label: "Bucket name"
+           description: "The name of the S3 bucket"
+           type: "string"
+           subtype: "s3-bucket"
+           binding: "secrets.s3.bucket-name"
+           required: true
+         - name: "s3-access-key"
+           label: "S3 Access key"
+           description: "The access key for the S3 bucket"
+           type: "string"
+           subtype: "s3-access-key"
+           binding: "secrets.s3.access-key"
+           required: true
+     - title: Kafka parameters
+       description: "LangStream uses Kafka to connect the agents"
+       parameters:
+         - name: "kafka-bootstrap-servers"
+           label: "Kafka bootstrap servers"
+           description: "The connection string to the broker"
+           type: "string"
+           subtype: "kafka-bootstrap-servers"
+           binding: "secrets.kafka.bootstrap-servers"
+           required: true
+         - name: "kafka-username"
+           label: "Username"
+           description: "The username for the Kafka broker"
+           type: "string"
+           subtype: "kafka-username"
+           binding: "secrets.kafka.username"
+           required: true
+         - name: "kafka-password"
+           label: "Password"
+           description: "The password for the Kafka broker"
+           type: "password"
+           subtype: "kafka-password"
+           binding: "secrets.kafka.password"
+           required: true

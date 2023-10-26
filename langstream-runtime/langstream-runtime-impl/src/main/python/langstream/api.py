@@ -67,7 +67,7 @@ class AgentContext(ABC):
 
     @abstractmethod
     def get_persistent_state_directory(self):
-        """Return a path pointing to the stateful agent directory. Return None if not configured in the agent."""
+        """Return the path of the agent disk. Return None if not configured."""
         pass
 
 

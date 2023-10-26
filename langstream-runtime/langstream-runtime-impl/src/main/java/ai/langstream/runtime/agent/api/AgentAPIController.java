@@ -20,8 +20,9 @@ import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public class AgentInfo {
+public class AgentAPIController {
     private AgentProcessor processor;
     private AgentCode source;
     private AgentCode sink;
@@ -56,5 +57,18 @@ public class AgentInfo {
             result.addAll(sink.getAgentStatus());
         }
         return result;
+    }
+
+    public Map<String, Object> restart() throws Exception {
+        if (source != null) {
+            source.restart();
+        }
+        if (processor != null) {
+            processor.restart();
+        }
+        if (sink != null) {
+            sink.restart();
+        }
+        return Map.of();
     }
 }

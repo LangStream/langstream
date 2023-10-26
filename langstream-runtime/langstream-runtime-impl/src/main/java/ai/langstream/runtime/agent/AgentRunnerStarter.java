@@ -25,7 +25,7 @@ import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_EN
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
 import ai.langstream.runtime.RuntimeStarter;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -122,7 +122,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 codeDirectory,
                 agentsDirectory,
                 basePersistentStateDirectory,
-                new AgentInfo(),
+                new AgentAPIController(),
                 continueLoop::get,
                 null,
                 true,

@@ -27,7 +27,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.SerializedApplicationInstance;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
     private static final ConcurrentHashMap<String, Secrets> SECRETS = new ConcurrentHashMap<>();
 
     public interface AgentInfoCollector {
-        public Map<String, AgentInfo> collectAgentsStatus();
+        public Map<String, AgentAPIController> collectAgentsStatus();
     }
 
     private static AgentInfoCollector agentsInfoCollector = Map::of;
@@ -202,7 +202,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
 
         Map<String, ApplicationStatus.AgentStatus> agents = new HashMap<>();
 
-        Map<String, AgentInfo> agentsInfo = agentsInfoCollector.collectAgentsStatus();
+        Map<String, AgentAPIController> agentsInfo = agentsInfoCollector.collectAgentsStatus();
 
         for (String declaredAgent : declaredAgents) {
             ApplicationStatus.AgentStatus agentStatus = new ApplicationStatus.AgentStatus();
@@ -217,9 +217,9 @@ public class InMemoryApplicationStore implements ApplicationStore {
                 throw new IllegalStateException("No agent runner spec for agent " + declaredAgent);
             }
 
-            AgentInfo agentInfo = agentsInfo.get(declaredAgent);
+            AgentAPIController agentAPIController = agentsInfo.get(declaredAgent);
             Map<String, ApplicationStatus.AgentWorkerStatus> podStatuses =
-                    getPodStatuses(agentInfo, agentRunnerSpec, queryPods);
+                    getPodStatuses(agentAPIController, agentRunnerSpec, queryPods);
             agentStatus.setWorkers(podStatuses);
 
             agents.put(declaredAgent, agentStatus);
@@ -232,7 +232,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
     }
 
     private static Map<String, ApplicationStatus.AgentWorkerStatus> getPodStatuses(
-            AgentInfo agentInfo,
+            AgentAPIController agentAPIController,
             final AgentResourcesFactory.AgentRunnerSpec agentRunnerSpec,
             boolean queryPods) {
 
@@ -254,7 +254,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
 
         if (queryPods) {
             // status of the agents
-            List<AgentStatusResponse> agentStatusResponses = agentInfo.serveWorkerStatus();
+            List<AgentStatusResponse> agentStatusResponses = agentAPIController.serveWorkerStatus();
             agentWorkerStatus = agentWorkerStatus.applyAgentStatus(agentStatusResponses);
         }
 

@@ -20,19 +20,38 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AgentInfoServlet extends HttpServlet {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final AgentInfo agentInfo;
+    private final AgentAPIController agentAPIController;
 
-    public AgentInfoServlet(AgentInfo agentInfo) {
-        this.agentInfo = agentInfo;
+    public AgentInfoServlet(AgentAPIController agentAPIController) {
+        this.agentAPIController = agentAPIController;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
-        MAPPER.writeValue(resp.getOutputStream(), agentInfo.serveWorkerStatus());
+        MAPPER.writeValue(resp.getOutputStream(), agentAPIController.serveWorkerStatus());
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json");
+        String uri = req.getRequestURI();
+        if (uri.endsWith("/restart")) {
+            try {
+                MAPPER.writeValue(resp.getOutputStream(), agentAPIController.restart());
+            } catch (Throwable error) {
+                log.error("Error while restarting the agents");
+                resp.getOutputStream().write((error + "").getBytes());
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
     }
 }

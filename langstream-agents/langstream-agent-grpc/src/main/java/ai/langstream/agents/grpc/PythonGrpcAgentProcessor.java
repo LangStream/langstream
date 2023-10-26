@@ -39,7 +39,19 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
 
     @Override
     public synchronized void close() throws Exception {
-        if (server != null) server.close();
-        super.close();
+        if (server != null) server.close(false);
+    }
+
+    @Override
+    protected synchronized void stop() throws Exception {
+        if (server != null) server.close(true);
+    }
+
+    @Override
+    public void restart() throws Exception {
+        super.stop();
+        stop();
+        start();
+        super.start();
     }
 }

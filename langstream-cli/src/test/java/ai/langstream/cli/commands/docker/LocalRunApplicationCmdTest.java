@@ -29,9 +29,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 class LocalRunApplicationCmdTest extends CommandTestBase {
 
     @Test
@@ -60,6 +62,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
 
         final List<String> lines = result.out().lines().collect(Collectors.toList());
         final String lastLine = lines.get(lines.size() - 1);
+        log.info("Last line: {}", lastLine);
         assertTrue(
                 lastLine.contains(
                         "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
@@ -72,6 +75,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "--add-host my-cluster-kafka-bootstrap.kafka:127.0.0.1 "
                                 + "-p 8091:8091 "
                                 + "-p 8090:8090 "
+                                + "-p 8790:8790 "
                                 + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
         final List<String> volumes = extractVolumes(lastLine);

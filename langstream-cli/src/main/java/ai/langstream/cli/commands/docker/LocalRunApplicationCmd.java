@@ -30,9 +30,13 @@ import ai.langstream.cli.util.DockerImageUtils;
 import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -95,6 +99,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             names = {"--start-ui"},
             description = "Start the UI")
     private boolean startUI = true;
+
+    @CommandLine.Option(
+            names = {"--watch-files"},
+            description = "Watch files and apply the changes automatically (only Python files)")
+    private boolean watchFiles = true;
 
     @CommandLine.Option(
             names = {"-up", "--ui-port"},
@@ -359,6 +368,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-p");
         commandLine.add("8090:8090");
 
+        // agent control
+        commandLine.add("-p");
+        commandLine.add("8790:8790");
+
         if (memory != null && !memory.isEmpty()) {
             commandLine.add("--memory");
             commandLine.add(memory);
@@ -380,26 +393,73 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             System.out.println(String.join(" ", commandLine));
         }
 
-        final Path outputLog = Files.createTempFile("langstream", ".log");
-        log("Logging to file: " + outputLog.toAbsolutePath());
-        ProcessBuilder processBuilder =
-                new ProcessBuilder(commandLine)
-                        .redirectErrorStream(true)
-                        .redirectOutput(outputLog.toFile());
-        Process process = processBuilder.start();
-        dockerProcess.set(process.toHandle());
-        CompletableFuture.runAsync(
-                () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
+        try (WatchService watcher = FileSystems.getDefault().newWatchService(); ) {
+            if (watchFiles) {
+                Path python = appTmp.toPath().resolve("python");
+                if (Files.isDirectory(python)) { // only watch if python is present
+                    startWatchService(appTmp.toPath(), watcher);
+                } else {
+                    log(
+                            "Python directory "
+                                    + python.toAbsolutePath()
+                                    + " not found, not watching files");
+                }
+            }
 
-        if (startUI) {
-            Executors.newSingleThreadExecutor()
-                    .execute(() -> startUI(tenant, applicationId, outputLog, process));
+            final Path outputLog = Files.createTempFile("langstream", ".log");
+            log("Logging to file: " + outputLog.toAbsolutePath());
+            ProcessBuilder processBuilder =
+                    new ProcessBuilder(commandLine)
+                            .redirectErrorStream(true)
+                            .redirectOutput(outputLog.toFile());
+            Process process = processBuilder.start();
+            dockerProcess.set(process.toHandle());
+            CompletableFuture.runAsync(
+                    () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
+
+            if (startUI) {
+                Executors.newSingleThreadExecutor()
+                        .execute(() -> startUI(tenant, applicationId, outputLog, process));
+            }
+
+            final int exited = process.waitFor();
+            // wait for the log to be printed
+            Thread.sleep(1000);
+            if (exited != 0) {
+                throw new RuntimeException("Process exited with code " + exited);
+            }
         }
-        final int exited = process.waitFor();
-        // wait for the log to be printed
-        Thread.sleep(1000);
-        if (exited != 0) {
-            throw new RuntimeException("Process exited with code " + exited);
+    }
+
+    private void startWatchService(Path applicationDirectory, WatchService watcher)
+            throws Exception {
+
+        ApplicationWatcher.watchApplication(
+                applicationDirectory,
+                file -> {
+                    if (file.endsWith("/python") || file.endsWith(".py")) {
+                        log("A python file has changed, restarting the application");
+                        restartAgents();
+                    } else {
+                        log("A file has changed: " + file);
+                    }
+                },
+                watcher);
+    }
+
+    private void restartAgents() {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL("http://localhost:8790/commands/restart");
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("POST");
+            urlConnection.getContent();
+        } catch (Exception e) {
+            log("Could not reload the agents: " + e);
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
         }
     }
 

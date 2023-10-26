@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
-import ai.langstream.runtime.agent.api.AgentInfo;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -230,11 +230,11 @@ public abstract class AbstractKafkaApplicationRunner extends AbstractApplication
     }
 
     @Override
-    protected void validateAgentInfoBeforeStop(AgentInfo agentInfo) {
+    protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {
         if (!validateConsumerOffsets) {
             return;
         }
-        agentInfo
+        agentAPIController
                 .serveWorkerStatus()
                 .forEach(
                         workerStatus -> {

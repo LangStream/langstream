@@ -135,6 +135,11 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
+            public void restart() throws Exception {
+                executeWithContextClassloader(AgentCode::restart);
+            }
+
+            @Override
             public ComponentType componentType() {
                 return callNoExceptionWithContextClassloader(AgentCode::componentType);
             }
@@ -193,6 +198,11 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
+            public void restart() throws Exception {
+                executeWithContextClassloader(AgentCode::restart);
+            }
+
+            @Override
             public ComponentType componentType() {
                 return callNoExceptionWithContextClassloader(AgentCode::componentType);
             }
@@ -247,6 +257,11 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             @Override
             public void close() throws Exception {
                 executeWithContextClassloader(AgentCode::close);
+            }
+
+            @Override
+            public void restart() throws Exception {
+                executeWithContextClassloader(AgentCode::restart);
             }
 
             @Override

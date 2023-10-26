@@ -33,6 +33,7 @@ import picocli.CommandLine;
             RootGatewayCmd.class,
             RootProfileCmd.class,
             RootDockerCmd.class,
+            RootPythonCmd.class,
             AutoComplete.GenerateCompletion.class
         })
 public class RootCmd {

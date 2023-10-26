@@ -395,7 +395,15 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
         try (WatchService watcher = FileSystems.getDefault().newWatchService(); ) {
             if (watchFiles) {
-                startWatchService(appTmp.toPath(), watcher);
+                Path python = appTmp.toPath().resolve("python");
+                if (Files.isDirectory(python)) { // only watch if python is present
+                    startWatchService(appTmp.toPath(), watcher);
+                } else {
+                    log(
+                            "Python directory "
+                                    + python.toAbsolutePath()
+                                    + " not found, not watching files");
+                }
             }
 
             final Path outputLog = Files.createTempFile("langstream", ".log");
@@ -442,7 +450,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     private static void restartAgents() {
         HttpURLConnection urlConnection = null;
         try {
-            URL url = new URL("http://localhost:7890/commands/restart");
+            URL url = new URL("http://localhost:8790/commands/restart");
             System.out.println("Calling " + url + " to restart the agents");
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("POST");

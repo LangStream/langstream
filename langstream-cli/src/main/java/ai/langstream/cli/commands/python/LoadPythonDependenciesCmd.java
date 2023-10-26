@@ -16,6 +16,7 @@
 package ai.langstream.cli.commands.python;
 
 import ai.langstream.cli.commands.VersionProvider;
+import ai.langstream.cli.util.DockerImageUtils;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,20 +68,8 @@ public class LoadPythonDependenciesCmd extends BasePythonCmd {
     @SneakyThrows
     public void run() {
 
-        if (dockerImageVersion != null && dockerImageVersion.endsWith("-SNAPSHOT")) {
-            // built-from-sources, not a release
-            dockerImageVersion = "latest-dev";
-        }
-
-        if (dockerImageName == null) {
-            if (dockerImageVersion != null && dockerImageVersion.equals("latest-dev")) {
-                // built-from-sources, not a release
-                dockerImageName = "langstream/langstream-runtime-tester";
-            } else {
-                // default to latest
-                dockerImageName = "ghcr.io/langstream/langstream-runtime-tester";
-            }
-        }
+        DockerImageUtils.DockerImage dockerImage =
+                DockerImageUtils.computeDockerImage(dockerImageVersion, dockerImageName);
 
         if (appPath == null || appPath.isEmpty()) {
             throw new IllegalArgumentException("application files are required");
@@ -88,13 +77,13 @@ public class LoadPythonDependenciesCmd extends BasePythonCmd {
 
         final File appDirectory = new File(appPath);
 
-        log("Using docker image: " + dockerImageName + ":" + dockerImageVersion);
+        log("Using docker image: " + dockerImage.getFullName());
 
         downloadDependencies(appDirectory.toPath(), getClient(), this::log);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::cleanEnvironment));
 
-        executeOnDocker(appDirectory);
+        executeOnDocker(appDirectory, dockerImage);
     }
 
     private void cleanEnvironment() {
@@ -103,7 +92,8 @@ public class LoadPythonDependenciesCmd extends BasePythonCmd {
         }
     }
 
-    private void executeOnDocker(File appDirectory) throws Exception {
+    private void executeOnDocker(File appDirectory, DockerImageUtils.DockerImage dockerImage)
+            throws Exception {
         final File appTmp = appDirectory;
 
         File pythonDirectory = new File(appDirectory, "python");
@@ -120,7 +110,7 @@ public class LoadPythonDependenciesCmd extends BasePythonCmd {
                             + pythonDirectory);
         }
 
-        String imageName = dockerImageName + ":" + dockerImageVersion;
+        String imageName = dockerImage.getFullName();
         List<String> commandLine = new ArrayList<>();
         commandLine.add(dockerCommand);
 

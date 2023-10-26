@@ -38,11 +38,9 @@ public class ApplicationWatcher {
                 new Thread(
                         () -> {
                             try {
-                                System.out.println("Watching files in " + codeDirectory);
                                 watchFiles(watcher, codeDirectory, changedFiles);
                             } catch (Throwable e) {
                                 e.printStackTrace();
-                                log.error("Error while watching files", e);
                             }
                         });
 
@@ -54,23 +52,18 @@ public class ApplicationWatcher {
         WatchKey register = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 
         log.info("Watching files in {}, key {}", dir, register);
-        System.out.println("Watching files in " + dir + ", key " + register);
         for (; ; ) {
 
             // wait for key to be signaled
             WatchKey key;
             try {
                 key = watcher.take();
-                log.info("Received key {}", key);
-                System.out.println("Received key " + key);
             } catch (InterruptedException x) {
                 return;
             }
 
             for (WatchEvent<?> event : key.pollEvents()) {
                 WatchEvent.Kind<?> kind = event.kind();
-                log.info("Event kind {}", kind);
-                System.out.println("Event kind " + kind);
 
                 // This key is registered only
                 // for ENTRY_CREATE events,
@@ -93,7 +86,6 @@ public class ApplicationWatcher {
                     // If the filename is "test" and the directory is "foo",
                     // the resolved name is "test/foo".
                     Path child = dir.resolve(filename);
-                    log.info("File {} changed", child);
                     changedFiles.accept(filename.toAbsolutePath().toString());
                 } catch (Exception x) {
                     log.error("Error while watching files", x);

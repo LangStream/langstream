@@ -102,7 +102,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--watch-files"},
-            description = "Start the UI")
+            description = "Watch files and apply the changes automatically (only Python files)")
     private boolean watchFiles = true;
 
     @CommandLine.Option(
@@ -447,17 +447,15 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 watcher);
     }
 
-    private static void restartAgents() {
+    private void restartAgents() {
         HttpURLConnection urlConnection = null;
         try {
             URL url = new URL("http://localhost:8790/commands/restart");
-            System.out.println("Calling " + url + " to restart the agents");
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("POST");
-            Object content = urlConnection.getContent();
-            System.out.println("Response: " + content);
+            urlConnection.getContent();
         } catch (Exception e) {
-            System.err.println("Could not restart the agents: " + e.getMessage());
+            log("Could not reload the agents: " + e);
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();

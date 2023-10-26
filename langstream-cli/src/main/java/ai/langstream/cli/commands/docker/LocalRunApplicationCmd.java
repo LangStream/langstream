@@ -31,8 +31,10 @@ import ai.langstream.cli.util.LocalFileReferenceResolver;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.WatchService;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -384,27 +386,47 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             System.out.println(String.join(" ", commandLine));
         }
 
-        final Path outputLog = Files.createTempFile("langstream", ".log");
-        log("Logging to file: " + outputLog.toAbsolutePath());
-        ProcessBuilder processBuilder =
-                new ProcessBuilder(commandLine)
-                        .redirectErrorStream(true)
-                        .redirectOutput(outputLog.toFile());
-        Process process = processBuilder.start();
-        dockerProcess.set(process.toHandle());
-        CompletableFuture.runAsync(
-                () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
+        try (WatchService watcher = FileSystems.getDefault().newWatchService(); ) {
+            startWatchService(appTmp.toPath(), watcher);
 
-        if (startUI) {
-            Executors.newSingleThreadExecutor()
-                    .execute(() -> startUI(tenant, applicationId, outputLog, process));
+            final Path outputLog = Files.createTempFile("langstream", ".log");
+            log("Logging to file: " + outputLog.toAbsolutePath());
+            ProcessBuilder processBuilder =
+                    new ProcessBuilder(commandLine)
+                            .redirectErrorStream(true)
+                            .redirectOutput(outputLog.toFile());
+            Process process = processBuilder.start();
+            dockerProcess.set(process.toHandle());
+            CompletableFuture.runAsync(
+                    () -> tailLogSysOut(outputLog), Executors.newSingleThreadExecutor());
+
+            if (startUI) {
+                Executors.newSingleThreadExecutor()
+                        .execute(() -> startUI(tenant, applicationId, outputLog, process));
+            }
+
+            final int exited = process.waitFor();
+            // wait for the log to be printed
+            Thread.sleep(1000);
+            if (exited != 0) {
+                throw new RuntimeException("Process exited with code " + exited);
+            }
         }
-        final int exited = process.waitFor();
-        // wait for the log to be printed
-        Thread.sleep(1000);
-        if (exited != 0) {
-            throw new RuntimeException("Process exited with code " + exited);
-        }
+    }
+
+    private void startWatchService(Path applicationDirectory, WatchService watcher)
+            throws Exception {
+
+        ApplicationWatcher.watchApplication(
+                applicationDirectory,
+                file -> {
+                    if (file.endsWith(".py")) {
+                        log("A python file has changed, restarting the application");
+                    } else {
+                        log("A file has changed");
+                    }
+                },
+                watcher);
     }
 
     private File prepareSecretsFile(String secretsContents) throws IOException {

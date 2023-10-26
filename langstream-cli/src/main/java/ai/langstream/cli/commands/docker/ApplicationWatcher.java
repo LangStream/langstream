@@ -20,37 +20,41 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ApplicationWatcher {
 
-    public static void watchApplication(Path codeDirectory) throws Exception {
-        try (WatchService watcher = FileSystems.getDefault().newWatchService(); ) {
+    public static void watchApplication(
+            Path codeDirectory, Consumer<String> changedFiles, WatchService watcher)
+            throws Exception {
 
-            Thread watchThread =
-                    new Thread(
-                            () -> {
-                                try {
-                                    watchFiles(watcher, codeDirectory);
-                                } catch (Exception e) {
-                                    log.error("Error while watching files", e);
-                                }
-                            });
+        Thread watchThread =
+                new Thread(
+                        () -> {
+                            try {
+                                System.out.println("Watching files in " + codeDirectory);
+                                watchFiles(watcher, codeDirectory, changedFiles);
+                            } catch (Throwable e) {
+                                e.printStackTrace();
+                                log.error("Error while watching files", e);
+                            }
+                        });
 
-            watchThread.start();
-        }
+        watchThread.start();
     }
 
-    private static void watchFiles(WatchService watcher, Path dir) throws Exception {
+    private static void watchFiles(WatchService watcher, Path dir, Consumer<String> changedFiles)
+            throws Exception {
         WatchKey register = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 
         log.info("Watching files in {}, key {}", dir, register);
+        System.out.println("Watching files in " + dir + ", key " + register);
         for (; ; ) {
 
             // wait for key to be signaled
@@ -58,6 +62,7 @@ public class ApplicationWatcher {
             try {
                 key = watcher.take();
                 log.info("Received key {}", key);
+                System.out.println("Received key " + key);
             } catch (InterruptedException x) {
                 return;
             }
@@ -65,6 +70,7 @@ public class ApplicationWatcher {
             for (WatchEvent<?> event : key.pollEvents()) {
                 WatchEvent.Kind<?> kind = event.kind();
                 log.info("Event kind {}", kind);
+                System.out.println("Event kind " + kind);
 
                 // This key is registered only
                 // for ENTRY_CREATE events,
@@ -88,6 +94,7 @@ public class ApplicationWatcher {
                     // the resolved name is "test/foo".
                     Path child = dir.resolve(filename);
                     log.info("File {} changed", child);
+                    changedFiles.accept(filename.toAbsolutePath().toString());
                 } catch (Exception x) {
                     log.error("Error while watching files", x);
                     continue;

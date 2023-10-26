@@ -235,7 +235,7 @@ public class Main {
         context.setContextPath("/");
         server.setHandler(context);
         context.addServlet(new ServletHolder(new MetricsHttpServlet()), "/metrics");
-        context.addServlet(new ServletHolder(new AgentControllerServlet(runner)), "/info");
+        context.addServlet(new ServletHolder(new AgentControllerServlet(runner)), "/commands/*");
         server.start();
         return server;
     }
@@ -252,6 +252,7 @@ public class Main {
         @Override
         protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             resp.setContentType("application/json");
+            log.info("Received request {}", req.getRequestURI());
             String uri = req.getRequestURI();
             if (uri.endsWith("/restart")) {
                 try {

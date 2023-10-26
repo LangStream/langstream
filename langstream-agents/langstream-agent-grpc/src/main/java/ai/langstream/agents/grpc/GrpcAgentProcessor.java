@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +40,8 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
     private final Map<Long, RecordAndSink> sourceRecords = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
+
+    private final AtomicBoolean restarting = new AtomicBoolean(false);
 
     private record RecordAndSink(
             ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
@@ -58,6 +61,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
     @Override
     public void start() throws Exception {
+        restarting.set(false);
         super.start();
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
     }
@@ -147,21 +151,31 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
             @Override
             public void onError(Throwable throwable) {
-                agentContext.criticalFailure(
-                        new RuntimeException(
-                                "gRPC server sent error: %s".formatted(throwable.getMessage()),
-                                throwable));
+                if (!restarting.get()) {
+                    agentContext.criticalFailure(
+                            new RuntimeException(
+                                    "gRPC server sent error: %s".formatted(throwable.getMessage()),
+                                    throwable));
+                } else {
+                    log.info("Ignoring error during restart {}", throwable + "");
+                }
             }
 
             @Override
             public void onCompleted() {
-                agentContext.criticalFailure(
+                if (!restarting.get()) {
+                    agentContext.criticalFailure(
                         new RuntimeException("gRPC server completed the stream unexpectedly"));
+                } else {
+                    log.info("Ignoring error server stop during restart");
+                }
             }
         };
     }
 
     protected synchronized void stop() throws Exception {
+        log.info("Restarting...");
+        restarting.set(true);
         if (request != null) {
             request.onCompleted();
         }

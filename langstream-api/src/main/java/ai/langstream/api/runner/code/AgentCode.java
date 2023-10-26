@@ -16,11 +16,17 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runtime.ComponentType;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 
 /** Body of the agent */
 public interface AgentCode extends AutoCloseable {
+
+    static final Logger log = LoggerFactory.getLogger(AgentCode.class);
 
     String agentId();
 
@@ -65,7 +71,6 @@ public interface AgentCode extends AutoCloseable {
      * @throws Exception
      */
     default void restart() throws Exception {
-        throw new UnsupportedOperationException(
-                "Restart is not supported for agent type " + agentType());
+        log.info("Restart is not supported for agent type {}", agentType());
     }
 }

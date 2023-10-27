@@ -15,10 +15,16 @@
 # limitations under the License.
 #
 
-from langstream import Sink, Record
+from langstream import Sink, Source, RecordType, Record
 import logging
+from typing import List
+import time
 
-# Example Python sink that adds an exclamation mark to the end of the record value and logs it
-class Exclamation(Sink):
-    def write(self, record: Record):
-        logging.info(f"Received record: {record}")
+# Example Python source that emits a record with the value "test!"
+class Exclamation(Source):
+    def read(self) -> List[RecordType]:
+        record = {"value": "test!"}
+        time.sleep(3)
+        logging.info("emitting record: %s", record)
+        return [record]
+

@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +14,13 @@
 # limitations under the License.
 #
 
-from langstream import Sink, Record
-import logging
-
-# Example Python sink that adds an exclamation mark to the end of the record value and logs it
-class Exclamation(Sink):
-    def write(self, record: Record):
-        logging.info(f"Received record: {record}")
+name: "Exclamation processor"
+topics:
+  - name: "output-topic"
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Process using Python"
+    type: "python-source"
+    output: "output-topic"
+    configuration:
+      className: example.Exclamation

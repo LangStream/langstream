@@ -17,6 +17,7 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.util.ConfigurationUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
@@ -122,6 +123,14 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
 
             @Override
             public void onError(Throwable throwable) {
+                if (startFailedButDevelopmentMode || restarting.get()) {
+                    log.info("Ignoring error while restarting: {}", throwable.getMessage());
+                    return;
+                }
+                if (ConfigurationUtils.isDevelopmentMode()) {
+                    log.info("Ignoring error in developer mode: {}", throwable.getMessage());
+                    return;
+                }
                 agentContext.criticalFailure(
                         new RuntimeException(
                                 "gRPC server sent error: %s".formatted(throwable.getMessage()),
@@ -130,9 +139,29 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
 
             @Override
             public void onCompleted() {
+                if (startFailedButDevelopmentMode || restarting.get()) {
+                    log.info("Ignoring completion while restarting");
+                    return;
+                }
                 agentContext.criticalFailure(
                         new RuntimeException("gRPC server completed the stream unexpectedly"));
             }
         };
+    }
+
+    protected void stopBeforeRestart() throws Exception {
+        log.info("Stopping...");
+        restarting.set(true);
+        synchronized (this) {
+            if (request != null) {
+                try {
+                    request.onCompleted();
+                } catch (IllegalStateException ignored) {
+                    log.info("Ignoring error while stopping {}", ignored + "");
+                }
+            }
+        }
+        super.stopBeforeRestart();
+        log.info("Stopped");
     }
 }

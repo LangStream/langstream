@@ -15,10 +15,8 @@
 # limitations under the License.
 #
 
-from langstream import Sink, Record
-import logging
+gateways:
+  - id: consume-output
+    type: consume
+    topic: output-topic
 
-# Example Python sink that adds an exclamation mark to the end of the record value and logs it
-class Exclamation(Sink):
-    def write(self, record: Record):
-        logging.info(f"Received record: {record}")

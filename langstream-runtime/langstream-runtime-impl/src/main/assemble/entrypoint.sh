@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 
-exec java ${JAVA_OPTS} -cp "/app/lib/*" "ai.langstream.runtime.Main" "$@"
+exec java ${JAVA_OPTS} -Djdk.lang.Process.launchMechanism=vfork -cp "/app/lib/*" "ai.langstream.runtime.Main" "$@"

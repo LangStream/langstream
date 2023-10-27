@@ -30,7 +30,7 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
 
     private static final int MAX_RECORDS_PER_READ = 1000;
     public static final int READ_BUFER_SIZE = 1000;
-    private StreamObserver<SourceRequest> request;
+    private volatile StreamObserver<SourceRequest> request;
     private final StreamObserver<SourceResponse> responseObserver;
     private final LinkedBlockingQueue<Record> readRecords =
             new LinkedBlockingQueue<>(READ_BUFER_SIZE);

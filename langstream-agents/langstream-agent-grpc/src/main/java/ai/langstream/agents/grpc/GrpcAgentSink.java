@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
-    private StreamObserver<SinkRequest> request;
+    private volatile StreamObserver<SinkRequest> request;
     private final StreamObserver<SinkResponse> responseObserver;
 
     // For each record sent, we increment the recordId

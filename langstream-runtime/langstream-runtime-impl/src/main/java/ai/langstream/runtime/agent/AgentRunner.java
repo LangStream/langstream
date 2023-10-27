@@ -814,7 +814,9 @@ public class AgentRunner {
             ErrorsHandler errorsHandler,
             AgentSource source,
             RecordSink finalSink) {
-        log.info("runProcessor on {} records", sourceRecords.size());
+        if (log.isDebugEnabled()) {
+            log.debug("runProcessor on {} records", sourceRecords.size());
+        }
         processor.process(
                 sourceRecords,
                 (AgentProcessor.SourceRecordAndResult result) -> {

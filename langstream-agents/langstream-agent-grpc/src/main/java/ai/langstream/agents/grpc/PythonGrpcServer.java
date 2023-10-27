@@ -29,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PythonGrpcServer {
+    private static final int MAX_TRIALS = 20;
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path codeDirectory;
@@ -94,7 +96,7 @@ public class PythonGrpcServer {
                 stub.agentInfo(Empty.getDefaultInstance());
                 break;
             } catch (Exception e) {
-                if (i > 8) {
+                if (i > MAX_TRIALS) {
                     log.info("Could not start the python agent", e);
                     throw e;
                 }

@@ -17,9 +17,9 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.util.ConfigurationUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,15 +59,32 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
     @Override
     public CompletableFuture<?> write(Record record) {
         CompletableFuture<?> handle = new CompletableFuture<>();
-        long rId = recordId.incrementAndGet();
-        SinkRequest.Builder requestBuilder = SinkRequest.newBuilder();
+        Long rId = recordId.incrementAndGet();
         try {
+            SinkRequest.Builder requestBuilder = SinkRequest.newBuilder();
             requestBuilder.setRecord(toGrpc(record).setRecordId(rId));
-        } catch (IOException e) {
-            agentContext.criticalFailure(new RuntimeException("Error while processing records", e));
+            writeHandles.put(rId, handle);
+            try {
+                request.onNext(requestBuilder.build());
+            } catch (IllegalStateException stopped) {
+                if (restarting.get()) {
+                    if (ConfigurationUtils.isDevelopmentMode()) {
+                        log.info(
+                                "Ignoring error during restart in dev mode {}, "
+                                        + "ignoring record {}",
+                                stopped + "",
+                                record);
+                        writeHandles.remove(rId);
+                        handle.complete(null);
+                    } else {
+                        throw stopped;
+                    }
+                }
+            }
+        } catch (Throwable error) {
+            writeHandles.remove(rId);
+            handle.completeExceptionally(error);
         }
-        writeHandles.put(rId, handle);
-        request.onNext(requestBuilder.build());
         return handle;
     }
 

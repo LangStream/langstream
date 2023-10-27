@@ -24,9 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -41,10 +39,6 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
     private final Map<Long, RecordAndSink> sourceRecords = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
-
-    private final AtomicBoolean restarting = new AtomicBoolean(false);
-
-    @Getter protected volatile boolean startFailedButDevelopmentMode = false;
 
     private record RecordAndSink(
             ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
@@ -67,6 +61,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
         super.start();
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
         restarting.set(false);
+        startFailedButDevelopmentMode = false;
     }
 
     @Override
@@ -99,9 +94,16 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
                     request.onNext(requestBuilder.build());
                 } catch (IllegalStateException stopped) {
                     if (restarting.get()) {
-                        log.info("Ignoring error during restart {}", stopped + "");
+                        log.info(
+                                "Ignoring error during restart {}, ignoring results for {} records",
+                                stopped + "",
+                                records.size());
+                        records.forEach(recordSink::emitEmptyList);
                     } else {
-                        throw stopped;
+                        records.forEach(
+                                e -> {
+                                    recordSink.emitError(e, stopped);
+                                });
                     }
                 }
             }
@@ -110,7 +112,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
     @Override
     public synchronized void close() throws Exception {
-        stop();
+        stopBeforeRestart();
     }
 
     private SourceRecordAndResult fromGrpc(
@@ -193,15 +195,19 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
         };
     }
 
-    protected void stop() throws Exception {
+    protected void stopBeforeRestart() throws Exception {
         log.info("Stopping...");
         restarting.set(true);
         synchronized (this) {
             if (request != null) {
-                request.onCompleted();
+                try {
+                    request.onCompleted();
+                } catch (IllegalStateException ignored) {
+                    log.info("Ignoring error while stopping {}", ignored + "");
+                }
             }
         }
-        super.stop();
+        super.stopBeforeRestart();
         log.info("Stopped");
     }
 }

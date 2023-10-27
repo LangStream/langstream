@@ -18,6 +18,7 @@ package ai.langstream.agents.grpc;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Conversions;
 import org.apache.avro.generic.GenericDatumReader;
@@ -59,6 +63,10 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     protected AgentContext agentContext;
     protected AgentServiceGrpc.AgentServiceBlockingStub blockingStub;
+
+    protected final AtomicBoolean restarting = new AtomicBoolean(false);
+
+    @Getter protected volatile boolean startFailedButDevelopmentMode = false;
 
     protected record GrpcAgentRecord(
             Long id,
@@ -101,7 +109,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         }
     }
 
-    protected synchronized void stop() throws Exception {
+    protected synchronized void stopBeforeRestart() throws Exception {
         stopChannel(false);
     }
 
@@ -265,5 +273,34 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         reader.getData().addLogicalTypeConversion(new Conversions.DecimalConversion());
         Decoder decoder = DecoderFactory.get().binaryDecoder(data, null);
         return reader.read(null, decoder);
+    }
+
+    @Override
+    @SneakyThrows
+    public void restart() throws Exception {
+        log.info("Restarting...");
+        try {
+            stopBeforeRestart();
+            try {
+                start();
+            } catch (Exception error) {
+                if (ConfigurationUtils.isDevelopmentMode()) {
+                    log.info(
+                            "The Python agent failed to restart, ignoring. Maybe there is a syntax error",
+                            error);
+                    startFailedButDevelopmentMode = true;
+                    try {
+                        stopBeforeRestart();
+                    } catch (Exception ignored) {
+                    }
+                } else {
+                    throw error;
+                }
+            }
+            log.info("Restart completed");
+        } catch (Throwable error) {
+            log.error("Error while restarting", error);
+            throw error;
+        }
     }
 }

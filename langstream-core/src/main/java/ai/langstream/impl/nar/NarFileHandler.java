@@ -47,6 +47,13 @@ public class NarFileHandler
                 AssetManagerRegistry.AssetManagerPackageLoader,
                 TopicConnectionsRuntimeRegistry.TopicConnectionsPackageLoader {
 
+    private static final boolean CLOSE_CLASSLOADERS =
+            Boolean.parseBoolean(System.getProperty("langstream.nar.closeClassloaders", "true"));
+
+    static {
+        log.info("langstream.nar.close-classloaders = {}", CLOSE_CLASSLOADERS);
+    }
+
     private final Path packagesDirectory;
     private final Path temporaryDirectory;
 
@@ -82,6 +89,17 @@ public class NarFileHandler
     }
 
     public void close() {
+
+        // when you are in a docker container or a pod, the JVM is going to be killed
+        // no need to close the classloaders
+        // closing the classloaders would cause only a log of spammy ClassNotFoundErrors
+        // that because false positives reported by users
+        if (!CLOSE_CLASSLOADERS) {
+            log.info(
+                    "Not closing classloaders, "
+                            + "in order to avoid class loading issues during development while the JVM is shutdown");
+            return;
+        }
 
         for (PackageMetadata metadata : packages.values()) {
             URLClassLoader classLoader = metadata.getClassLoader();

@@ -53,6 +53,8 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
     public void start() throws Exception {
         super.start();
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().read(responseObserver);
+        restarting.set(false);
+        startFailedButDevelopmentMode = false;
     }
 
     @Override

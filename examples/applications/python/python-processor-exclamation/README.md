@@ -6,7 +6,7 @@ The code in `example.py` adds an exclamation mark to the end of a string message
 ## Deploy the LangStream application
 
 ```
-./bin/langstream docker run test -app examples/applications/python-processor-exclamation
+./bin/langstream docker run test -app examples/applications/python/python-processor-exclamation
 ```
 
 ## Talk with the Chat bot using the CLI

@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -96,11 +95,14 @@ public class ConsumeGateway implements Closeable {
     public void setup(
             String topic,
             List<Function<Record, Boolean>> filters,
-            AuthenticatedGatewayRequestContext requestContext) throws Exception {
-        this.logRef = "%s/%s/%s".formatted(
-                requestContext.tenant(),
-                requestContext.applicationId(),
-                requestContext.gateway().getId());
+            AuthenticatedGatewayRequestContext requestContext)
+            throws Exception {
+        this.logRef =
+                "%s/%s/%s"
+                        .formatted(
+                                requestContext.tenant(),
+                                requestContext.applicationId(),
+                                requestContext.gateway().getId());
         this.requestContext = requestContext;
         this.filters = filters == null ? List.of() : filters;
 
@@ -136,7 +138,8 @@ public class ConsumeGateway implements Closeable {
         if (readerFuture != null) {
             throw new IllegalStateException("Already started");
         }
-        readerFuture = CompletableFuture.runAsync(
+        readerFuture =
+                CompletableFuture.runAsync(
                         () -> {
                             try {
                                 log.debug("[{}] Started reader", logRef);

@@ -89,10 +89,12 @@ public class ProduceGateway implements Closeable {
             String topic,
             List<Header> commonHeaders,
             AuthenticatedGatewayRequestContext requestContext) {
-        this.logRef = "%s/%s/%s".formatted(
-                requestContext.tenant(),
-                requestContext.applicationId(),
-                requestContext.gateway().getId());
+        this.logRef =
+                "%s/%s/%s"
+                        .formatted(
+                                requestContext.tenant(),
+                                requestContext.applicationId(),
+                                requestContext.gateway().getId());
         this.commonHeaders = commonHeaders == null ? List.of() : commonHeaders;
 
         setupProducer(
@@ -120,7 +122,7 @@ public class ProduceGateway implements Closeable {
                 topicConnectionsRuntime.createProducer(
                         null, streamingCluster, Map.of("topic", topic));
         producer.start();
-        log.debug("[{}] Started producer on topic {}",logRef, topic);
+        log.debug("[{}] Started producer on topic {}", logRef, topic);
     }
 
     public void produceMessage(String payload) throws ProduceException {
@@ -168,7 +170,7 @@ public class ProduceGateway implements Closeable {
                             .headers(headers)
                             .build();
             producer.write(record).get();
-            log.debug("[{}] Produced record {}",logRef, record);
+            log.debug("[{}] Produced record {}", logRef, record);
         } catch (Throwable tt) {
             log.error("[{}] Error producing message: {}", logRef, tt.getMessage(), tt);
             throw new ProduceException(tt.getMessage(), ProduceResponse.Status.PRODUCER_ERROR, tt);

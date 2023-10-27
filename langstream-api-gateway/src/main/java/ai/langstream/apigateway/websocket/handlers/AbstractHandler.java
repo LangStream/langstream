@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import lombok.SneakyThrows;
@@ -228,15 +227,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         final ConsumeGateway consumeGateway =
                 (ConsumeGateway) context.attributes().get(ATTRIBUTE_CONSUME_GATEWAY);
         consumeGateway.startReadingAsync(
-                        executor,
-                        () -> !webSocketSession.isOpen(),
-                        message -> {
-                            try {
-                                webSocketSession.sendMessage(new TextMessage(message));
-                            } catch (IOException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        });
+                executor,
+                () -> !webSocketSession.isOpen(),
+                message -> {
+                    try {
+                        webSocketSession.sendMessage(new TextMessage(message));
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
     }
 
     protected static List<Function<Record, Boolean>> createMessageFilters(
@@ -291,11 +290,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             throw ex;
         }
         context.attributes().put(ATTRIBUTE_CONSUME_GATEWAY, consumeGateway);
-
     }
 
     protected void setupProducer(
-            String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context) throws Exception {
+            String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context)
+            throws Exception {
         final ProduceGateway produceGateway = new ProduceGateway(topicConnectionsRuntimeRegistry);
 
         try {
@@ -325,10 +324,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected void closeConsumeGateway(WebSocketSession webSocketSession) {
         closeConsumeGateway(getContext(webSocketSession));
     }
+
     protected void closeConsumeGateway(AuthenticatedGatewayRequestContext context) {
         final ConsumeGateway consumeGateway =
-                (ConsumeGateway)
-                        context.attributes().get(ATTRIBUTE_CONSUME_GATEWAY);
+                (ConsumeGateway) context.attributes().get(ATTRIBUTE_CONSUME_GATEWAY);
         if (consumeGateway == null) {
             return;
         }
@@ -341,8 +340,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
     protected void closeProduceGateway(AuthenticatedGatewayRequestContext context) {
         final ProduceGateway produceGateway =
-                (ProduceGateway)
-                        context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
+                (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
         if (produceGateway == null) {
             return;
         }

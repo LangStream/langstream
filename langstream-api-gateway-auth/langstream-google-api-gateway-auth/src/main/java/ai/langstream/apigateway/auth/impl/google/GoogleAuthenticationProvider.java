@@ -61,7 +61,8 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
         try {
             final String credentials = context.credentials();
             if (credentials == null) {
-                return GatewayAuthenticationResult.authenticationFailed("Credentials not provided.");
+                return GatewayAuthenticationResult.authenticationFailed(
+                        "Credentials not provided.");
             }
             GoogleIdToken idToken = verifier.verify(credentials);
             if (idToken != null) {

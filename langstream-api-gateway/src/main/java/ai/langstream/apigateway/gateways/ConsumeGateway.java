@@ -36,12 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -79,7 +81,11 @@ public class ConsumeGateway implements Closeable {
     }
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
-    private TopicReader reader;
+
+    private volatile TopicReader reader;
+    private volatile boolean interrupted;
+    private volatile String logRef;
+    private CompletableFuture<Void> readerFuture;
     private AuthenticatedGatewayRequestContext requestContext;
     private List<Function<Record, Boolean>> filters;
 
@@ -87,11 +93,14 @@ public class ConsumeGateway implements Closeable {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
     }
 
-    @SneakyThrows
     public void setup(
             String topic,
             List<Function<Record, Boolean>> filters,
-            AuthenticatedGatewayRequestContext requestContext) {
+            AuthenticatedGatewayRequestContext requestContext) throws Exception {
+        this.logRef = "%s/%s/%s".formatted(
+                requestContext.tenant(),
+                requestContext.applicationId(),
+                requestContext.gateway().getId());
         this.requestContext = requestContext;
         this.filters = filters == null ? List.of() : filters;
 
@@ -119,39 +128,32 @@ public class ConsumeGateway implements Closeable {
         reader.start();
     }
 
-    public CompletableFuture<Void> startReading(
+    public void startReadingAsync(
             Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
-        return CompletableFuture.runAsync(
-                () -> {
-                    try {
-                        final String tenant = requestContext.tenant();
-
-                        final String gatewayId = requestContext.gateway().getId();
-                        final String applicationId = requestContext.applicationId();
-                        log.info(
-                                "Started reader for gateway {}/{}/{}",
-                                tenant,
-                                applicationId,
-                                gatewayId);
-                        readMessages(stop, onMessage);
-                    } catch (InterruptedException | CancellationException ex) {
-                        // ignore
-                    } catch (Throwable ex) {
-                        log.error(ex.getMessage(), ex);
-                    } finally {
-                        closeReader();
-                    }
-                },
-                executor);
+        if (readerFuture != null) {
+            throw new IllegalStateException("Already started");
+        }
+        readerFuture = CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                log.debug("[{}] Started reader", logRef);
+                                readMessages(stop, onMessage);
+                            } catch (Throwable ex) {
+                                throw new RuntimeException(ex);
+                            } finally {
+                                closeReader();
+                            }
+                        },
+                        executor);
     }
 
     protected void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage)
             throws Exception {
         while (true) {
-            if (Thread.currentThread().isInterrupted()) {
+            if (interrupted) {
                 return;
             }
             if (stop.get()) {
@@ -160,13 +162,13 @@ public class ConsumeGateway implements Closeable {
             final TopicReadResult readResult = reader.read();
             final List<Record> records = readResult.records();
             for (Record record : records) {
-                log.debug("Received record {}", record);
+                log.debug("[{}] Received record {}", logRef, record);
                 boolean skip = false;
                 if (filters != null) {
                     for (Function<Record, Boolean> filter : filters) {
                         if (!filter.apply(record)) {
                             skip = true;
-                            log.debug("Skipping record {}", requestContext, record);
+                            log.debug("[{}] Skipping record {}", logRef, record);
                             break;
                         }
                     }
@@ -212,13 +214,24 @@ public class ConsumeGateway implements Closeable {
             try {
                 reader.close();
             } catch (Exception e) {
-                log.error("error closing reader", e);
+                log.warn("error closing reader", e);
             }
         }
     }
 
     @Override
     public void close() {
-        closeReader();
+        if (readerFuture != null) {
+
+            interrupted = true;
+            try {
+                // reader.close must be done by the same thread that started the consumer
+                readerFuture.get(10, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                log.debug("error waiting for reader to stop", e);
+            }
+        } else {
+            closeReader();
+        }
     }
 }

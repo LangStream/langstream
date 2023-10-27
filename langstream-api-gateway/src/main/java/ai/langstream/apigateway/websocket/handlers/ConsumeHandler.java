@@ -99,8 +99,7 @@ public class ConsumeHandler extends AbstractHandler {
 
     @Override
     public void onBeforeHandshakeCompleted(
-            AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
-            throws Exception {
+            AuthenticatedGatewayRequestContext context, Map<String, Object> attributes) {
 
         final Gateway.ConsumeOptions consumeOptions = context.gateway().getConsumeOptions();
 
@@ -114,7 +113,12 @@ public class ConsumeHandler extends AbstractHandler {
         } else {
             messageFilters = null;
         }
-        setupReader(context.gateway().getTopic(), messageFilters, context);
+        try {
+            setupReader(context.gateway().getTopic(), messageFilters, context);
+        } catch (Exception ex) {
+            log.error("Error setting up reader", ex);
+            throw new RuntimeException(ex);
+        }
         sendClientConnectedEvent(context);
     }
 
@@ -134,6 +138,6 @@ public class ConsumeHandler extends AbstractHandler {
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
             CloseStatus closeStatus) {
-        stopReadingMessages(webSocketSession);
+        closeConsumeGateway(webSocketSession);
     }
 }

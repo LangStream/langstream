@@ -118,13 +118,24 @@ public class ChatHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
 
-        setupReader(context);
-        setupProducer(context);
+        try {
+            setupReader(context);
+        } catch (Exception ex) {
+            log.error("Error setting up reader", ex);
+            throw ex;
+        }
+        try {
+            setupProducer(context);
+        } catch (Exception ex) {
+            log.error("Error setting up producer", ex);
+            closeConsumeGateway(context);
+            throw ex;
+        }
 
         sendClientConnectedEvent(context);
     }
 
-    private void setupProducer(AuthenticatedGatewayRequestContext context) {
+    private void setupProducer(AuthenticatedGatewayRequestContext context) throws Exception {
         final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
 
         List<Gateway.KeyValueComparison> headerConfig = new ArrayList<>();
@@ -177,5 +188,8 @@ public class ChatHandler extends AbstractHandler {
     public void onClose(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            CloseStatus status) {}
+            CloseStatus status) {
+        closeConsumeGateway(webSocketSession);
+        closeProduceGateway(webSocketSession);
+    }
 }

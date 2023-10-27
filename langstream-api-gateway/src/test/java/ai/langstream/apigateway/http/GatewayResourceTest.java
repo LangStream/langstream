@@ -249,7 +249,7 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
-        produceAndExpectOk(url, "{\"value\": \"my-value\"}");
+        produceAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
     }

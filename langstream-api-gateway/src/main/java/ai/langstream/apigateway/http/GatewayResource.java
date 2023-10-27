@@ -87,11 +87,15 @@ public class GatewayResource {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry());
-        final List<Header> commonHeaders =
-                ProduceGateway.getProducerCommonHeaders(
-                        context.gateway().getProduceOptions(), authContext);
-        produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
-        produceGateway.produceMessage(produceRequest);
-        return ProduceResponse.OK;
+        try {
+            final List<Header> commonHeaders =
+                    ProduceGateway.getProducerCommonHeaders(
+                            context.gateway().getProduceOptions(), authContext);
+            produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
+            produceGateway.produceMessage(produceRequest);
+            return ProduceResponse.OK;
+        } finally {
+            produceGateway.close();
+        }
     }
 }

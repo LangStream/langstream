@@ -51,6 +51,11 @@ public class ProduceGateway implements Closeable {
             super(message);
             this.status = status;
         }
+
+        public ProduceException(String message, ProduceResponse.Status status, Throwable tt) {
+            super(message, tt);
+            this.status = status;
+        }
     }
 
     public static class ProduceGatewayRequestValidator
@@ -74,6 +79,7 @@ public class ProduceGateway implements Closeable {
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private TopicProducer producer;
     private List<Header> commonHeaders;
+    private String logRef;
 
     public ProduceGateway(TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
@@ -83,6 +89,10 @@ public class ProduceGateway implements Closeable {
             String topic,
             List<Header> commonHeaders,
             AuthenticatedGatewayRequestContext requestContext) {
+        this.logRef = "%s/%s/%s".formatted(
+                requestContext.tenant(),
+                requestContext.applicationId(),
+                requestContext.gateway().getId());
         this.commonHeaders = commonHeaders == null ? List.of() : commonHeaders;
 
         setupProducer(
@@ -110,12 +120,7 @@ public class ProduceGateway implements Closeable {
                 topicConnectionsRuntime.createProducer(
                         null, streamingCluster, Map.of("topic", topic));
         producer.start();
-        log.info(
-                "Started producer for gateway {}/{}/{} on topic {}",
-                tenant,
-                applicationId,
-                gatewayId,
-                topic);
+        log.debug("[{}] Started producer on topic {}",logRef, topic);
     }
 
     public void produceMessage(String payload) throws ProduceException {
@@ -163,20 +168,20 @@ public class ProduceGateway implements Closeable {
                             .headers(headers)
                             .build();
             producer.write(record).get();
-            log.info("Produced record {}", record);
+            log.debug("[{}] Produced record {}",logRef, record);
         } catch (Throwable tt) {
-            throw new ProduceException(tt.getMessage(), ProduceResponse.Status.PRODUCER_ERROR);
+            log.error("[{}] Error producing message: {}", logRef, tt.getMessage(), tt);
+            throw new ProduceException(tt.getMessage(), ProduceResponse.Status.PRODUCER_ERROR, tt);
         }
     }
 
     @Override
     public void close() {
-
         if (producer != null) {
             try {
                 producer.close();
             } catch (Exception e) {
-                log.error("error closing producer", e);
+                log.debug("[{}] Error closing producer: {}", logRef, e.getMessage(), e);
             }
         }
     }

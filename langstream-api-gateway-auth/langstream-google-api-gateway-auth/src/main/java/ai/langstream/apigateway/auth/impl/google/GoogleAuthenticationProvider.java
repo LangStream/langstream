@@ -61,7 +61,7 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
         try {
             final String credentials = context.credentials();
             if (credentials == null) {
-                return GatewayAuthenticationResult.authenticationFailed("Token not found.");
+                return GatewayAuthenticationResult.authenticationFailed("Credentials not provided.");
             }
             GoogleIdToken idToken = verifier.verify(credentials);
             if (idToken != null) {
@@ -73,7 +73,7 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
                 result.put(FIELD_LOCALE, (String) payload.get("locale"));
                 return GatewayAuthenticationResult.authenticationSuccessful(result);
             } else {
-                return GatewayAuthenticationResult.authenticationFailed("Invalid token.");
+                return GatewayAuthenticationResult.authenticationFailed("Invalid credentials.");
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

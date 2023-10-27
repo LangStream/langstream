@@ -33,7 +33,13 @@ public class PythonGrpcAgentSink extends GrpcAgentSink {
         server =
                 new PythonGrpcServer(
                         agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
-        channel = server.start();
+        try {
+            channel = server.start();
+        } catch (Exception err) {
+            server.close(true);
+            server = null;
+            throw err;
+        }
         super.start();
     }
 
@@ -45,14 +51,7 @@ public class PythonGrpcAgentSink extends GrpcAgentSink {
 
     @Override
     protected synchronized void stopBeforeRestart() throws Exception {
-        if (server != null) server.close(true);
-    }
-
-    @Override
-    public void restart() throws Exception {
         super.stopBeforeRestart();
-        stopBeforeRestart();
-        start();
-        super.start();
+        if (server != null) server.close(true);
     }
 }

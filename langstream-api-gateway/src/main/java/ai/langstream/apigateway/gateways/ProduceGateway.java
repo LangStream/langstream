@@ -23,8 +23,8 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.api.ProduceRequest;
-import ai.langstream.apigateway.websocket.api.ProduceResponse;
+import ai.langstream.apigateway.api.ProduceRequest;
+import ai.langstream.apigateway.api.ProduceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.Closeable;
@@ -38,7 +38,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProduceGateway implements Closeable {
+public class ProduceGateway implements AutoCloseable {
 
     protected static final ObjectMapper mapper = new ObjectMapper();
 
@@ -153,8 +153,8 @@ public class ProduceGateway implements Closeable {
                 if (configuredHeaders.contains(messageHeader.getKey())) {
                     throw new ProduceException(
                             "Header "
-                                    + messageHeader.getKey()
-                                    + " is configured as parameter-level header.",
+                            + messageHeader.getKey()
+                            + " is configured as parameter-level header.",
                             ProduceResponse.Status.BAD_REQUEST);
                 }
                 headers.add(
@@ -190,11 +190,27 @@ public class ProduceGateway implements Closeable {
 
     public static List<Header> getProducerCommonHeaders(
             Gateway.ProduceOptions produceOptions, AuthenticatedGatewayRequestContext context) {
-        if (produceOptions != null) {
-            return getProducerCommonHeaders(
-                    produceOptions.headers(), context.userParameters(), context.principalValues());
+        if (produceOptions == null) {
+            return null;
         }
-        return null;
+        return getProducerCommonHeaders(
+                produceOptions.headers(), context.userParameters(), context.principalValues());
+    }
+
+    public static List<Header> getProducerCommonHeaders(
+            Gateway.ChatOptions chatOptions, AuthenticatedGatewayRequestContext context) {
+        if (chatOptions == null) {
+            return null;
+        }
+        return getProducerCommonHeaders(chatOptions.getHeaders(), context.userParameters(), context.principalValues());
+    }
+
+    public static List<Header> getProducerCommonHeaders(
+            Gateway.ServiceOptions serviceOptions, AuthenticatedGatewayRequestContext context) {
+        if (serviceOptions == null) {
+            return null;
+        }
+        return getProducerCommonHeaders(serviceOptions.getHeaders(), context.userParameters(), context.principalValues());
     }
 
     public static List<Header> getProducerCommonHeaders(

@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.websocket.api;
+package ai.langstream.apigateway.api;
 
-import java.util.Map;
+public record ProduceResponse(Status status, String reason) {
+    public static ProduceResponse OK = new ProduceResponse(Status.OK, null);
 
-public record ProduceRequest(Object key, Object value, Map<String, String> headers) {}
+    public enum Status {
+        OK,
+        BAD_REQUEST,
+        PRODUCER_ERROR
+    }
+}

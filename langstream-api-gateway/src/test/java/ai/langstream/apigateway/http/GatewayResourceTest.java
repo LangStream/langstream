@@ -199,6 +199,19 @@ abstract class GatewayResourceTest {
     }
 
     @SneakyThrows
+    String produceAndGetBody(String url, String content) {
+        final HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(content))
+                        .build();
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
+    }
+
+    @SneakyThrows
     void produceAndExpectBadRequest(String url, String content, String errorMessage) {
         final HttpRequest request =
                 HttpRequest.newBuilder(URI.create(url))
@@ -387,6 +400,34 @@ abstract class GatewayResourceTest {
                         .formatted(port),
                 "{\"value\": \"my-value\"}");
     }
+
+
+    @Test
+    void testService() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        topic, topic, List.of())
+                                        )
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc"
+                        .formatted(port);
+
+        assertEquals("{\"record\":{\"key\":\"my-key\",\"value\":\"my-value\",\"headers\":{}},"
+                     + "\"offset\":\"eyJvZmZzZXRzIjp7IjAiOiIxIn19\"}", produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+    }
+
+
 
     protected abstract StreamingCluster getStreamingCluster();
 

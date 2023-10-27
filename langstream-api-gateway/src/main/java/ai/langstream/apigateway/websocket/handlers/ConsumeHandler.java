@@ -21,6 +21,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
@@ -106,7 +107,7 @@ public class ConsumeHandler extends AbstractHandler {
         final List<Function<Record, Boolean>> messageFilters;
         if (consumeOptions != null && consumeOptions.filters() != null) {
             messageFilters =
-                    createMessageFilters(
+                    ConsumeGateway.createMessageFilters(
                             consumeOptions.filters().headers(),
                             context.userParameters(),
                             context.principalValues());

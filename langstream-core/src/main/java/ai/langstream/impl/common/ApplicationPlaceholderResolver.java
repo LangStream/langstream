@@ -204,6 +204,7 @@ public class ApplicationPlaceholderResolver {
                             gateway.getProduceOptions(),
                             gateway.getConsumeOptions(),
                             gateway.getChatOptions(),
+                            gateway.getServiceOptions(),
                             eventsTopic));
         }
         return new Gateways(newGateways);

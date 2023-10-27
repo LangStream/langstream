@@ -238,7 +238,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                             finalParams,
                             consumeGatewayOptions,
                             credentials,
-                            testCredentials);
+                            testCredentials,
+                            Protocols.ws);
             return new ChatGatewayConnection(url, connectTimeout);
         }
 
@@ -250,7 +251,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         params,
                         consumeGatewayOptions,
                         credentials,
-                        testCredentials);
+                        testCredentials,
+                        Protocols.ws);
         final String producePath =
                 validateGatewayAndGetUrl(
                         applicationId,
@@ -259,7 +261,8 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
                         params,
                         Map.of(),
                         credentials,
-                        testCredentials);
+                        testCredentials,
+                        Protocols.ws);
         return new ProduceConsumeGatewaysConnection(consumePath, producePath, connectTimeout);
     }
 

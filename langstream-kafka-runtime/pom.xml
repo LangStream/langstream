@@ -25,7 +25,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-kafka-runtime</artifactId>
   <packaging>jar</packaging>
-  <name>LangStream - Kafka Implementation</name>
+  <name>LangStream - Kafka runtime</name>
   <properties>
     <build.dir>${project.build.directory}</build.dir>
   </properties>

@@ -667,11 +667,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 totalIn.addAndGet(1);
                 if (schema == null) {
                     try {
-                        if (r.value() == null) {
-                            throw new IllegalStateException(
-                                    "Cannot infer schema because value is null");
+                        final Schema<?> valueSchema;
+                        if (r.value() != null) {
+                            valueSchema = getSchema(r.value().getClass());
+                        } else {
+                            valueSchema = Schema.BYTES;
                         }
-                        Schema<?> valueSchema = getSchema(r.value().getClass());
                         if (r.key() != null) {
                             Schema<?> keySchema = getSchema(r.key().getClass());
                             schema =

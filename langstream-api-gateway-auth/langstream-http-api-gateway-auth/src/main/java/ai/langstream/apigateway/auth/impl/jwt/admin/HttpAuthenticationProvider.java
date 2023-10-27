@@ -64,7 +64,8 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
         final HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url));
 
         httpConfiguration.getHeaders().forEach(builder::header);
-        builder.header("Authorization", "Bearer " + context.credentials());
+        final String credentials = context.credentials();
+        builder.header("Authorization", "Bearer " + (credentials == null ? "" : credentials));
         final HttpRequest request = builder.GET().build();
 
         final HttpResponse<Void> response;

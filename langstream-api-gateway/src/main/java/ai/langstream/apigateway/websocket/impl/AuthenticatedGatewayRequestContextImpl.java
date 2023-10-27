@@ -25,6 +25,7 @@ import lombok.Builder;
 @Builder
 public class AuthenticatedGatewayRequestContextImpl implements AuthenticatedGatewayRequestContext {
 
+    private final String sessionId;
     private final GatewayRequestContext gatewayRequestContext;
     private final Map<String, Object> attributes;
     private final Map<String, String> principalValues;

@@ -17,7 +17,7 @@ package ai.langstream.apigateway.websocket;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
+import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.handlers.ChatHandler;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
@@ -47,7 +47,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
-    private final GatewayTestAuthenticationProperties adminAuthenticationProperties;
+    private final GatewayRequestHandler gatewayRequestHandler;
     private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
 
     @Override
@@ -72,7 +72,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .setAllowedOrigins("*")
                 .addInterceptors(
                         new HttpSessionHandshakeInterceptor(),
-                        new AuthenticationInterceptor(adminAuthenticationProperties));
+                        new AuthenticationInterceptor(gatewayRequestHandler));
     }
 
     @Bean

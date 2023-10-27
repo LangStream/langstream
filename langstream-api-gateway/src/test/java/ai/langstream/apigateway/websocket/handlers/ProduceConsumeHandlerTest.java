@@ -291,34 +291,26 @@ abstract class ProduceConsumeHandlerTest {
                                         .topic(topic)
                                         .parameters(List.of("session-id"))
                                         .build()));
-        connectAndExpectClose(
+        connectAndExpectHttpError(
                 URI.create("ws://localhost:%d/v1/%s/tenant1/application1/gw".formatted(port, type)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
-        connectAndExpectClose(
+                500);
+        connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/%s/tenant1/application1/gw?param:otherparam=1"
                                 .formatted(port, type)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
-        connectAndExpectClose(
+                500);
+        connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id="
                                 .formatted(port, type)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
+                500);
 
-        connectAndExpectClose(
+        connectAndExpectHttpError(
                 URI.create(
                         ("ws://localhost:%d/v1/%s/tenant1/application1/gw?param:session-id=ok&param:another-non"
                                         + "-declared=y")
                                 .formatted(port, type)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "unknown parameters: [another-non-declared]"));
+                500);
 
         connectAndExpectRunning(
                 URI.create(
@@ -474,27 +466,21 @@ abstract class ProduceConsumeHandlerTest {
                                                                                         "login")))))
                                         .build()));
 
-        connectAndExpectClose(
+        connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce"
                                 .formatted(port)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
-        connectAndExpectClose(
+                401);
+        connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials="
                                 .formatted(port)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
-        connectAndExpectClose(
+                401);
+        connectAndExpectHttpError(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=error"
                                 .formatted(port)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "missing required parameter session-id"));
+                401);
         connectAndExpectRunning(
                 URI.create(
                         "ws://localhost:%d/v1/produce/tenant1/application1/produce?credentials=test-user-password"
@@ -622,21 +608,19 @@ abstract class ProduceConsumeHandlerTest {
                                                                 "9d75ff199d33e051209b59702de27d1e470eafb58ac6d8865788bf23b48e6818"))),
                                         user1Messages));
 
-        connectAndExpectClose(
+        connectAndExpectHttpError(
                 URI.create(
-                        ("ws://localhost:%d/v1/consume/tenant1/application1/consume-no-admin?test-credentials=test"
+                        ("ws://localhost:%d/v1/consume/tenant1/application1/consume-no-test?test-credentials=test"
                                         + "-user-password")
                                 .formatted(port)),
-                new CloseReason(
-                        CloseReason.CloseCodes.VIOLATED_POLICY,
-                        "Gateway consume-no-test of tenant tenant1 does not allow test mode."));
+                401);
 
-        connectAndExpectClose(
+        connectAndExpectHttpError(
                 URI.create(
                         ("ws://localhost:%d/v1/produce/tenant1/application1/produce?test-credentials=test-user"
                                         + "-password-but-wrong")
                                 .formatted(port)),
-                new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Invalid credentials"));
+                401);
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
@@ -1109,8 +1093,16 @@ abstract class ProduceConsumeHandlerTest {
         return "topic" + topicCounter.incrementAndGet();
     }
 
-    @SneakyThrows
     private void connectAndExpectClose(URI connectTo, CloseReason expectedCloseReason) {
+        connectAndExpectClose(connectTo, expectedCloseReason, -1);
+    }
+
+    private void connectAndExpectHttpError(URI connectTo, int code) {
+        connectAndExpectClose(connectTo, null, code);
+    }
+
+    @SneakyThrows
+    private void connectAndExpectClose(URI connectTo, CloseReason expectedCloseReason, int code) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
 
         AtomicReference<CloseReason> closeReason = new AtomicReference<>();
@@ -1137,11 +1129,20 @@ abstract class ProduceConsumeHandlerTest {
                         .connect(connectTo)) {
             Thread.sleep(5000);
             countDownLatch.await();
+            if (expectedCloseReason == null) {
+                throw new RuntimeException("close reason not expected");
+            }
             assertEquals(
                     expectedCloseReason.getReasonPhrase(), closeReason.get().getReasonPhrase());
             assertEquals(expectedCloseReason.getCloseCode(), closeReason.get().getCloseCode());
         } catch (DeploymentException e) {
-            // ok
+            if (code > 0) {
+                if (e.getMessage().contains("[" + code + "]")) {
+                    return;
+                }
+                throw new RuntimeException("expected http error code " + code, e);
+            }
+            throw new RuntimeException(e);
         }
     }
 

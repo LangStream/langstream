@@ -83,7 +83,8 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
                         params,
                         options,
                         credentials,
-                        testCredentials);
+                        testCredentials,
+                        Protocols.ws);
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

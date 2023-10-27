@@ -35,6 +35,11 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     protected static final ObjectMapper messageMapper = new ObjectMapper();
 
+    protected enum Protocols {
+        ws,
+        http;
+    }
+
     @CommandLine.ParentCommand private RootGatewayCmd cmd;
 
     @Override
@@ -83,7 +88,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             Map<String, String> params,
             Map<String, String> options,
             String credentials,
-            String testCredentials) {
+            String testCredentials,
+            Protocols protocol) {
         validateGateway(
                 applicationId, gatewayId, type, params, options, credentials, testCredentials);
 
@@ -94,6 +100,20 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         if (testCredentials != null) {
             systemParams.put("test-credentials", testCredentials);
         }
+        if (protocol == Protocols.http) {
+            if (!type.equals("produce")) {
+                throw new IllegalArgumentException("HTTP protocol is only supported for produce");
+            }
+            return String.format(
+                    "%s/api/gateways/%s/%s/%s/%s?%s",
+                    getApiGatewayUrlHttp(),
+                    type,
+                    getTenant(),
+                    applicationId,
+                    gatewayId,
+                    computeQueryString(systemParams, params, options));
+        }
+
         return String.format(
                 "%s/v1/%s/%s/%s/%s?%s",
                 getApiGatewayUrl(),
@@ -110,6 +130,10 @@ public abstract class BaseGatewayCmd extends BaseCmd {
 
     private String getApiGatewayUrl() {
         return getCurrentProfile().getApiGatewayUrl();
+    }
+
+    private String getApiGatewayUrlHttp() {
+        return getApiGatewayUrl().replace("wss://", "https://").replace("ws://", "http://");
     }
 
     @SneakyThrows

@@ -22,6 +22,8 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,39 +55,62 @@ public class ChatHandler extends AbstractHandler {
     }
 
     @Override
-    Gateway.GatewayType gatewayType() {
+    public Gateway.GatewayType gatewayType() {
         return Gateway.GatewayType.chat;
     }
 
     @Override
-    String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String tenantFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("tenant");
     }
 
     @Override
-    String applicationIdFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String applicationIdFromPath(
+            Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("application");
     }
 
     @Override
-    String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
+    public String gatewayFromPath(Map<String, String> parsedPath, Map<String, String> queryString) {
         return parsedPath.get("gateway");
     }
 
     @Override
-    protected List<String> getAllRequiredParameters(Gateway gateway) {
-        List<String> parameters = gateway.getParameters();
-        if (parameters == null) {
-            parameters = new ArrayList<>();
-        }
-        if (gateway.getChatOptions() != null && gateway.getChatOptions().getHeaders() != null) {
-            for (Gateway.KeyValueComparison header : gateway.getChatOptions().getHeaders()) {
-                if (header.valueFromParameters() != null) {
-                    parameters.add(header.valueFromParameters());
+    public GatewayRequestHandler.GatewayRequestValidator validator() {
+        return new GatewayRequestHandler.GatewayRequestValidator() {
+            @Override
+            public List<String> getAllRequiredParameters(Gateway gateway) {
+                List<String> parameters = gateway.getParameters();
+                if (parameters == null) {
+                    parameters = new ArrayList<>();
+                }
+                if (gateway.getChatOptions() != null
+                        && gateway.getChatOptions().getHeaders() != null) {
+                    for (Gateway.KeyValueComparison header :
+                            gateway.getChatOptions().getHeaders()) {
+                        if (header.valueFromParameters() != null) {
+                            parameters.add(header.valueFromParameters());
+                        }
+                    }
+                }
+                return parameters;
+            }
+
+            @Override
+            public void validateOptions(Map<String, String> options) {
+                for (Map.Entry<String, String> option : options.entrySet()) {
+                    switch (option.getKey()) {
+                        case "position":
+                            if (!StringUtils.hasText(option.getValue())) {
+                                throw new IllegalArgumentException("'position' cannot be blank");
+                            }
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unknown option " + option.getKey());
+                    }
                 }
             }
-        }
-        return parameters;
+        };
     }
 
     @Override
@@ -93,13 +118,24 @@ public class ChatHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context, Map<String, Object> attributes)
             throws Exception {
 
-        setupReader(context);
-        setupProducer(context);
+        try {
+            setupReader(context);
+        } catch (Exception ex) {
+            log.error("Error setting up reader", ex);
+            throw ex;
+        }
+        try {
+            setupProducer(context);
+        } catch (Exception ex) {
+            log.error("Error setting up producer", ex);
+            closeConsumeGateway(context);
+            throw ex;
+        }
 
         sendClientConnectedEvent(context);
     }
 
-    private void setupProducer(AuthenticatedGatewayRequestContext context) {
+    private void setupProducer(AuthenticatedGatewayRequestContext context) throws Exception {
         final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
 
         List<Gateway.KeyValueComparison> headerConfig = new ArrayList<>();
@@ -110,16 +146,10 @@ public class ChatHandler extends AbstractHandler {
             }
         }
         final List<Header> commonHeaders =
-                getProducerCommonHeaders(
+                ProduceGateway.getProducerCommonHeaders(
                         headerConfig, context.userParameters(), context.principalValues());
-        setupProducer(
-                context.attributes(),
-                chatOptions.getQuestionsTopic(),
-                context.application().getInstance().streamingCluster(),
-                commonHeaders,
-                context.tenant(),
-                context.applicationId(),
-                context.gateway().getId());
+
+        setupProducer(chatOptions.getQuestionsTopic(), commonHeaders, context);
     }
 
     private void setupReader(AuthenticatedGatewayRequestContext context) throws Exception {
@@ -136,18 +166,13 @@ public class ChatHandler extends AbstractHandler {
                 createMessageFilters(
                         headerFilters, context.userParameters(), context.principalValues());
 
-        setupReader(
-                context.attributes(),
-                chatOptions.getAnswersTopic(),
-                context.application().getInstance().streamingCluster(),
-                messageFilters,
-                context.options());
+        setupReader(chatOptions.getAnswersTopic(), messageFilters, context);
     }
 
     @Override
     public void onOpen(
             WebSocketSession webSocketSession, AuthenticatedGatewayRequestContext context) {
-        startReadingMessages(webSocketSession, context, executor);
+        startReadingMessages(webSocketSession, executor);
     }
 
     @Override
@@ -163,20 +188,8 @@ public class ChatHandler extends AbstractHandler {
     public void onClose(
             WebSocketSession webSocketSession,
             AuthenticatedGatewayRequestContext context,
-            CloseStatus status) {}
-
-    @Override
-    void validateOptions(Map<String, String> options) {
-        for (Map.Entry<String, String> option : options.entrySet()) {
-            switch (option.getKey()) {
-                case "position":
-                    if (!StringUtils.hasText(option.getValue())) {
-                        throw new IllegalArgumentException("'position' cannot be blank");
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown option " + option.getKey());
-            }
-        }
+            CloseStatus status) {
+        closeConsumeGateway(webSocketSession);
+        closeProduceGateway(webSocketSession);
     }
 }

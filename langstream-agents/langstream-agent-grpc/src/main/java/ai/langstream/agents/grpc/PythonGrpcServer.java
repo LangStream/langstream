@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PythonGrpcServer {
-    private static final int MAX_TRIALS = 20;
+    private static final int MAX_TRIALS = 10;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

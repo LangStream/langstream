@@ -74,7 +74,7 @@ public class LocalRedPandaClusterProvider implements StreamingClusterProvider {
         // ref https://github.com/redpanda-data/helm-charts/blob/main/charts/redpanda/values.yaml
         log.info("running helm command to install redpanda");
         BaseEndToEndTest.runProcess(
-                ("helm upgrade --install redpanda redpanda/redpanda --namespace %s --set resources.cpu.cores=0.3"
+                ("helm upgrade --install redpanda redpanda/redpanda --version 5.6.29 --namespace %s --set resources.cpu.cores=0.3"
                                         .formatted(NAMESPACE)
                                 + " --set resources.memory.container.max=1512Mi --set statefulset.replicas=1 --set console"
                                 + ".enabled=false --set tls.enabled=false --set external.domain=redpanda-external.%s.svc"

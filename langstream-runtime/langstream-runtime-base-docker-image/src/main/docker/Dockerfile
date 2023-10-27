@@ -33,16 +33,10 @@ RUN apt-get update && add-apt-repository ppa:deadsnakes/ppa \
       && python3 -m ensurepip && python3 -m pip install pipenv
 
 
-# Install Eclipse Temurin Package
-RUN mkdir -p /etc/apt/keyrings \
-     && wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
-     && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
-     && apt-get update \
-     && apt-get -y install temurin-17-jdk \
-     && export ARCH=$(uname -m | sed -r 's/aarch64/arm64/g' |  awk '!/arm64/{$0="amd64"}1') \
-     && echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/temurin-17-jdk-$ARCH/conf/security/java.security
+RUN apt-get update \
+     && apt-get -y install openjdk-17-jdk
 
-# Install utility packages for Python unstructured data processing
+    # Install utility packages for Python unstructured data processing
 RUN apt-get update && apt-get -y install --no-install-recommends libmagic-dev poppler-utils tesseract-ocr libreoffice pandoc
 
 # Cleanup apt

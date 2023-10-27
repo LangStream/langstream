@@ -24,6 +24,7 @@ import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,6 +57,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class GatewayResource {
 
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
+    private final TopicProducerCache topicProducerCache;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
 
@@ -89,9 +91,10 @@ public class GatewayResource {
         }
 
         try (final ProduceGateway produceGateway =
-                new ProduceGateway(
-                        topicConnectionsRuntimeRegistryProvider
-                                .getTopicConnectionsRuntimeRegistry()); ) {
+                     new ProduceGateway(
+                             topicConnectionsRuntimeRegistryProvider
+                                     .getTopicConnectionsRuntimeRegistry(),
+                             topicProducerCache)) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
@@ -139,13 +142,14 @@ public class GatewayResource {
         }
 
         try (final ConsumeGateway consumeGateway =
-                        new ConsumeGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry());
-                final ProduceGateway produceGateway =
-                        new ProduceGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry()); ) {
+                     new ConsumeGateway(
+                             topicConnectionsRuntimeRegistryProvider
+                                     .getTopicConnectionsRuntimeRegistry());
+             final ProduceGateway produceGateway =
+                     new ProduceGateway(
+                             topicConnectionsRuntimeRegistryProvider
+                                     .getTopicConnectionsRuntimeRegistry(),
+                             topicProducerCache);) {
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {

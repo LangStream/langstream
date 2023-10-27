@@ -18,6 +18,7 @@ package ai.langstream.apigateway.websocket;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.handlers.ChatHandler;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
@@ -48,6 +49,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final GatewayRequestHandler gatewayRequestHandler;
+    private final TopicProducerCache topicProducerCache;
     private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
 
     @Override
@@ -58,16 +60,21 @@ public class WebSocketConfig implements WebSocketConfigurer {
                         new ConsumeHandler(
                                 applicationStore,
                                 consumeThreadPool,
-                                topicConnectionsRuntimeRegistry),
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         CONSUME_PATH)
                 .addHandler(
-                        new ProduceHandler(applicationStore, topicConnectionsRuntimeRegistry),
+                        new ProduceHandler(
+                                applicationStore,
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         PRODUCE_PATH)
                 .addHandler(
                         new ChatHandler(
                                 applicationStore,
                                 consumeThreadPool,
-                                topicConnectionsRuntimeRegistry),
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         CHAT_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(

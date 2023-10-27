@@ -76,12 +76,16 @@ public class ProduceGateway implements AutoCloseable {
     }
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    private final TopicProducerCache topicProducerCache;
     private TopicProducer producer;
     private List<Header> commonHeaders;
     private String logRef;
 
-    public ProduceGateway(TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+    public ProduceGateway(
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            TopicProducerCache topicProducerCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.topicProducerCache = topicProducerCache;
     }
 
     public void start(
@@ -95,21 +99,25 @@ public class ProduceGateway implements AutoCloseable {
                                 requestContext.applicationId(),
                                 requestContext.gateway().getId());
         this.commonHeaders = commonHeaders == null ? List.of() : commonHeaders;
-
-        setupProducer(
-                topic,
-                requestContext.application().getInstance().streamingCluster(),
-                requestContext.tenant(),
-                requestContext.applicationId(),
-                requestContext.gateway().getId());
+        final TopicProducerCache.Key key =
+                new TopicProducerCache.Key(
+                        requestContext.tenant(),
+                        requestContext.applicationId(),
+                        requestContext.gateway().getId());
+        producer =
+                topicProducerCache.getOrCreate(
+                        key,
+                        () ->
+                                setupProducer(
+                                        topic,
+                                        requestContext
+                                                .application()
+                                                .getInstance()
+                                                .streamingCluster()));
     }
 
-    protected void setupProducer(
-            String topic,
-            StreamingCluster streamingCluster,
-            final String tenant,
-            final String applicationId,
-            final String gatewayId) {
+    protected TopicProducer setupProducer(String topic, StreamingCluster streamingCluster) {
+
         final TopicConnectionsRuntime topicConnectionsRuntime =
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(streamingCluster)
@@ -117,11 +125,12 @@ public class ProduceGateway implements AutoCloseable {
 
         topicConnectionsRuntime.init(streamingCluster);
 
-        producer =
+        final TopicProducer topicProducer =
                 topicConnectionsRuntime.createProducer(
                         null, streamingCluster, Map.of("topic", topic));
-        producer.start();
+        topicProducer.start();
         log.debug("[{}] Started producer on topic {}", logRef, topic);
+        return topicProducer;
     }
 
     public void produceMessage(String payload) throws ProduceException {
@@ -184,6 +193,7 @@ public class ProduceGateway implements AutoCloseable {
             } catch (Exception e) {
                 log.debug("[{}] Error closing producer: {}", logRef, e.getMessage(), e);
             }
+            producer = null;
         }
     }
 

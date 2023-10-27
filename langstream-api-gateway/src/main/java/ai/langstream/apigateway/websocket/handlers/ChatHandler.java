@@ -25,6 +25,7 @@ import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +46,9 @@ public class ChatHandler extends AbstractHandler {
     public ChatHandler(
             ApplicationStore applicationStore,
             ExecutorService executor,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
-        super(applicationStore, topicConnectionsRuntimeRegistry);
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            TopicProducerCache topicProducerCache) {
+        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
         this.executor = executor;
     }
 

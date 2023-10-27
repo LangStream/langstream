@@ -192,20 +192,10 @@ public class WebCrawler {
                 // 1xx, 2xx, 3xx...this is not expected as it is not an "ERROR"
                 // 5xx errors are server side errors, we can retry
 
-                int currentCount = status.temporaryErrorOnUrl(current);
-                if (currentCount >= configuration.getMaxErrorCount()) {
-                    log.info("Too many errors ({}) on url {}, skipping it", currentCount, current);
-                    discardUrl(current, reference);
-                } else {
-                    log.info("Putting back the url {} into the backlog", current);
-                    forceAddUrl(current, reference.type(), reference.depth());
-                }
+                handleTemporaryError(current, reference);
             }
 
-            // prevent from being banned for flooding
-            if (configuration.getMinTimeBetweenRequests() > 0) {
-                Thread.sleep(configuration.getMinTimeBetweenRequests());
-            }
+            handleThrottling(current);
 
             // we did something
             return true;
@@ -217,9 +207,17 @@ public class WebCrawler {
             discardUrl(current, reference);
 
             // prevent from being banned for flooding
-            if (configuration.getMinTimeBetweenRequests() > 0) {
-                Thread.sleep(configuration.getMinTimeBetweenRequests());
-            }
+            handleThrottling(current);
+
+            // we did something
+            return true;
+        } catch (IOException e) {
+            log.info("Error while crawling url: {}, IO Error: {}", current, e + "");
+
+            handleTemporaryError(current, reference);
+
+            // prevent from being banned for flooding
+            handleThrottling(current);
 
             // we did something
             return true;
@@ -245,6 +243,13 @@ public class WebCrawler {
                     new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
         }
 
+        // prevent from being banned for flooding
+        handleThrottling(current);
+
+        return true;
+    }
+
+    private void handleThrottling(String current) throws InterruptedException {
         int delayMs = getCrawlerDelayFromRobots(current);
         if (configuration.getMinTimeBetweenRequests() > 0) {
             if (delayMs > 0) {
@@ -257,8 +262,17 @@ public class WebCrawler {
         if (delayMs > 0) {
             Thread.sleep(delayMs);
         }
+    }
 
-        return true;
+    private void handleTemporaryError(String current, URLReference reference) {
+        int currentCount = status.temporaryErrorOnUrl(current);
+        if (currentCount >= configuration.getMaxErrorCount()) {
+            log.info("Too many errors ({}) on url {}, skipping it", currentCount, current);
+            discardUrl(current, reference);
+        } else {
+            log.info("Putting back the url {} into the backlog", current);
+            forceAddUrl(current, reference.type(), reference.depth());
+        }
     }
 
     private int getCrawlerDelayFromRobots(String current) {
@@ -376,14 +390,26 @@ public class WebCrawler {
 
     private HttpResponse<byte[]> downloadUrl(String url) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
-        HttpResponse<byte[]> response =
-                client.send(
+        IOException lastError = null;
+        for (int i = 0; i < configuration.getMaxErrorCount(); i++) {
+            try {
+                return client.send(
                         HttpRequest.newBuilder()
                                 .uri(URI.create(url))
                                 .header("User-Agent", configuration.getUserAgent())
                                 .build(),
                         HttpResponse.BodyHandlers.ofByteArray());
-        return response;
+            } catch (IOException err) {
+                lastError = err;
+                log.warn("Error while downloading url: {}", url, err);
+                handleThrottling(url);
+            }
+        }
+        if (lastError != null) {
+            throw lastError;
+        } else {
+            throw new IOException("Unknown error while downloading url: " + url);
+        }
     }
 
     public void restartIndexing(Set<String> seedUrls) {

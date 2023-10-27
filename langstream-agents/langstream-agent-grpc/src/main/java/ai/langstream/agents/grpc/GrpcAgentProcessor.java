@@ -24,13 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProcessor {
-    private StreamObserver<ProcessorRequest> request;
+    private volatile StreamObserver<ProcessorRequest> request;
     private RecordSink sink;
 
     // For each record sent, we increment the recordId
@@ -40,8 +39,6 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
     private final Map<Long, RecordAndSink> sourceRecords = new ConcurrentHashMap<>();
 
     private final StreamObserver<ProcessorResponse> responseObserver = getResponseObserver();
-
-    private final AtomicBoolean restarting = new AtomicBoolean(false);
 
     private record RecordAndSink(
             ai.langstream.api.runner.code.Record sourceRecord, RecordSink sink) {}
@@ -61,36 +58,53 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
     @Override
     public void start() throws Exception {
-        restarting.set(false);
         super.start();
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
+        restarting.set(false);
+        startFailedButDevelopmentMode = false;
     }
 
     @Override
-    public synchronized void process(
-            List<ai.langstream.api.runner.code.Record> records, RecordSink recordSink) {
-        if (sink == null) {
-            sink = recordSink;
+    public void process(List<ai.langstream.api.runner.code.Record> records, RecordSink recordSink) {
+
+        if (startFailedButDevelopmentMode) {
+            log.info(
+                    "Python agent start failed but development mode is enabled, ignoring {} records",
+                    records.size());
+            records.forEach(recordSink::emitEmptyList);
+            return;
         }
 
-        ProcessorRequest.Builder requestBuilder = ProcessorRequest.newBuilder();
-        for (ai.langstream.api.runner.code.Record record : records) {
-            long rId = recordId.incrementAndGet();
-            try {
-                requestBuilder.addRecords(toGrpc(record).setRecordId(rId));
-                sourceRecords.put(rId, new RecordAndSink(record, recordSink));
-            } catch (Exception e) {
-                recordSink.emit(new SourceRecordAndResult(record, null, e));
+        synchronized (this) {
+            if (sink == null) {
+                sink = recordSink;
             }
-        }
-        if (requestBuilder.getRecordsCount() > 0) {
-            try {
-                request.onNext(requestBuilder.build());
-            } catch (IllegalStateException stopped) {
-                if (restarting.get()) {
-                    log.info("Ignoring error during restart {}", stopped + "");
-                } else {
-                    throw stopped;
+            ProcessorRequest.Builder requestBuilder = ProcessorRequest.newBuilder();
+            for (ai.langstream.api.runner.code.Record record : records) {
+                long rId = recordId.incrementAndGet();
+                try {
+                    requestBuilder.addRecords(toGrpc(record).setRecordId(rId));
+                    sourceRecords.put(rId, new RecordAndSink(record, recordSink));
+                } catch (Exception e) {
+                    recordSink.emit(new SourceRecordAndResult(record, null, e));
+                }
+            }
+            if (requestBuilder.getRecordsCount() > 0) {
+                try {
+                    request.onNext(requestBuilder.build());
+                } catch (IllegalStateException stopped) {
+                    if (restarting.get()) {
+                        log.info(
+                                "Ignoring error during restart {}, ignoring results for {} records",
+                                stopped + "",
+                                records.size());
+                        records.forEach(recordSink::emitEmptyList);
+                    } else {
+                        records.forEach(
+                                e -> {
+                                    recordSink.emitError(e, stopped);
+                                });
+                    }
                 }
             }
         }
@@ -98,7 +112,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
 
     @Override
     public synchronized void close() throws Exception {
-        stop();
+        stopBeforeRestart();
     }
 
     private SourceRecordAndResult fromGrpc(
@@ -181,14 +195,19 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
         };
     }
 
-    protected void stop() throws Exception {
-        log.info("Restarting...");
+    protected void stopBeforeRestart() throws Exception {
+        log.info("Stopping...");
         restarting.set(true);
         synchronized (this) {
             if (request != null) {
-                request.onCompleted();
+                try {
+                    request.onCompleted();
+                } catch (IllegalStateException ignored) {
+                    log.info("Ignoring error while stopping {}", ignored + "");
+                }
             }
         }
-        super.stop();
+        super.stopBeforeRestart();
+        log.info("Stopped");
     }
 }

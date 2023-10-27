@@ -182,8 +182,8 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
         for (ConsumerRecord<?, ?> record : poll) {
             result.add(KafkaRecord.fromKafkaConsumerRecord(record));
         }
-        if (!result.isEmpty()) {
-            log.info("Received {} records from Kafka topics", result.size());
+        if (log.isDebugEnabled() && !result.isEmpty()) {
+            log.debug("Received {} records from Kafka topics", result.size());
         }
         totalOut.addAndGet(result.size());
         return result;

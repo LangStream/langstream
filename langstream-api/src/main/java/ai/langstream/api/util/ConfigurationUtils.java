@@ -25,12 +25,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Utility class for configuration related operations. This class is widely used and changing the
  * behaviour may cause breaking changes.
  */
+@Slf4j
 public class ConfigurationUtils {
+
+    private static boolean DEVELOPMENT_MODE =
+            Boolean.parseBoolean(System.getProperty("langstream.development.mode", "false"));
+
+    static {
+        if (DEVELOPMENT_MODE) {
+            log.warn("Development mode is enabled, this should not be used in production");
+        }
+    }
+
+    public static boolean isDevelopmentMode() {
+        return DEVELOPMENT_MODE;
+    }
 
     /**
      * Decode a configuration map into a list of strings. Nulls are removed

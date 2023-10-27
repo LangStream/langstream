@@ -68,7 +68,5 @@ public interface AgentCode extends AutoCloseable {
      *
      * @throws Exception
      */
-    default void restart() throws Exception {
-        log.info("Restart is not supported for agent type {}", agentType());
-    }
+    default void restart() throws Exception {}
 }

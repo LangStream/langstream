@@ -17,9 +17,9 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.util.ConfigurationUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
-    private StreamObserver<SinkRequest> request;
+    private volatile StreamObserver<SinkRequest> request;
     private final StreamObserver<SinkResponse> responseObserver;
 
     // For each record sent, we increment the recordId
@@ -54,20 +54,39 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
     public void start() throws Exception {
         super.start();
         request = AgentServiceGrpc.newStub(channel).withWaitForReady().write(responseObserver);
+        restarting.set(false);
+        startFailedButDevelopmentMode = false;
     }
 
     @Override
     public CompletableFuture<?> write(Record record) {
         CompletableFuture<?> handle = new CompletableFuture<>();
-        long rId = recordId.incrementAndGet();
-        SinkRequest.Builder requestBuilder = SinkRequest.newBuilder();
+        Long rId = recordId.incrementAndGet();
         try {
+            SinkRequest.Builder requestBuilder = SinkRequest.newBuilder();
             requestBuilder.setRecord(toGrpc(record).setRecordId(rId));
-        } catch (IOException e) {
-            agentContext.criticalFailure(new RuntimeException("Error while processing records", e));
+            writeHandles.put(rId, handle);
+            try {
+                request.onNext(requestBuilder.build());
+            } catch (IllegalStateException stopped) {
+                if (restarting.get()) {
+                    if (ConfigurationUtils.isDevelopmentMode()) {
+                        log.info(
+                                "Ignoring error during restart in dev mode {}, "
+                                        + "ignoring record {}",
+                                stopped + "",
+                                record);
+                        writeHandles.remove(rId);
+                        handle.complete(null);
+                    } else {
+                        throw stopped;
+                    }
+                }
+            }
+        } catch (Throwable error) {
+            writeHandles.remove(rId);
+            handle.completeExceptionally(error);
         }
-        writeHandles.put(rId, handle);
-        request.onNext(requestBuilder.build());
         return handle;
     }
 
@@ -85,17 +104,52 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
 
             @Override
             public void onError(Throwable throwable) {
-                agentContext.criticalFailure(
-                        new RuntimeException(
-                                "gRPC server sent error: %s".formatted(throwable.getMessage()),
-                                throwable));
+                if (startFailedButDevelopmentMode || restarting.get()) {
+                    log.info(
+                            "Ignoring error during restart in dev mode {}, "
+                                    + "ignoring records {}",
+                            throwable + "",
+                            writeHandles);
+                    writeHandles.forEach((id, handle) -> handle.complete(null));
+                    writeHandles.clear();
+                } else {
+                    agentContext.criticalFailure(
+                            new RuntimeException(
+                                    "gRPC server sent error: %s".formatted(throwable.getMessage()),
+                                    throwable));
+                }
             }
 
             @Override
             public void onCompleted() {
-                agentContext.criticalFailure(
-                        new RuntimeException("gRPC server completed the stream unexpectedly"));
+                if (startFailedButDevelopmentMode || restarting.get()) {
+                    log.info(
+                            "Ignoring server complietion during restart in dev mode, "
+                                    + "ignoring records {}",
+                            writeHandles);
+                    writeHandles.forEach((id, handle) -> handle.complete(null));
+                    writeHandles.clear();
+                } else {
+                    agentContext.criticalFailure(
+                            new RuntimeException("gRPC server completed the stream unexpectedly"));
+                }
             }
         };
+    }
+
+    protected void stopBeforeRestart() throws Exception {
+        log.info("Stopping...");
+        restarting.set(true);
+        synchronized (this) {
+            if (request != null) {
+                try {
+                    request.onCompleted();
+                } catch (IllegalStateException ignored) {
+                    log.info("Ignoring error while stopping {}", ignored + "");
+                }
+            }
+        }
+        super.stopBeforeRestart();
+        log.info("Stopped");
     }
 }

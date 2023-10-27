@@ -20,6 +20,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
@@ -58,7 +59,7 @@ public class ApplicationWatcher {
             WatchKey key;
             try {
                 key = watcher.take();
-            } catch (InterruptedException x) {
+            } catch (InterruptedException | ClosedWatchServiceException x) {
                 return;
             }
 

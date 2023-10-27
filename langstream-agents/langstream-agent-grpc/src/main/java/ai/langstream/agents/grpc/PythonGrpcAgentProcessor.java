@@ -16,7 +16,9 @@
 package ai.langstream.agents.grpc;
 
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
 
     private PythonGrpcServer server;
@@ -33,7 +35,13 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
         server =
                 new PythonGrpcServer(
                         agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
-        channel = server.start();
+        try {
+            channel = server.start();
+        } catch (Exception err) {
+            server.close(true);
+            server = null;
+            throw err;
+        }
         super.start();
     }
 
@@ -43,15 +51,8 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
     }
 
     @Override
-    protected synchronized void stop() throws Exception {
+    protected synchronized void stopBeforeRestart() throws Exception {
+        super.stopBeforeRestart();
         if (server != null) server.close(true);
-    }
-
-    @Override
-    public void restart() throws Exception {
-        super.stop();
-        stop();
-        start();
-        super.start();
     }
 }

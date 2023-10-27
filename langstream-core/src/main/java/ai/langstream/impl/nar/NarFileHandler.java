@@ -51,7 +51,7 @@ public class NarFileHandler
             Boolean.parseBoolean(System.getProperty("langstream.nar.closeClassloaders", "true"));
 
     static {
-        log.info("langstream.nar.close-classloaders = {}", CLOSE_CLASSLOADERS);
+        log.info("langstream.nar.closeClassloaders = {}", CLOSE_CLASSLOADERS);
     }
 
     private final Path packagesDirectory;

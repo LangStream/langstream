@@ -95,6 +95,7 @@ public class PythonGrpcServer {
                 break;
             } catch (Exception e) {
                 if (i > 8) {
+                    log.info("Could not start the python agent", e);
                     throw e;
                 }
                 log.info("Waiting for python agent to start");

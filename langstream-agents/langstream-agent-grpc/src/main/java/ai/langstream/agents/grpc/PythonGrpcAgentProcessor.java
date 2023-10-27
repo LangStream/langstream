@@ -15,8 +15,12 @@
  */
 package ai.langstream.agents.grpc;
 
+import ai.langstream.api.util.ConfigurationUtils;
 import java.util.Map;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
 
     private PythonGrpcServer server;
@@ -33,7 +37,13 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
         server =
                 new PythonGrpcServer(
                         agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
-        channel = server.start();
+        try {
+            channel = server.start();
+        } catch (Exception err) {
+            server.close(true);
+            server = null;
+            throw err;
+        }
         super.start();
     }
 
@@ -48,10 +58,32 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
     }
 
     @Override
+    @SneakyThrows
     public void restart() throws Exception {
-        super.stop();
-        stop();
-        start();
-        super.start();
+        log.info("Restarting...");
+        try {
+            super.stop();
+            stop();
+            try {
+                start();
+            } catch (Exception error) {
+                if (ConfigurationUtils.isDevelopmentMode()) {
+                    log.info(
+                            "The Python agent failed to restart, ignoring. Maybe there is a syntax error",
+                            error);
+                    startFailedButDevelopmentMode = true;
+                    super.stop();
+                    return;
+                } else {
+                    throw error;
+                }
+            }
+            super.start();
+        } catch (Throwable error) {
+            log.error("Error while restarting", error);
+            throw error;
+        } finally {
+            log.info("Restart completed");
+        }
     }
 }

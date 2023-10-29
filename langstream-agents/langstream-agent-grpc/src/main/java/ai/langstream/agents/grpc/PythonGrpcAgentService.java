@@ -17,7 +17,7 @@ package ai.langstream.agents.grpc;
 
 import java.util.Map;
 
-public class PythonGrpcAgentSource extends GrpcAgentSource {
+public class PythonGrpcAgentService extends GrpcAgentService {
 
     private PythonGrpcServer server;
     private Map<String, Object> configuration;

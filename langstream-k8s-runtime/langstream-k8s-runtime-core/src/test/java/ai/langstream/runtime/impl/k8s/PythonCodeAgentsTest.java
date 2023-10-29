@@ -81,6 +81,13 @@ class PythonCodeAgentsTest {
                                       className: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
+                                  - name: "service1"
+                                    id: "service1"
+                                    type: "python-service"
+                                    configuration:
+                                      className: my.python.module.MyClass
+                                      config1: value1
+                                      config2: value2
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -140,6 +147,18 @@ class PythonCodeAgentsTest {
             assertEquals("value1", configuration.get("config1"));
             assertEquals("value2", configuration.get("config2"));
             assertEquals(ComponentType.SINK, step.getComponentType());
+        }
+        {
+            AgentNode agentImplementation =
+                    implementation.getAgentImplementation(module, "service1");
+            assertNotNull(agentImplementation);
+            DefaultAgentNode step = (DefaultAgentNode) agentImplementation;
+            Map<String, Object> configuration = step.getConfiguration();
+            log.info("Configuration: {}", configuration);
+            assertEquals("my.python.module.MyClass", configuration.get("className"));
+            assertEquals("value1", configuration.get("config1"));
+            assertEquals("value2", configuration.get("config2"));
+            assertEquals(ComponentType.SERVICE, step.getComponentType());
         }
     }
 }

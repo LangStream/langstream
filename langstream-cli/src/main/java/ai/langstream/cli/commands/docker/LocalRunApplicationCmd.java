@@ -372,6 +372,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-p");
         commandLine.add("8790:8790");
 
+        // python services (LangServe on uvicorn on port 8000)
+        commandLine.add("-p");
+        commandLine.add("8000:8000");
+
         if (memory != null && !memory.isEmpty()) {
             commandLine.add("--memory");
             commandLine.add(memory);

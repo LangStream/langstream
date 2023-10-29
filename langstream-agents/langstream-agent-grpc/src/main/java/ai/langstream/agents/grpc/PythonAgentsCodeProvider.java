@@ -35,6 +35,7 @@ public class PythonAgentsCodeProvider implements AgentCodeProvider {
             case "python-source" -> new PythonGrpcAgentSource();
             case "python-processor" -> new PythonGrpcAgentProcessor();
             case "python-sink" -> new PythonGrpcAgentSink();
+            case "python-service" -> new PythonGrpcAgentService();
             default -> throw new IllegalStateException("Unexpected agent type: " + agentType);
         };
     }

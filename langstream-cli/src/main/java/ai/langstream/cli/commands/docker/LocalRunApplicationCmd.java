@@ -148,7 +148,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--langstream-runtime-docker-image"},
-            description = "Docker image of the LangStream runtime to use")
+            description = "Docker image of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE}")
     private String dockerImageName;
 
     @CommandLine.Option(

@@ -37,6 +37,7 @@ import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PodResource;
@@ -493,5 +494,14 @@ public class KubernetesApplicationStore implements ApplicationStore {
             }
             return new StreamLogResult(onLogLine.onPodLogNotAvailable(), true);
         }
+    }
+
+    @Override
+    public String getExecutorServiceURI(String tenant, String applicationId, String executorId) {
+        // avoid Service looks up for performance
+        final String namespace = tenantToNamespace(tenant);
+        final String svcName =
+                AgentResourcesFactory.getAgentCustomResourceName(applicationId, executorId);
+        return KubeUtil.computeServiceUrl(svcName, namespace, 8000);
     }
 }

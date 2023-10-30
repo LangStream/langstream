@@ -130,6 +130,10 @@ public class ConsumeGateway implements AutoCloseable {
         reader.start();
     }
 
+    public void startReading(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
+        readMessages(stop, onMessage);
+    }
+
     public void startReadingAsync(
             Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
         if (requestContext == null || reader == null) {

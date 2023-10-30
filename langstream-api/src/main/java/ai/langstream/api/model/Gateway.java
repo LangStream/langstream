@@ -148,6 +148,9 @@ public final class Gateway {
     @AllArgsConstructor
     public static class ServiceOptions {
 
+        @JsonProperty("agent-id")
+        private String agentId;
+
         @JsonProperty("input-topic")
         private String inputTopic;
 

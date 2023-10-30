@@ -94,6 +94,13 @@ abstract class GatewayResourceTest {
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
+        wireMock.register(
+                WireMock.get("/agent-endpoint/custom-path")
+                        .willReturn(WireMock.ok("agent response")));
+
+        wireMock.register(
+                WireMock.get("/agent-endpoint")
+                        .willReturn(WireMock.ok("agent response ROOT")));
         ApplicationStore mock = Mockito.mock(ApplicationStore.class);
         doAnswer(
                         invocationOnMock -> {
@@ -491,7 +498,7 @@ abstract class GatewayResourceTest {
                                         .id("svc")
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
-                                                new Gateway.ServiceOptions(topic, topic, List.of()))
+                                                new Gateway.ServiceOptions(null, topic, topic, List.of()))
                                         .build()));
 
         final String url =

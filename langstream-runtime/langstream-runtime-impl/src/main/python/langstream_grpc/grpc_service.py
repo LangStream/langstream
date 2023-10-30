@@ -407,7 +407,7 @@ class AgentServer(object):
 
     def start(self):
         call_method_if_exists(self.agent, "start")
-        main_exists = call_method_new_thread_if_exists(
+        call_method_new_thread_if_exists(
             self.agent, "main", crash_process
         )
 

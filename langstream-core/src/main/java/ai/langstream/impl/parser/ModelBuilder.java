@@ -596,6 +596,20 @@ public class ModelBuilder {
                 throw new IllegalArgumentException(
                         "Gateway of type 'service' cannot have chat-options");
             }
+            final Gateway.ServiceOptions serviceOptions = gateway.getServiceOptions();
+            if (serviceOptions == null) {
+                throw new IllegalArgumentException("Gateway of type 'service' must have service-options");
+            }
+
+            if (serviceOptions.getInputTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options.input-topic");
+            }
+
+            if (serviceOptions.getOutputTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options.output-topic");
+            }
         }
     }
 

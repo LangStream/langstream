@@ -71,12 +71,8 @@ public class GatewayResource {
             @RequestBody ProduceRequest produceRequest)
             throws ProduceGateway.ProduceException {
 
-        final Map<String, String> queryString =
-                request.getParameterMap().keySet().stream()
-                        .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
-        final Map<String, String> headers = new HashMap<>();
-        request.getHeaderNames()
-                .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
+        final Map<String, String> queryString = computeQueryString(request);
+        final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
                 gatewayRequestHandler.validateRequest(
                         tenant,
@@ -107,6 +103,13 @@ public class GatewayResource {
         }
     }
 
+    private Map<String, String> computeHeaders(WebRequest request) {
+        final Map<String, String> headers = new HashMap<>();
+        request.getHeaderNames()
+                .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
+        return headers;
+    }
+
 
     @PostMapping(
             value = "/service/{tenant}/{application}/{gateway}",
@@ -120,12 +123,8 @@ public class GatewayResource {
             @RequestBody ProduceRequest produceRequest)
             throws ProduceGateway.ProduceException {
 
-        final Map<String, String> queryString =
-                request.getParameterMap().keySet().stream()
-                        .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
-        final Map<String, String> headers = new HashMap<>();
-        request.getHeaderNames()
-                .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
+        final Map<String, String> queryString = computeQueryString(request);
+        final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
                 gatewayRequestHandler.validateRequest(
                         tenant,
@@ -179,5 +178,12 @@ public class GatewayResource {
             produceGateway.produceMessage(produceRequest);
         }
 
+    }
+
+    private Map<String, String> computeQueryString(WebRequest request) {
+        final Map<String, String> queryString =
+                request.getParameterMap().keySet().stream()
+                        .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
+        return queryString;
     }
 }

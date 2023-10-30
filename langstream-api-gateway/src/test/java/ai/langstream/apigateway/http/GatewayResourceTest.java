@@ -30,6 +30,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -422,10 +423,27 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/service/tenant1/application1/svc"
                         .formatted(port);
 
-        assertEquals("{\"record\":{\"key\":\"my-key\",\"value\":\"my-value\",\"headers\":{}},"
-                     + "\"offset\":\"eyJvZmZzZXRzIjp7IjAiOiIxIn19\"}", produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+        assertMessageContent(new MsgRecord("my-key", "my-value", Map.of()), produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+        assertMessageContent(new MsgRecord("my-key2", "my-value", Map.of()), produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+        assertMessageContent(new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")), produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
 
     }
+
+    private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
+
+    @SneakyThrows
+    private void assertMessageContent(MsgRecord expected, String actual) {
+        ConsumePushMessage consume =
+                MAPPER.readValue(actual, ConsumePushMessage.class);
+        final MsgRecord actualMsgRecord = new MsgRecord(
+                consume.record().key(),
+                consume.record().value(),
+                consume.record().headers());
+
+        assertEquals(expected, actualMsgRecord);
+    }
+
 
 
 

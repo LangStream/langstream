@@ -153,8 +153,7 @@ public class ConsumeGateway implements AutoCloseable {
                         executor);
     }
 
-    protected void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage)
-            throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
         while (true) {
             if (interrupted) {
                 return;

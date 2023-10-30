@@ -275,6 +275,12 @@ public class InMemoryApplicationStore implements ApplicationStore {
     }
 
     @Override
+    public String getExecutorServiceURI(String tenant, String applicationId, String executorId) {
+        notSupported();
+        return null;
+    }
+
+    @Override
     public String storeType() {
         return "memory";
     }

@@ -19,6 +19,7 @@ import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
@@ -27,12 +28,19 @@ import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import jakarta.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,15 +49,21 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/gateways")
@@ -57,9 +71,18 @@ import org.springframework.web.server.ResponseStatusException;
 @AllArgsConstructor
 public class GatewayResource {
 
+    protected static final String GATEWAY_SERVICE_PATH =
+            "/service/{tenant}/{application}/{gateway}/**";
+    protected static final ObjectMapper MAPPER = new ObjectMapper();
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final TopicProducerCache topicProducerCache;
+    private final ApplicationStore applicationStore;
     private final GatewayRequestHandler gatewayRequestHandler;
+    private final ExecutorService httpClientThreadPool =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("http-client-%d").build());
+    private final HttpClient httpClient =
+            HttpClient.newBuilder().executor(httpClientThreadPool).build();
     private final ExecutorService consumeThreadPool =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build());
@@ -114,18 +137,57 @@ public class GatewayResource {
         return headers;
     }
 
-    @PostMapping(
-            value = "/service/{tenant}/{application}/{gateway}",
-            consumes = MediaType.APPLICATION_JSON_VALUE)
-    void service(
+    @PostMapping(value = GATEWAY_SERVICE_PATH)
+    CompletableFuture<ResponseEntity> service(
             WebRequest request,
-            HttpServletResponse response,
+            HttpServletRequest servletRequest,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("application") String application,
-            @NotBlank @PathVariable("gateway") String gateway,
-            @RequestBody ProduceRequest produceRequest)
-            throws ProduceGateway.ProduceException {
+            @NotBlank @PathVariable("gateway") String gateway)
+            throws Exception {
+        return handleServiceCall(request, servletRequest, tenant, application, gateway);
+    }
 
+    @GetMapping(value = GATEWAY_SERVICE_PATH)
+    CompletableFuture<ResponseEntity> serviceGet(
+            WebRequest request,
+            HttpServletRequest servletRequest,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("application") String application,
+            @NotBlank @PathVariable("gateway") String gateway)
+            throws Exception {
+        return handleServiceCall(request, servletRequest, tenant, application, gateway);
+    }
+
+    @PutMapping(value = GATEWAY_SERVICE_PATH)
+    CompletableFuture<ResponseEntity> servicePut(
+            WebRequest request,
+            HttpServletRequest servletRequest,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("application") String application,
+            @NotBlank @PathVariable("gateway") String gateway)
+            throws Exception {
+        return handleServiceCall(request, servletRequest, tenant, application, gateway);
+    }
+
+    @DeleteMapping(value = GATEWAY_SERVICE_PATH)
+    CompletableFuture<ResponseEntity> serviceDelete(
+            WebRequest request,
+            HttpServletRequest servletRequest,
+            @NotBlank @PathVariable("tenant") String tenant,
+            @NotBlank @PathVariable("application") String application,
+            @NotBlank @PathVariable("gateway") String gateway)
+            throws Exception {
+        return handleServiceCall(request, servletRequest, tenant, application, gateway);
+    }
+
+    private CompletableFuture<ResponseEntity> handleServiceCall(
+            WebRequest request,
+            HttpServletRequest servletRequest,
+            String tenant,
+            String application,
+            String gateway)
+            throws IOException {
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
@@ -136,14 +198,42 @@ public class GatewayResource {
                         Gateway.GatewayType.service,
                         queryString,
                         headers,
-                        new ProduceGateway.ProduceGatewayRequestValidator());
+                        new GatewayRequestHandler.GatewayRequestValidator() {
+                            @Override
+                            public List<String> getAllRequiredParameters(Gateway gateway) {
+                                return List.of();
+                            }
+
+                            @Override
+                            public void validateOptions(Map<String, String> options) {}
+                        });
         final AuthenticatedGatewayRequestContext authContext;
         try {
             authContext = gatewayRequestHandler.authenticate(context);
         } catch (GatewayRequestHandler.AuthFailedException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
+        if (context.gateway().getServiceOptions().getAgentId() != null) {
+            final String uri =
+                    applicationStore.getExecutorServiceURI(
+                            context.tenant(),
+                            context.applicationId(),
+                            context.gateway().getServiceOptions().getAgentId());
+            return forwardTo(uri, servletRequest.getMethod(), servletRequest);
+        } else {
+            if (!servletRequest.getMethod().equalsIgnoreCase("post")) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Only POST method is supported");
+            }
+            final ProduceRequest produceRequest =
+                    MAPPER.readValue(servletRequest.getInputStream(), ProduceRequest.class);
+            return handleServiceWithTopics(produceRequest, authContext);
+        }
+    }
 
+    private CompletableFuture<ResponseEntity> handleServiceWithTopics(
+            ProduceRequest produceRequest, AuthenticatedGatewayRequestContext authContext) {
+        final CompletableFuture<ResponseEntity> completableFuture = new CompletableFuture<>();
         try (final ConsumeGateway consumeGateway =
                         new ConsumeGateway(
                                 topicConnectionsRuntimeRegistryProvider
@@ -168,13 +258,7 @@ public class GatewayResource {
                         () -> stop.get(),
                         record -> {
                             stop.set(true);
-                            try {
-                                response.getWriter().print(record);
-                                response.getWriter().flush();
-                                response.getWriter().close();
-                            } catch (IOException ioException) {
-                                throw new RuntimeException(ioException);
-                            }
+                            completableFuture.complete(ResponseEntity.ok(record));
                         });
             } catch (Exception ex) {
                 log.error("Error while setting up consume gateway", ex);
@@ -184,7 +268,10 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(serviceOptions, authContext);
             produceGateway.start(serviceOptions.getOutputTopic(), commonHeaders, authContext);
             produceGateway.produceMessage(produceRequest);
+        } catch (Throwable t) {
+            completableFuture.completeExceptionally(t);
         }
+        return completableFuture;
     }
 
     private Map<String, String> computeQueryString(WebRequest request) {
@@ -192,5 +279,82 @@ public class GatewayResource {
                 request.getParameterMap().keySet().stream()
                         .collect(Collectors.toMap(k -> k, k -> request.getParameter(k)));
         return queryString;
+    }
+
+    private CompletableFuture<ResponseEntity> forwardTo(
+            String agentURI, String method, HttpServletRequest request) {
+        try {
+            String requestUrl = request.getRequestURI();
+            final String[] parts = requestUrl.split("/", 8);
+            final List<String> partsList =
+                    Arrays.stream(parts).filter(s -> !s.isBlank()).collect(Collectors.toList());
+
+            // /api/gateways/service/tenant/application/gateway/<part>
+            if (partsList.size() > 6) {
+                requestUrl = "/" + partsList.get(6);
+            } else {
+                requestUrl = "/";
+            }
+            final URI uri =
+                    UriComponentsBuilder.fromUri(URI.create(agentURI))
+                            .path(requestUrl)
+                            .query(request.getQueryString())
+                            .build(true)
+                            .toUri();
+            log.debug("Forwarding service request to {}, method {}", uri, method);
+
+            final HttpRequest.Builder requestBuilder =
+                    HttpRequest.newBuilder(uri)
+                            .version(HttpClient.Version.HTTP_1_1)
+                            .method(
+                                    method,
+                                    HttpRequest.BodyPublishers.ofInputStream(
+                                            () -> {
+                                                try {
+                                                    return request.getInputStream();
+                                                } catch (IOException e) {
+                                                    throw new RuntimeException(e);
+                                                }
+                                            }));
+
+            request.getHeaderNames()
+                    .asIterator()
+                    .forEachRemaining(
+                            h -> {
+                                switch (h) {
+                                        // from jdk.internal.net.http.common.Utils
+                                    case "connection":
+                                    case "content-length":
+                                    case "expect":
+                                    case "host":
+                                    case "upgrade":
+                                        return;
+                                    default:
+                                        requestBuilder.header(h, request.getHeader(h));
+                                        break;
+                                }
+                            });
+
+            final HttpRequest httpRequest = requestBuilder.build();
+            return httpClient
+                    .sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream())
+                    .thenApply(
+                            remoteResponse -> {
+                                final ResponseEntity.BodyBuilder responseBuilder =
+                                        ResponseEntity.status(remoteResponse.statusCode());
+                                remoteResponse
+                                        .headers()
+                                        .map()
+                                        .forEach(
+                                                (k, v) -> {
+                                                    responseBuilder.header(k, v.get(0));
+                                                });
+
+                                return responseBuilder.body(
+                                        new InputStreamResource(remoteResponse.body()));
+                            });
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
     }
 }

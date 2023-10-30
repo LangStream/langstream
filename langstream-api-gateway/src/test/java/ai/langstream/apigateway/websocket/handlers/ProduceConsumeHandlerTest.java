@@ -37,11 +37,11 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ConsumePushMessage;
+import ai.langstream.apigateway.api.ProduceRequest;
+import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
-import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
-import ai.langstream.apigateway.websocket.api.ProduceRequest;
-import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1295,12 +1296,13 @@ abstract class ProduceConsumeHandlerTest {
 
         CountDownLatch consumerReady = new CountDownLatch(1);
         CountDownLatch countDownLatch = new CountDownLatch(5);
-        List<String> messages = new ArrayList<>();
+        List<String> messages = new CopyOnWriteArrayList<>();
         try (final TestWebSocketClient consumerClient =
                 new TestWebSocketClient(
                                 new TestWebSocketClient.Handler() {
                                     @Override
                                     public void onMessage(String msg) {
+                                        log.info("got message: {}", msg);
                                         messages.add(msg);
                                         countDownLatch.countDown();
                                     }
@@ -1346,7 +1348,7 @@ abstract class ProduceConsumeHandlerTest {
                     .close();
 
             countDownLatch.await();
-            System.out.println("got messages: " + messages);
+            log.info("got messages: {}", messages);
 
             ConsumePushMessage msg = MAPPER.readValue(messages.get(0), ConsumePushMessage.class);
             EventRecord event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);

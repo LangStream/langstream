@@ -120,23 +120,96 @@ class ModelBuilderTest {
                                         "gateways.yaml",
                                         """
                                 gateways:
-                                - id: gw
+                                - id: g1
                                   type: produce
                                   topic: t1
                                   authentication:
                                     provider: google
                                     configuration: {}
+                                  produce-options:
+                                    headers:
+                                    - value-from-parameters: v1
+                                - id: g2
+                                  type: consume
+                                  topic: t1
+                                  parameters:
+                                  - p1
+                                  authentication:
+                                    provider: github
+                                    configuration: {}
+                                  consume-options:
+                                    filters:
+                                        headers:
+                                        - value-from-parameters: v1
+                                - id: g3
+                                  type: chat
+                                  authentication:
+                                    provider: github
+                                    configuration: {}
+                                  chat-options:
+                                    questions-topic: q
+                                    answers-topic: a
+                                    headers:
+                                    - value-from-parameters: v1
+                                - id: g4
+                                  type: service
+                                  authentication:
+                                    provider: github
+                                    configuration: {}
+                                  service-options:
+                                    input-topic: q
+                                    output-topic: a
+                                    headers:
+                                    - value-from-parameters: v1
                                 """),
                                 null,
                                 null)
                         .getApplication();
         final List<Gateway> gateways = applicationInstance.getGateways().gateways();
-        Assertions.assertEquals(1, gateways.size());
-        final Gateway gateway = gateways.get(0);
-        assertEquals("gw", gateway.getId());
-        assertEquals("t1", gateway.getTopic());
-        assertEquals("google", gateway.getAuthentication().getProvider());
-        assertTrue(gateway.getAuthentication().isAllowTestMode());
+        Assertions.assertEquals(4, gateways.size());
+        final Gateway gateway1 = gateways.get(0);
+        assertEquals("g1", gateway1.getId());
+        assertNull(gateway1.getParameters());
+        assertEquals("t1", gateway1.getTopic());
+        assertEquals("google", gateway1.getAuthentication().getProvider());
+        assertTrue(gateway1.getAuthentication().isAllowTestMode());
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway1.getProduceOptions().headers());
+
+        final Gateway gateway2 = gateways.get(1);
+        assertEquals("g2", gateway2.getId());
+        assertEquals(List.of("p1"), gateway2.getParameters());
+        assertEquals("t1", gateway2.getTopic());
+        assertEquals("github", gateway2.getAuthentication().getProvider());
+        assertTrue(gateway2.getAuthentication().isAllowTestMode());
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway2.getConsumeOptions().filters().headers());
+
+        final Gateway gateway3 = gateways.get(2);
+        assertEquals("g3", gateway3.getId());
+        assertNull(gateway3.getParameters());
+        assertNull(gateway3.getTopic());
+        assertEquals("github", gateway3.getAuthentication().getProvider());
+        assertTrue(gateway3.getAuthentication().isAllowTestMode());
+        assertEquals("q", gateway3.getChatOptions().getQuestionsTopic());
+        assertEquals("a", gateway3.getChatOptions().getAnswersTopic());
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway3.getChatOptions().getHeaders());
+
+        final Gateway gateway4 = gateways.get(3);
+        assertEquals("g4", gateway4.getId());
+        assertNull(gateway4.getParameters());
+        assertNull(gateway4.getTopic());
+        assertEquals("github", gateway4.getAuthentication().getProvider());
+        assertTrue(gateway4.getAuthentication().isAllowTestMode());
+        assertEquals("q", gateway4.getServiceOptions().getInputTopic());
+        assertEquals("a", gateway4.getServiceOptions().getOutputTopic());
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway4.getServiceOptions().getHeaders());
     }
 
     @Test

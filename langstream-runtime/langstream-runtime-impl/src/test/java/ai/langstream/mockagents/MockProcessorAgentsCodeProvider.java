@@ -20,6 +20,7 @@ import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentService;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -48,12 +49,15 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         return "mock-failing-processor".equals(agentType)
                 || "mock-failing-sink".equals(agentType)
                 || "mock-async-processor".equals(agentType)
+                || "mock-service".equals(agentType)
                 || "mock-stateful-processor".equals(agentType);
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
         switch (agentType) {
+            case "mock-service":
+                return new MockService();
             case "mock-failing-processor":
                 return new FailingProcessor();
             case "mock-failing-sink":
@@ -209,6 +213,35 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
     public static class InjectedFailure extends RuntimeException {
         public InjectedFailure(String message) {
             super(message);
+        }
+    }
+
+    public static class MockService extends AbstractAgentCode implements AgentService {
+
+        public static final AtomicInteger startCounters = new AtomicInteger();
+        public static final AtomicInteger joinCounter = new AtomicInteger();
+        public static final AtomicInteger closeCounter = new AtomicInteger();
+
+        public static void resetCounters() {
+            startCounters.set(0);
+            joinCounter.set(0);
+            closeCounter.set(0);
+        }
+
+        @Override
+        public void start() throws Exception {
+            log.info("Starting service");
+            startCounters.incrementAndGet();
+        }
+
+        @Override
+        public void join() throws Exception {
+            joinCounter.incrementAndGet();
+        }
+
+        @Override
+        public void close() throws Exception {
+            closeCounter.incrementAndGet();
         }
     }
 }

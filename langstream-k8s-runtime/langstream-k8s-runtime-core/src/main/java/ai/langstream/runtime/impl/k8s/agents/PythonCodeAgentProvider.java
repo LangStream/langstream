@@ -31,13 +31,19 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
 
     public PythonCodeAgentProvider() {
         super(
-                Set.of("python-source", "python-sink", "python-processor", "python-function"),
+                Set.of(
+                        "python-source",
+                        "python-sink",
+                        "python-processor",
+                        "python-function",
+                        "python-service"),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
     @Override
     protected final ComponentType getComponentType(AgentConfiguration agentConfiguration) {
         return switch (agentConfiguration.getType()) {
+            case "python-service" -> ComponentType.SERVICE;
             case "python-source" -> ComponentType.SOURCE;
             case "python-sink" -> ComponentType.SINK;
             case "python-processor", "python-function" -> ComponentType.PROCESSOR;
@@ -50,6 +56,7 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
     protected Class getAgentConfigModelClass(String type) {
         return switch (type) {
             case "python-source" -> PythonSourceConfig.class;
+            case "python-service" -> PythonServiceConfig.class;
             case "python-sink" -> PythonSinkConfig.class;
             case "python-processor", "python-function" -> PythonProcessorConfig.class;
             default -> throw new IllegalArgumentException("Unsupported agent type: " + type);
@@ -69,6 +76,15 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
                     All the configuration properties are available in the class init method.
                     """)
     public static class PythonSourceConfig extends PythonConfig {}
+
+    @AgentConfig(
+            name = "Python custom service",
+            description =
+                    """
+                    Run a your own Python service.
+                    All the configuration properties are available in the class init method.
+                    """)
+    public static class PythonServiceConfig extends PythonConfig {}
 
     @AgentConfig(
             name = "Python custom sink",

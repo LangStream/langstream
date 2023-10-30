@@ -26,6 +26,7 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
+    "Service",
     "AgentContext",
 ]
 
@@ -178,5 +179,21 @@ class Sink(Agent):
         For an asynchronous result, return a concurrent.futures.Future.
 
         :returns: nothing if the write is successful or a concurrent.futures.Future
+        """
+        pass
+
+
+class Service(Agent):
+    """The Service agent interface
+
+    A Service agent runs a standalone service without interacting with topics
+    """
+
+    @abstractmethod
+    def main(self):
+        """This method is called by the runtime to run the main code of the service.
+        This method is supposed to run forever.
+
+        :returns: nothing
         """
         pass

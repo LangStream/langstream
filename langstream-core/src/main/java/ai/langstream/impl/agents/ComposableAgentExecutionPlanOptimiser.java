@@ -45,6 +45,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         && agent1.isComposable()
                         && agentImplementation instanceof DefaultAgentNode agent2
                         && agent2.isComposable()
+                        && agent1.getComponentType() != ComponentType.SERVICE
+                        && agent2.getComponentType() != ComponentType.SERVICE
                         && Objects.equals(
                                 "true",
                                 agent1.getConfiguration().getOrDefault("composable", "true") + "")

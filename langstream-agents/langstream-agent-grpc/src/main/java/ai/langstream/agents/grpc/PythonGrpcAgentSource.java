@@ -33,7 +33,6 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
         server =
                 new PythonGrpcServer(
                         agentContext.getCodeDirectory(), configuration, agentId(), agentContext);
-        channel = server.start();
         try {
             channel = server.start();
         } catch (Exception err) {

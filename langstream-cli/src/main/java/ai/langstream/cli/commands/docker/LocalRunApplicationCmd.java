@@ -235,8 +235,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 log(
                         "Using default instance file that connects to the Kafka broker inside the docker container");
             } else {
-                throw new IllegalArgumentException(
-                        "instance file is required if broker is not started");
+                instanceContents = "instance:\n" + "  streamingCluster:\n" + "    type: \"noop\"\n";
+                log("The broker is disabled, you won't be able to use topics");
             }
         }
 
@@ -371,6 +371,10 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         // agent control
         commandLine.add("-p");
         commandLine.add("8790:8790");
+
+        // python services (LangServe on uvicorn on port 8000)
+        commandLine.add("-p");
+        commandLine.add("8000:8000");
 
         if (memory != null && !memory.isEmpty()) {
             commandLine.add("--memory");

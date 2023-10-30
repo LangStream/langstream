@@ -30,6 +30,7 @@ public record AgentSpec(
     public enum ComponentType {
         PROCESSOR,
         SOURCE,
-        SINK
+        SINK,
+        SERVICE
     }
 }

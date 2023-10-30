@@ -18,5 +18,6 @@ package ai.langstream.api.runtime;
 public enum ComponentType {
     PROCESSOR,
     SINK,
-    SOURCE
+    SOURCE,
+    SERVICE
 }

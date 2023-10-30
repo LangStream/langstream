@@ -23,6 +23,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,9 @@ public class ProduceHandler extends AbstractHandler {
 
     public ProduceHandler(
             ApplicationStore applicationStore,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
-        super(applicationStore, topicConnectionsRuntimeRegistry);
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            TopicProducerCache topicProducerCache) {
+        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
     }
 
     @Override

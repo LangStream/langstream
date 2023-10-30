@@ -13,8 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.websocket.api;
+package ai.langstream.runtime.impl.testagents;
 
-import java.util.Map;
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.impl.common.AbstractAgentProvider;
+import java.util.List;
+import java.util.Set;
 
-public record ProduceRequest(Object key, Object value, Map<String, String> headers) {}
+public class TestGenericServiceProvider extends AbstractAgentProvider {
+
+    public TestGenericServiceProvider() {
+        super(Set.of("generic-service"), List.of("none"));
+    }
+
+    @Override
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.SERVICE;
+    }
+}

@@ -19,6 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.ApplicationSpecs;
@@ -30,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -39,6 +43,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.micrometer.core.instrument.Metrics;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -54,13 +59,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -69,6 +79,9 @@ import org.springframework.boot.test.web.server.LocalServerPort;
         })
 @WireMockTest
 @Slf4j
+@AutoConfigureObservability
+@AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 abstract class GatewayResourceTest {
 
     public static final Path agentsDirectory;
@@ -156,6 +169,7 @@ abstract class GatewayResourceTest {
 
     @LocalServerPort int port;
 
+    @Autowired MockMvc mockMvc;
     @Autowired ApplicationStore store;
 
     static WireMock wireMock;
@@ -184,6 +198,11 @@ abstract class GatewayResourceTest {
         Awaitility.reset();
     }
 
+    @AfterEach
+    public void afterEach() {
+        Metrics.globalRegistry.clear();
+    }
+
     @SneakyThrows
     void produceAndExpectOk(String url, String content) {
         final HttpRequest request =
@@ -196,6 +215,19 @@ abstract class GatewayResourceTest {
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
+    }
+
+    @SneakyThrows
+    String produceAndGetBody(String url, String content) {
+        final HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(content))
+                        .build();
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
     }
 
     @SneakyThrows
@@ -252,6 +284,74 @@ abstract class GatewayResourceTest {
         produceAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
+    }
+
+    @Test
+    void testSimpleProduceCacheProducer() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("produce1")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("produce2")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
+
+        produceAndExpectOk(url + "1", "{\"key\": \"my-key\", \"value\": \"my-value\"}");
+        produceAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
+        produceAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
+        produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
+
+        final String metrics =
+                mockMvc.perform(get("/management/prometheus"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        final List<String> cacheMetrics =
+                metrics.lines()
+                        .filter(l -> l.contains("topic_producer_cache"))
+                        .collect(Collectors.toList());
+        System.out.println(cacheMetrics);
+        assertEquals(5, cacheMetrics.size());
+
+        for (String cacheMetric : cacheMetrics) {
+            if (cacheMetric.contains("cache_puts_total")) {
+                assertTrue(cacheMetric.contains("3.0"));
+            } else if (cacheMetric.contains("hit")) {
+                assertTrue(cacheMetric.contains("1.0"));
+            } else if (cacheMetric.contains("miss")) {
+                assertTrue(cacheMetric.contains("3.0"));
+            } else if (cacheMetric.contains("cache_size")) {
+                assertTrue(cacheMetric.contains("2.0"));
+            } else if (cacheMetric.contains("cache_evictions_total")) {
+                assertTrue(cacheMetric.contains("1.0"));
+            } else {
+                throw new RuntimeException(cacheMetric);
+            }
+        }
     }
 
     @Test
@@ -383,9 +483,54 @@ abstract class GatewayResourceTest {
         produceAndExpectOk(
                 baseUrl + "?test-credentials=test-user-password", "{\"value\": \"my-value\"}");
         produceAndExpectUnauthorized(
-                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test-user-password"
+                ("http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test"
+                                + "-user-password")
                         .formatted(port),
                 "{\"value\": \"my-value\"}");
+    }
+
+    @Test
+    void testService() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(topic, topic, List.of()))
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
+
+        assertMessageContent(
+                new MsgRecord("my-key", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
+                produceAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+    }
+
+    private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
+
+    @SneakyThrows
+    private void assertMessageContent(MsgRecord expected, String actual) {
+        ConsumePushMessage consume = MAPPER.readValue(actual, ConsumePushMessage.class);
+        final MsgRecord actualMsgRecord =
+                new MsgRecord(
+                        consume.record().key(),
+                        consume.record().value(),
+                        consume.record().headers());
+
+        assertEquals(expected, actualMsgRecord);
     }
 
     protected abstract StreamingCluster getStreamingCluster();

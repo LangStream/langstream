@@ -815,6 +815,7 @@
         <module>langstream-kafka</module>
         <module>langstream-kafka-runtime</module>
         <module>langstream-pravega</module>
+        <module>langstream-pravega-runtime</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-providers</module>
         <module>langstream-webservice</module>
@@ -845,6 +846,7 @@
         <module>langstream-kafka</module>
         <module>langstream-kafka-runtime</module>
         <module>langstream-pravega</module>
+        <module>langstream-pravega-runtime</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-providers</module>
         <module>langstream-k8s-storage</module>

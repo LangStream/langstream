@@ -17,4 +17,11 @@ package ai.langstream.pravega;
 
 import java.util.Map;
 
-public record PravegaClusterRuntimeConfiguration(Map<String, Object> client) {}
+public record PravegaClusterRuntimeConfiguration(Map<String, Object> client) {
+
+    public PravegaClusterRuntimeConfiguration {
+        if (client == null) {
+            client = Map.of();
+        }
+    }
+}

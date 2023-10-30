@@ -1,1 +1,1 @@
-ai.langstream.pulsar.PulsarStreamingClusterRuntimeProvider
+ai.langstream.pravega.PulsarStreamingClusterRuntimeProvider

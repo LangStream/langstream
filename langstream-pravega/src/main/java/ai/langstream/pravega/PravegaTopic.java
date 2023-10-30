@@ -24,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public record PravegaTopic(
         String name,
+        String scope,
+        int partitions,
         String createMode,
         String deleteMode,
         boolean implicit,
@@ -37,6 +39,9 @@ public record PravegaTopic(
             options = new HashMap<>();
         } else {
             options = new HashMap<>(options);
+        }
+        if (partitions < 0) {
+            partitions = 1;
         }
     }
 

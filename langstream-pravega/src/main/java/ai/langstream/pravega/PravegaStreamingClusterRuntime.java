@@ -39,8 +39,10 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
 
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
+        String scope = "langstream";
         return new PravegaTopic(
                 name,
+                scope,
                 creationMode,
                 topicDefinition.getDeletionMode(),
                 topicDefinition.isImplicit(),

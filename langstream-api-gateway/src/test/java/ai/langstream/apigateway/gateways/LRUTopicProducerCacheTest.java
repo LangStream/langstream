@@ -74,25 +74,17 @@ class LRUTopicProducerCacheTest {
                 };
         final TopicProducer first =
                 cache.getOrCreate(
-                        newKey("tenant", "application", "gatewayId"),
-                        topicProducerSupplier);
-        cache.getOrCreate(
-                newKey("tenant", "application", "gatewayId"),
-                topicProducerSupplier);
-        cache.getOrCreate(
-                newKey("tenant", "application", "gatewayId"),
-                topicProducerSupplier);
+                        newKey("tenant", "application", "gatewayId"), topicProducerSupplier);
+        cache.getOrCreate(newKey("tenant", "application", "gatewayId"), topicProducerSupplier);
+        cache.getOrCreate(newKey("tenant", "application", "gatewayId"), topicProducerSupplier);
 
         final TopicProducer second =
                 cache.getOrCreate(
-                        newKey("tenant", "application", "gatewayId2"),
-                        topicProducerSupplier);
+                        newKey("tenant", "application", "gatewayId2"), topicProducerSupplier);
 
         assertEquals(2, initCounter.get());
         assertEquals(0, closeCounter.get());
-        cache.getOrCreate(
-                newKey("tenant", "application", "gatewayId3"),
-                topicProducerSupplier);
+        cache.getOrCreate(newKey("tenant", "application", "gatewayId3"), topicProducerSupplier);
         assertEquals(3, initCounter.get());
         assertEquals(0, closeCounter.get());
         first.close();
@@ -103,9 +95,7 @@ class LRUTopicProducerCacheTest {
         assertEquals(1, closeCounter.get());
 
         assertEquals(2, cache.getCache().size());
-        cache.getOrCreate(
-                newKey("tenant", "application", "gatewayId"),
-                topicProducerSupplier);
+        cache.getOrCreate(newKey("tenant", "application", "gatewayId"), topicProducerSupplier);
         assertEquals(4, initCounter.get());
         assertEquals(2, cache.getCache().size());
         assertEquals(1, closeCounter.get());
@@ -138,22 +128,19 @@ class LRUTopicProducerCacheTest {
                                 for (int j = 0; j < 100; j++) {
                                     final TopicProducer prod0 =
                                             cache.getOrCreate(
-                                                    newKey(
-                                                            "tenant", "application", "gatewayId"),
+                                                    newKey("tenant", "application", "gatewayId"),
                                                     topicProducerSupplier);
                                     prod0.write(SimpleRecord.of("key", "value"));
                                     prod0.close();
                                     final TopicProducer prod1 =
                                             cache.getOrCreate(
-                                                    newKey(
-                                                            "tenant", "application", "gatewayId1"),
+                                                    newKey("tenant", "application", "gatewayId1"),
                                                     topicProducerSupplier);
                                     prod1.write(SimpleRecord.of("key", "value"));
                                     prod1.close();
                                     final TopicProducer prod2 =
                                             cache.getOrCreate(
-                                                    newKey(
-                                                            "tenant", "application", "gatewayId2"),
+                                                    newKey("tenant", "application", "gatewayId2"),
                                                     topicProducerSupplier);
                                     prod2.write(SimpleRecord.of("key", "value"));
                                     prod2.close();
@@ -165,7 +152,8 @@ class LRUTopicProducerCacheTest {
         assertEquals(initCounter.get() - 2, closeCounter.get());
     }
 
-    private static TopicProducerCache.Key newKey(String tenant, String application, String gateway) {
+    private static TopicProducerCache.Key newKey(
+            String tenant, String application, String gateway) {
         return new TopicProducerCache.Key(tenant, application, gateway, null, null);
     }
 }

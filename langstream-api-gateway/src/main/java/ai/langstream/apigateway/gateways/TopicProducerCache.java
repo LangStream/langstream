@@ -19,7 +19,12 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import java.util.function.Supplier;
 
 public interface TopicProducerCache {
-    record Key(String tenant, String application, String gatewayId, String topic, String configString) {}
+    record Key(
+            String tenant,
+            String application,
+            String gatewayId,
+            String topic,
+            String configString) {}
 
     TopicProducer getOrCreate(Key key, Supplier<TopicProducer> topicProducerSupplier);
 }

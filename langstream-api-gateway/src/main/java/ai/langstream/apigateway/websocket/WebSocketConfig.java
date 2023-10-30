@@ -51,9 +51,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final TopicProducerCache topicProducerCache;
-    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool(
-            new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build()
-    );
+    private final ExecutorService consumeThreadPool =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build());
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

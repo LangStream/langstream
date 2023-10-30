@@ -41,8 +41,8 @@ import org.apache.commons.lang3.tuple.Pair;
 @Slf4j
 public class ProduceGateway implements AutoCloseable {
 
-    protected static final ObjectMapper mapper = new ObjectMapper()
-            .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    protected static final ObjectMapper mapper =
+            new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     @Getter
     public static class ProduceException extends Exception {
@@ -103,18 +103,18 @@ public class ProduceGateway implements AutoCloseable {
                                 requestContext.gateway().getId());
         this.commonHeaders = commonHeaders == null ? List.of() : commonHeaders;
 
-        final StreamingCluster streamingCluster = requestContext
-                .application()
-                .getInstance()
-                .streamingCluster();
+        final StreamingCluster streamingCluster =
+                requestContext.application().getInstance().streamingCluster();
         final String configString;
         try {
             configString =
-                    mapper.writeValueAsString(Pair.of(streamingCluster.type(), streamingCluster.configuration()));
+                    mapper.writeValueAsString(
+                            Pair.of(streamingCluster.type(), streamingCluster.configuration()));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        // we need to cache the producer per topic and per config, since an application update could change the configuration
+        // we need to cache the producer per topic and per config, since an application update could
+        // change the configuration
         final TopicProducerCache.Key key =
                 new TopicProducerCache.Key(
                         requestContext.tenant(),
@@ -123,12 +123,7 @@ public class ProduceGateway implements AutoCloseable {
                         topic,
                         configString);
         producer =
-                topicProducerCache.getOrCreate(
-                        key,
-                        () ->
-                                setupProducer(
-                                        topic,
-                                        streamingCluster));
+                topicProducerCache.getOrCreate(key, () -> setupProducer(topic, streamingCluster));
     }
 
     protected TopicProducer setupProducer(String topic, StreamingCluster streamingCluster) {

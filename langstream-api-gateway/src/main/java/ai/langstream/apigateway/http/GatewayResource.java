@@ -60,9 +60,9 @@ public class GatewayResource {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final TopicProducerCache topicProducerCache;
     private final GatewayRequestHandler gatewayRequestHandler;
-    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool(
-            new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build()
-    );
+    private final ExecutorService consumeThreadPool =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build());
 
     @PostMapping(
             value = "/produce/{tenant}/{application}/{gateway}",

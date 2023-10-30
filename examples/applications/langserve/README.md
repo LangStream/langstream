@@ -6,7 +6,7 @@ This sample application shows how to execute a LangServe application.
 
 Export to the ENV the access key to OpenAI
 
-```
+```bash
 export OPEN_AI_ACCESS_KEY=...
 ```
 
@@ -14,10 +14,19 @@ The default [secrets file](../../secrets/secrets.yaml) reads from the ENV. Check
 the default settings, you can change them by exporting other ENV variables.
 
 
+# Configure LangSmith (optional)
+
+You can also connect to LangSmith by setting some environment variables
+
+```bash
+export LANGSMITH_API_URL=https://api.smith.langchain.com
+export LANGSMITH_APIKEY=xxxxx
+```
+
 ## Deploy the LangStream application
 
 ```
-./bin/langstream docker run test -app examples/applications/python/python-service-langserve -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/langserve -s examples/secrets/secrets.yaml --start-broker=false
 ```
 
 ## Interact with the application

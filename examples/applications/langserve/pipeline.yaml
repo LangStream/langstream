@@ -25,3 +25,9 @@ pipeline:
       environment:
         - key: "OPENAI_API_KEY"
           value: "${secrets.open-ai.access-key}"
+        - key: "LANGCHAIN_TRACING_V2"
+          value: "true"
+        - key: "LANGCHAIN_ENDPOINT"
+          value: "${ secrets.lang-smith.api-url }"
+        - key: "LANGCHAIN_API_KEY"
+          value: "${ secrets.lang-smith.api-key }"

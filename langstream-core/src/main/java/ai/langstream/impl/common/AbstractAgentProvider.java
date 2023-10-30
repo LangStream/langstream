@@ -224,6 +224,21 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         executionPlan,
                         clusterRuntime,
                         streamingClusterRuntime);
+        if (componentType == ComponentType.SERVICE) {
+            if (input != null) {
+                throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have an input");
+            }
+            if (output != null) {
+                throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have an output");
+            }
+            if (agentConfiguration.getErrors() != null) {
+                if (agentConfiguration.getErrors().getRetries() != null
+                         && agentConfiguration.getErrors().getRetries() > 0
+                ) {
+                    throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have retries");
+                }
+            }
+        }
         boolean composable = isComposable(agentConfiguration);
         Map<String, DiskSpec> disks =
                 computeDisks(

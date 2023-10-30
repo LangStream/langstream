@@ -31,7 +31,7 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
 
     public PythonCodeAgentProvider() {
         super(
-                Set.of("python-source", "python-sink", "python-processor", "python-function"),
+                Set.of("python-source", "python-sink", "python-processor", "python-function", "python-service"),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 

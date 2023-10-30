@@ -22,7 +22,7 @@ import java.util.Set;
 public class PythonAgentsCodeProvider implements AgentCodeProvider {
 
     private static final Set<String> SUPPORTED_AGENT_TYPES =
-            Set.of("python-source", "python-processor", "python-sink");
+            Set.of("python-source", "python-processor", "python-sink", "python-service");
 
     @Override
     public boolean supports(String agentType) {

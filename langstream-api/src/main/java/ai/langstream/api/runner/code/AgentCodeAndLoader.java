@@ -35,6 +35,10 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
         return agentCode instanceof AgentProcessor;
     }
 
+    public boolean isService() {
+        return agentCode instanceof AgentService;
+    }
+
     public boolean is(Predicate<AgentCode> predicate) {
         return predicate.test(agentCode);
     }
@@ -268,6 +272,69 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             public ComponentType componentType() {
                 return callNoExceptionWithContextClassloader(AgentCode::componentType);
             }
+        };
+    }
+
+    public AgentService asService() {
+
+        return new AgentService() {
+
+            @Override
+            public String agentId() {
+                return callNoExceptionWithContextClassloader(AgentCode::agentId);
+            }
+
+            @Override
+            public String agentType() {
+                return callNoExceptionWithContextClassloader(AgentCode::agentType);
+            }
+
+            @Override
+            public List<AgentStatusResponse> getAgentStatus() {
+                return callNoExceptionWithContextClassloader(AgentCode::getAgentStatus);
+            }
+
+            @Override
+            public void setMetadata(String id, String agentType, long startedAt) throws Exception {
+                executeWithContextClassloader(
+                        agentCode -> agentCode.setMetadata(id, agentType, startedAt));
+            }
+
+            @Override
+            public void init(Map<String, Object> configuration) throws Exception {
+                executeWithContextClassloader(agentCode -> agentCode.init(configuration));
+            }
+
+            @Override
+            public void setContext(AgentContext context) throws Exception {
+                executeWithContextClassloader(agentCode -> agentCode.setContext(context));
+            }
+
+            @Override
+            public void start() throws Exception {
+                executeWithContextClassloader(AgentCode::start);
+            }
+
+            @Override
+            public void join() throws Exception {
+                executeWithContextClassloader(agentCode -> ((AgentService) agentCode).join());
+            }
+
+            @Override
+            public void close() throws Exception {
+                executeWithContextClassloader(AgentCode::close);
+            }
+
+            @Override
+            public void restart() throws Exception {
+                executeWithContextClassloader(AgentCode::restart);
+            }
+
+            @Override
+            public ComponentType componentType() {
+                return callNoExceptionWithContextClassloader(AgentCode::componentType);
+            }
+
         };
     }
 

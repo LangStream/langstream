@@ -18,6 +18,6 @@
 gateways:
 
 #  - id: chatbot
-#    type: http-service
-#    agent: default.service1
+#    type: service
+#    agent: service1
 

@@ -24,4 +24,9 @@ public interface AgentService extends AgentCode {
     default ComponentType componentType() {
         return ComponentType.SERVICE;
     }
+
+    /**
+     * Wait for the service to exit
+     */
+    void join() throws Exception;
 }

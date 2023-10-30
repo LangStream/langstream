@@ -41,4 +41,9 @@ public class GrpcAgentService extends AbstractGrpcAgent implements AgentService 
 
     @Override
     public void onNewSchemaToSend(Schema schema) {}
+
+    @Override
+    public void join() throws Exception {
+        Thread.sleep(Long.MAX_VALUE);
+    }
 }

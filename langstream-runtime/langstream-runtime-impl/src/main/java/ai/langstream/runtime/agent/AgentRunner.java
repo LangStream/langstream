@@ -24,6 +24,7 @@ import ai.langstream.api.runner.code.AgentCodeAndLoader;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentService;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.AgentStatusResponse;
@@ -296,44 +297,54 @@ public class AgentRunner {
             try (TopicAdmin topicAdmin =
                     topicConnectionsRuntime.createTopicAdmin(
                             agentId, configuration.streamingCluster(), configuration.output())) {
-                AgentProcessor mainProcessor;
-                if (agentCodeWithLoader.isProcessor()) {
-                    mainProcessor = agentCodeWithLoader.asProcessor();
-                } else {
-                    mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
-                    mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
-                }
-                agentAPIController.watchProcessor(mainProcessor);
 
+                AgentService mainService = null;
+                AgentProcessor mainProcessor = null;
                 AgentSource source = null;
-                if (agentCodeWithLoader.isSource()) {
-                    source = agentCodeWithLoader.asSource();
-                } else if (agentCodeWithLoader.is(
-                        code -> code instanceof CompositeAgentProcessor)) {
-                    source =
-                            ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
-                }
-
-                if (source == null) {
-                    source = new TopicConsumerSource(consumer, deadLetterProducer);
-                    source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
-                    source.init(Map.of());
-                }
-                agentAPIController.watchSource(source);
-
                 AgentSink sink = null;
-                if (agentCodeWithLoader.isSink()) {
-                    sink = agentCodeWithLoader.asSink();
-                } else if (agentCodeWithLoader.is(
-                        code -> code instanceof CompositeAgentProcessor)) {
-                    sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
+
+                if (agentCodeWithLoader.isService()) {
+                    mainService = agentCodeWithLoader.asService();
+                    agentAPIController.watchService(mainService);
+                } else {
+                    if (agentCodeWithLoader.isProcessor()) {
+                        mainProcessor = agentCodeWithLoader.asProcessor();
+                    } else {
+                        mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
+                        mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
+                    }
+                    agentAPIController.watchProcessor(mainProcessor);
+
+
+                    if (agentCodeWithLoader.isSource()) {
+                        source = agentCodeWithLoader.asSource();
+                    } else if (agentCodeWithLoader.is(
+                            code -> code instanceof CompositeAgentProcessor)) {
+                        source =
+                                ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
+                    }
+
+                    if (source == null) {
+                        source = new TopicConsumerSource(consumer, deadLetterProducer);
+                        source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
+                        source.init(Map.of());
+                    }
+                    agentAPIController.watchSource(source);
+
+
+                    if (agentCodeWithLoader.isSink()) {
+                        sink = agentCodeWithLoader.asSink();
+                    } else if (agentCodeWithLoader.is(
+                            code -> code instanceof CompositeAgentProcessor)) {
+                        sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
+                    }
+                    if (sink == null) {
+                        sink = new TopicProducerSink(producer);
+                        sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
+                        sink.init(Map.of());
+                    }
+                    agentAPIController.watchSink(sink);
                 }
-                if (sink == null) {
-                    sink = new TopicProducerSink(producer);
-                    sink.setMetadata("topic-sink", "topic-sink", System.currentTimeMillis());
-                    sink.init(Map.of());
-                }
-                agentAPIController.watchSink(sink);
 
                 String onBadRecord =
                         configuration
@@ -387,26 +398,38 @@ public class AgentRunner {
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
-                    PendingRecordsCounterSource pendingRecordsCounterSource =
-                            new PendingRecordsCounterSource(source, sink.handlesCommit());
+                    log.info("Service: {}", mainService);
 
-                    statsScheduler.scheduleAtFixedRate(
-                            pendingRecordsCounterSource::dumpStats, 30, 30, TimeUnit.SECONDS);
+                    if (mainService != null) {
+                        mainService.setContext(agentContext);
+                        mainService.start();
+                        log.info("Service started");
+                        mainService.join();
+                        log.info("Service ended");
+                    } else {
+                        PendingRecordsCounterSource pendingRecordsCounterSource =
+                                new PendingRecordsCounterSource(source, sink.handlesCommit());
 
-                    runMainLoop(
-                            pendingRecordsCounterSource,
-                            mainProcessor,
-                            sink,
-                            agentContext,
-                            errorsHandler,
-                            continueLoop);
+                        statsScheduler.scheduleAtFixedRate(
+                                pendingRecordsCounterSource::dumpStats, 30, 30, TimeUnit.SECONDS);
 
-                    pendingRecordsCounterSource.waitForNoPendingRecords();
+                        runMainLoop(
+                                pendingRecordsCounterSource,
+                                mainProcessor,
+                                sink,
+                                agentContext,
+                                errorsHandler,
+                                continueLoop);
+
+                        pendingRecordsCounterSource.waitForNoPendingRecords();
+                    }
 
                     log.info("Main loop ended");
 
                 } finally {
-                    mainProcessor.close();
+                    if (mainProcessor != null) {
+                        mainProcessor.close();
+                    }
 
                     if (beforeStopSource != null) {
                         // we want to perform validations after stopping the processors
@@ -416,8 +439,17 @@ public class AgentRunner {
                         beforeStopSource.run();
                     }
 
-                    source.close();
-                    sink.close();
+                    if (source != null) {
+                        source.close();
+                    }
+
+                    if (sink != null) {
+                        sink.close();
+                    }
+
+                    if (mainService != null) {
+                        mainService.close();
+                    }
 
                     log.info("Agent fully stopped");
                 }

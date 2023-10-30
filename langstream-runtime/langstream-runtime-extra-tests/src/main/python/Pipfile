@@ -1,0 +1,24 @@
+[packages]
+grpcio = "*"
+fastavro = "*"
+
+[full]
+"openai[embeddings]" = "*"
+"openai[datalib]" = "*"
+"openai[wandb]" = "*"
+langchain = "*"
+langserve = "*"
+sse-starlette = "*"
+fastapi = "*"
+uvicorn = "*"
+boto3 = "*"
+unstructured = "*"
+llama-index = "*"
+cassio = "*"
+
+[dev-packages]
+tox = "*"
+black = "*"
+ruff = "*"
+pytest = "*"
+grpcio-tools = "*"

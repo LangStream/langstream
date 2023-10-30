@@ -31,5 +31,6 @@
     <module>langstream-runtime-base-docker-image</module>
     <module>langstream-runtime-impl</module>
     <module>langstream-runtime-tester</module>
+    <module>langstream-runtime-extra-tests</module>
   </modules>
 </project>

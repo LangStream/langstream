@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.websocket.api;
+package ai.langstream.apigateway.api;
 
 import java.util.Map;
 
-public record ConsumePushMessage(Record record, String offset) {
-    public record Record(Object key, Object value, Map<String, String> headers) {}
-}
+public record ProduceRequest(Object key, Object value, Map<String, String> headers) {}

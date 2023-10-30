@@ -30,6 +30,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -196,6 +197,19 @@ abstract class GatewayResourceTest {
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
+    }
+
+    @SneakyThrows
+    String produceAndGetBody(String url, String content) {
+        final HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(content))
+                        .build();
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
     }
 
     @SneakyThrows
@@ -386,6 +400,50 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test-user-password"
                         .formatted(port),
                 "{\"value\": \"my-value\"}");
+    }
+
+    @Test
+    void testService() throws Exception {
+        final String topic = genTopic();
+        prepareTopicsForTest(topic);
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(topic, topic, List.of()))
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
+
+        assertMessageContent(
+                new MsgRecord("my-key", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
+                produceAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+    }
+
+    private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
+
+    @SneakyThrows
+    private void assertMessageContent(MsgRecord expected, String actual) {
+        ConsumePushMessage consume = MAPPER.readValue(actual, ConsumePushMessage.class);
+        final MsgRecord actualMsgRecord =
+                new MsgRecord(
+                        consume.record().key(),
+                        consume.record().value(),
+                        consume.record().headers());
+
+        assertEquals(expected, actualMsgRecord);
     }
 
     protected abstract StreamingCluster getStreamingCluster();

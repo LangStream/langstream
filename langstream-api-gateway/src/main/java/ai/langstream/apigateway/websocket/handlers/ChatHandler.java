@@ -22,6 +22,7 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
@@ -136,35 +137,21 @@ public class ChatHandler extends AbstractHandler {
     }
 
     private void setupProducer(AuthenticatedGatewayRequestContext context) throws Exception {
-        final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
-
-        List<Gateway.KeyValueComparison> headerConfig = new ArrayList<>();
-        final List<Gateway.KeyValueComparison> gwHeaders = chatOptions.getHeaders();
-        if (gwHeaders != null) {
-            for (Gateway.KeyValueComparison gwHeader : gwHeaders) {
-                headerConfig.add(gwHeader);
-            }
-        }
         final List<Header> commonHeaders =
                 ProduceGateway.getProducerCommonHeaders(
-                        headerConfig, context.userParameters(), context.principalValues());
+                        context.gateway().getChatOptions(), context);
 
-        setupProducer(chatOptions.getQuestionsTopic(), commonHeaders, context);
+        setupProducer(
+                context.gateway().getChatOptions().getQuestionsTopic(), commonHeaders, context);
     }
 
     private void setupReader(AuthenticatedGatewayRequestContext context) throws Exception {
         final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
-
-        List<Gateway.KeyValueComparison> headerFilters = new ArrayList<>();
-        final List<Gateway.KeyValueComparison> gwHeaders = chatOptions.getHeaders();
-        if (gwHeaders != null) {
-            for (Gateway.KeyValueComparison gwHeader : gwHeaders) {
-                headerFilters.add(gwHeader);
-            }
-        }
         final List<Function<Record, Boolean>> messageFilters =
-                createMessageFilters(
-                        headerFilters, context.userParameters(), context.principalValues());
+                ConsumeGateway.createMessageFilters(
+                        chatOptions.getHeaders(),
+                        context.userParameters(),
+                        context.principalValues());
 
         setupReader(chatOptions.getAnswersTopic(), messageFilters, context);
     }

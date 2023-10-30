@@ -27,14 +27,13 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -236,44 +235,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                         throw new RuntimeException(ex);
                     }
                 });
-    }
-
-    protected static List<Function<Record, Boolean>> createMessageFilters(
-            List<Gateway.KeyValueComparison> headersFilters,
-            Map<String, String> passedParameters,
-            Map<String, String> principalValues) {
-        List<Function<Record, Boolean>> filters = new ArrayList<>();
-        if (headersFilters == null) {
-            return filters;
-        }
-        for (Gateway.KeyValueComparison comparison : headersFilters) {
-            if (comparison.key() == null) {
-                throw new IllegalArgumentException("Key cannot be null");
-            }
-            filters.add(
-                    record -> {
-                        final Header header = record.getHeader(comparison.key());
-                        if (header == null) {
-                            return false;
-                        }
-                        final String expectedValue = header.valueAsString();
-                        if (expectedValue == null) {
-                            return false;
-                        }
-                        String value = comparison.value();
-                        if (value == null && comparison.valueFromParameters() != null) {
-                            value = passedParameters.get(comparison.valueFromParameters());
-                        }
-                        if (value == null && comparison.valueFromAuthentication() != null) {
-                            value = principalValues.get(comparison.valueFromAuthentication());
-                        }
-                        if (value == null) {
-                            return false;
-                        }
-                        return expectedValue.equals(value);
-                    });
-        }
-        return filters;
     }
 
     protected void setupReader(

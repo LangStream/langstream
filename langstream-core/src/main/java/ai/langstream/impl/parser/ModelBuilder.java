@@ -525,6 +525,10 @@ public class ModelBuilder {
                 throw new IllegalArgumentException(
                         "Gateway of type 'consume' cannot have chat-options");
             }
+            if (gateway.getServiceOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'consume' cannot have service-options");
+            }
             if (gateway.getConsumeOptions() != null) {
                 if (gateway.getConsumeOptions().filters() != null) {
                     final Gateway.ConsumeOptionsFilters filters =
@@ -543,6 +547,11 @@ public class ModelBuilder {
                 throw new IllegalArgumentException(
                         "Gateway of type 'produce' cannot have chat-options");
             }
+            if (gateway.getServiceOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'produce' cannot have service-options");
+            }
+
         } else if (gateway.getType() == Gateway.GatewayType.chat) {
             if (gateway.getConsumeOptions() != null) {
                 throw new IllegalArgumentException(
@@ -551,6 +560,10 @@ public class ModelBuilder {
             if (gateway.getProduceOptions() != null) {
                 throw new IllegalArgumentException(
                         "Gateway of type 'chat' cannot have produce-options");
+            }
+            if (gateway.getServiceOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' cannot have service-options");
             }
             if (gateway.getTopic() != null) {
                 throw new IllegalArgumentException(
@@ -569,6 +582,34 @@ public class ModelBuilder {
             if (chatOptions.getQuestionsTopic() == null) {
                 throw new IllegalArgumentException(
                         "Gateway of type 'chat' must have chat-options.questions-topic");
+            }
+        } else if (gateway.getType() == Gateway.GatewayType.service) {
+            if (gateway.getConsumeOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' cannot have consume-options");
+            }
+            if (gateway.getProduceOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'chat' cannot have produce-options");
+            }
+            if (gateway.getChatOptions() != null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' cannot have chat-options");
+            }
+            final Gateway.ServiceOptions serviceOptions = gateway.getServiceOptions();
+            if (serviceOptions == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options");
+            }
+
+            if (serviceOptions.getInputTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options.input-topic");
+            }
+
+            if (serviceOptions.getOutputTopic() == null) {
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options.output-topic");
             }
         }
     }

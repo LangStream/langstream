@@ -24,11 +24,11 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.apigateway.api.ConsumePushMessage;
+import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.websocket.api.ConsumePushMessage;
-import ai.langstream.apigateway.websocket.api.ProduceResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConsumeGateway implements Closeable {
+public class ConsumeGateway implements AutoCloseable {
 
     protected static final ObjectMapper mapper = new ObjectMapper();
 
@@ -236,5 +236,43 @@ public class ConsumeGateway implements Closeable {
         } else {
             closeReader();
         }
+    }
+
+    public static List<Function<Record, Boolean>> createMessageFilters(
+            List<Gateway.KeyValueComparison> headersFilters,
+            Map<String, String> passedParameters,
+            Map<String, String> principalValues) {
+        List<Function<Record, Boolean>> filters = new ArrayList<>();
+        if (headersFilters == null) {
+            return filters;
+        }
+        for (Gateway.KeyValueComparison comparison : headersFilters) {
+            if (comparison.key() == null) {
+                throw new IllegalArgumentException("Key cannot be null");
+            }
+            filters.add(
+                    record -> {
+                        final Header header = record.getHeader(comparison.key());
+                        if (header == null) {
+                            return false;
+                        }
+                        final String expectedValue = header.valueAsString();
+                        if (expectedValue == null) {
+                            return false;
+                        }
+                        String value = comparison.value();
+                        if (value == null && comparison.valueFromParameters() != null) {
+                            value = passedParameters.get(comparison.valueFromParameters());
+                        }
+                        if (value == null && comparison.valueFromAuthentication() != null) {
+                            value = principalValues.get(comparison.valueFromAuthentication());
+                        }
+                        if (value == null) {
+                            return false;
+                        }
+                        return expectedValue.equals(value);
+                    });
+        }
+        return filters;
     }
 }

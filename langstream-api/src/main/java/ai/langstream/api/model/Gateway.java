@@ -45,13 +45,17 @@ public final class Gateway {
     @JsonProperty("chat-options")
     private ChatOptions chatOptions;
 
+    @JsonProperty("service-options")
+    private ServiceOptions serviceOptions;
+
     @JsonProperty("events-topic")
     private String eventsTopic;
 
     public enum GatewayType {
         produce,
         consume,
-        chat
+        chat,
+        service
     }
 
     @Data
@@ -117,11 +121,6 @@ public final class Gateway {
                 String key, String valueFromAuthentication) {
             return new KeyValueComparison(key, null, null, valueFromAuthentication);
         }
-
-        private String getKeyWithDefaultValue() {
-
-            throw new IllegalStateException();
-        }
     }
 
     public record ProduceOptions(List<KeyValueComparison> headers) {}
@@ -140,6 +139,20 @@ public final class Gateway {
 
         @JsonProperty("answers-topic")
         private String answersTopic;
+
+        List<KeyValueComparison> headers;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ServiceOptions {
+
+        @JsonProperty("input-topic")
+        private String inputTopic;
+
+        @JsonProperty("output-topic")
+        private String outputTopic;
 
         List<KeyValueComparison> headers;
     }

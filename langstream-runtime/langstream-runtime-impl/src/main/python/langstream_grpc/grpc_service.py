@@ -343,16 +343,17 @@ class MainExecutor(threading.Thread):
 
     def run(self):
         try:
+            logging.info("Starting main method from thread")
             call_method_if_exists(self.klass, self.method, *self.args, **self.kwargs)
         except Exception as e:
             logging.error(e)
             self.onError()
 
 
-def call_method_new_thread_if_exists(klass, method, *args, **kwargs):
-    method = getattr(klass, method, None)
+def call_method_new_thread_if_exists(klass, methodName, *args, **kwargs):
+    method = getattr(klass, methodName, None)
     if callable(method):
-        executor = MainExecutor(crash_process, klass, method, *args, **kwargs)
+        executor = MainExecutor(crash_process, klass, methodName, *args, **kwargs)
         executor.start()
         return True
 
@@ -360,7 +361,8 @@ def call_method_new_thread_if_exists(klass, method, *args, **kwargs):
 
 
 def crash_process():
-    logging.error("Main method returned. Exiting process.")
+    logging.error("Main method with an error. Exiting process.")
+    os.exit(1)
     return
 
 

@@ -43,6 +43,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.micrometer.core.instrument.Metrics;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -58,6 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +69,7 @@ import org.springframework.boot.test.autoconfigure.actuate.observability.AutoCon
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
@@ -78,6 +81,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Slf4j
 @AutoConfigureObservability
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 abstract class GatewayResourceTest {
 
     public static final Path agentsDirectory;
@@ -192,6 +196,11 @@ abstract class GatewayResourceTest {
     @AfterAll
     public static void afterAll() {
         Awaitility.reset();
+    }
+
+    @AfterEach
+    public void afterEach() {
+        Metrics.globalRegistry.clear();
     }
 
     @SneakyThrows

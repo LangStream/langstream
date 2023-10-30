@@ -223,7 +223,6 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
         }
 
         @Override
-        public void join() throws Exception {
-        }
+        public void join() throws Exception {}
     }
 }

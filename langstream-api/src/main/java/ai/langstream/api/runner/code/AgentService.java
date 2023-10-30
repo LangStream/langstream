@@ -25,8 +25,6 @@ public interface AgentService extends AgentCode {
         return ComponentType.SERVICE;
     }
 
-    /**
-     * Wait for the service to exit
-     */
+    /** Wait for the service to exit */
     void join() throws Exception;
 }

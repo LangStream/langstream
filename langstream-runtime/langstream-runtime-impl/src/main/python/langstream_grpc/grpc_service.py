@@ -51,13 +51,13 @@ from .util import SimpleRecord, AvroValue
 
 class RecordWithId(SimpleRecord):
     def __init__(
-            self,
-            record_id,
-            value,
-            key=None,
-            headers: List[Tuple[str, Any]] = None,
-            origin: str = None,
-            timestamp: int = None,
+        self,
+        record_id,
+        value,
+        key=None,
+        headers: List[Tuple[str, Any]] = None,
+        origin: str = None,
+        timestamp: int = None,
     ):
         super().__init__(value, key, headers, origin, timestamp)
         self.record_id = record_id
@@ -113,10 +113,10 @@ class AgentService(AgentServiceServicer):
         read_thread.join()
 
     def handle_read_requests(
-            self,
-            requests: Iterable[SourceRequest],
-            read_records: Dict[int, Record],
-            read_result,
+        self,
+        requests: Iterable[SourceRequest],
+        read_records: Dict[int, Record],
+        read_result,
     ):
         try:
             for request in requests:
@@ -158,7 +158,7 @@ class AgentService(AgentServiceServicer):
         return self.handle_requests(self.handle_process_requests, requests)
 
     def process_record(
-            self, source_record, get_processed_fn, get_processed_args, process_results
+        self, source_record, get_processed_fn, get_processed_args, process_results
     ):
         grpc_result = ProcessorResult(record_id=source_record.record_id)
         try:
@@ -181,7 +181,7 @@ class AgentService(AgentServiceServicer):
             process_results.put(ProcessorResponse(results=[grpc_result]))
 
     def handle_process_requests(
-            self, requests: Iterable[ProcessorRequest], process_results
+        self, requests: Iterable[ProcessorRequest], process_results
     ):
         for request in requests:
             if request.HasField("schema"):
@@ -201,7 +201,7 @@ class AgentService(AgentServiceServicer):
         return self.handle_requests(self.handle_write_requests, requests)
 
     def write_record(
-            self, source_record, get_written_fn, get_written_args, write_results
+        self, source_record, get_written_fn, get_written_args, write_results
     ):
         try:
             result = get_written_fn(*get_written_args)
@@ -393,7 +393,7 @@ class AgentServer(object):
         self.grpc_server = grpc.server(self.thread_pool)
         self.port = self.grpc_server.add_insecure_port(target)
 
-        configuration = json.loads(config);
+        configuration = json.loads(config)
         logging.info("Configuration: " + json.dumps(configuration))
         environment = configuration.get("environment", [])
         logging.info("Environment: " + json.dumps(environment))
@@ -401,14 +401,16 @@ class AgentServer(object):
         for env in environment:
             key = env["key"]
             value = env["value"]
-            logging.info(f"Setting environment variable {key}={value}")
+            logging.debug(f"Setting environment variable {key}={value}")
             os.environ[key] = value
 
         self.agent = init_agent(configuration, json.loads(context))
 
     def start(self):
         call_method_if_exists(self.agent, "start")
-        main_exists = call_method_new_thread_if_exists(self.agent, "main", crash_process)
+        main_exists = call_method_new_thread_if_exists(
+            self.agent, "main", crash_process
+        )
         if main_exists:
             logging.info("Agent Service Server started")
             return None

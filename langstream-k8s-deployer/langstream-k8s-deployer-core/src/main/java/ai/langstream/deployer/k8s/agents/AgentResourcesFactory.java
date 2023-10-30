@@ -109,8 +109,10 @@ public class AgentResourcesFactory {
                 .withPorts(
                         List.of(
                                 new ServicePortBuilder().withName("http").withPort(8080).build(),
-                                new ServicePortBuilder().withName("custom-service-http").withPort(8000).build()
-                                ))
+                                new ServicePortBuilder()
+                                        .withName("custom-service-http")
+                                        .withPort(8000)
+                                        .build()))
                 .withSelector(agentLabels)
                 .withClusterIP("None")
                 .endSpec()
@@ -230,7 +232,10 @@ public class AgentResourcesFactory {
                 new ContainerPortBuilder().withName("http").withContainerPort(8080).build();
 
         final ContainerPort portCustomServiceHttp =
-                new ContainerPortBuilder().withName("custom-service-http").withContainerPort(8000).build();
+                new ContainerPortBuilder()
+                        .withName("custom-service-http")
+                        .withContainerPort(8000)
+                        .build();
 
         final List<VolumeMount> containerMounts = new ArrayList<>();
         containerMounts.add(

@@ -235,10 +235,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 log(
                         "Using default instance file that connects to the Kafka broker inside the docker container");
             } else {
-                instanceContents =
-                        "instance:\n"
-                                + "  streamingCluster:\n"
-                                + "    type: \"noop\"\n";
+                instanceContents = "instance:\n" + "  streamingCluster:\n" + "    type: \"noop\"\n";
                 log("The broker is disabled, you won't be able to use topics");
             }
         }

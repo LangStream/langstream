@@ -334,7 +334,6 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             public ComponentType componentType() {
                 return callNoExceptionWithContextClassloader(AgentCode::componentType);
             }
-
         };
     }
 

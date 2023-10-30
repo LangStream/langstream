@@ -311,32 +311,35 @@ public class AgentRunner {
                         mainProcessor = agentCodeWithLoader.asProcessor();
                     } else {
                         mainProcessor = new IdentityAgentProvider.IdentityAgentCode();
-                        mainProcessor.setMetadata("identity", "identity", System.currentTimeMillis());
+                        mainProcessor.setMetadata(
+                                "identity", "identity", System.currentTimeMillis());
                     }
                     agentAPIController.watchProcessor(mainProcessor);
-
 
                     if (agentCodeWithLoader.isSource()) {
                         source = agentCodeWithLoader.asSource();
                     } else if (agentCodeWithLoader.is(
                             code -> code instanceof CompositeAgentProcessor)) {
                         source =
-                                ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSource();
+                                ((CompositeAgentProcessor) agentCodeWithLoader.agentCode())
+                                        .getSource();
                     }
 
                     if (source == null) {
                         source = new TopicConsumerSource(consumer, deadLetterProducer);
-                        source.setMetadata("topic-source", "topic-source", System.currentTimeMillis());
+                        source.setMetadata(
+                                "topic-source", "topic-source", System.currentTimeMillis());
                         source.init(Map.of());
                     }
                     agentAPIController.watchSource(source);
-
 
                     if (agentCodeWithLoader.isSink()) {
                         sink = agentCodeWithLoader.asSink();
                     } else if (agentCodeWithLoader.is(
                             code -> code instanceof CompositeAgentProcessor)) {
-                        sink = ((CompositeAgentProcessor) agentCodeWithLoader.agentCode()).getSink();
+                        sink =
+                                ((CompositeAgentProcessor) agentCodeWithLoader.agentCode())
+                                        .getSink();
                     }
                     if (sink == null) {
                         sink = new TopicProducerSink(producer);

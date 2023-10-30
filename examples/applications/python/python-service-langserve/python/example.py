@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from langstream import Agent
+from langstream import Service
 
 from fastapi import FastAPI
 from langchain.prompts import ChatPromptTemplate
@@ -35,13 +35,7 @@ add_routes(
     path="/openai",
 )
 
-add_routes(
-    app,
-    ChatAnthropic(),
-    path="/anthropic",
-)
-
-model = ChatAnthropic()
+model = ChatOpenAI()
 prompt = ChatPromptTemplate.from_template("tell me a joke about {topic}")
 add_routes(
     app,

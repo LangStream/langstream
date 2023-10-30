@@ -26,6 +26,7 @@ __all__ = [
     "Source",
     "Sink",
     "Processor",
+    "Service",
     "AgentContext",
 ]
 

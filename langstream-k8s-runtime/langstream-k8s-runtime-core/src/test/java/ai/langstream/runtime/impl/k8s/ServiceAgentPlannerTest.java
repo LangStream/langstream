@@ -15,32 +15,23 @@
  */
 package ai.langstream.runtime.impl.k8s;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import ai.langstream.api.model.Application;
-import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.impl.agents.AbstractCompositeAgentProvider;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.deploy.ApplicationDeployer;
-import ai.langstream.impl.noop.NoOpStreamingClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
-import lombok.Cleanup;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class ServiceAgentPlannerTest {
@@ -93,5 +84,4 @@ class ServiceAgentPlannerTest {
             assertEquals(ComponentType.SERVICE, agentImplementation.getComponentType());
         }
     }
-
 }

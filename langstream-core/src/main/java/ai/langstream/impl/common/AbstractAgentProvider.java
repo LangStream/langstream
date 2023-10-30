@@ -226,16 +226,24 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         streamingClusterRuntime);
         if (componentType == ComponentType.SERVICE) {
             if (input != null) {
-                throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have an input");
+                throw new IllegalArgumentException(
+                        "Service agents ("
+                                + agentConfiguration.getType()
+                                + ") cannot have an input");
             }
             if (output != null) {
-                throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have an output");
+                throw new IllegalArgumentException(
+                        "Service agents ("
+                                + agentConfiguration.getType()
+                                + ") cannot have an output");
             }
             if (agentConfiguration.getErrors() != null) {
                 if (agentConfiguration.getErrors().getRetries() != null
-                         && agentConfiguration.getErrors().getRetries() > 0
-                ) {
-                    throw new IllegalArgumentException("Service agents (" + agentConfiguration.getType() + ") cannot have retries");
+                        && agentConfiguration.getErrors().getRetries() > 0) {
+                    throw new IllegalArgumentException(
+                            "Service agents ("
+                                    + agentConfiguration.getType()
+                                    + ") cannot have retries");
                 }
             }
         }

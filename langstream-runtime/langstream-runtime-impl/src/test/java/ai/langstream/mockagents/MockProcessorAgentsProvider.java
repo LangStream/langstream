@@ -50,7 +50,5 @@ public class MockProcessorAgentsProvider extends AbstractComposableAgentProvider
             default:
                 return ComponentType.PROCESSOR;
         }
-
-
     }
 }

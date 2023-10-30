@@ -15,25 +15,10 @@
  */
 package ai.langstream.services;
 
-import ai.langstream.services.AbstractStreamingLessApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 @Testcontainers
@@ -47,7 +32,7 @@ class ServiceAgentIT extends AbstractStreamingLessApplicationRunner {
         Map<String, String> application =
                 Map.of(
                         "module.yaml",
-                        """                           
+                        """
                                 pipeline:
                                   - name: "Service"
                                     type: "mock-service"
@@ -58,8 +43,7 @@ class ServiceAgentIT extends AbstractStreamingLessApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-                executeAgentRunners(applicationRuntime);
-            }
+            executeAgentRunners(applicationRuntime);
         }
-
+    }
 }

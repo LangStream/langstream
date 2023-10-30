@@ -187,6 +187,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
             log.info("Deleting topic {} in scope {}", topic.name(), topic.scope());
             try {
+                admin.sealStream(topic.scope(), topic.name());
                 admin.deleteStream(topic.scope(), topic.name());
             } catch (Exception error) {
                 log.info("Topic {} didn't exit. Not a problem", topic);

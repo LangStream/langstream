@@ -15,7 +15,6 @@
  */
 package ai.langstream.pravega;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,11 +28,9 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
-import java.util.List;
+import io.pravega.client.admin.StreamManager;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -41,11 +38,11 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 class PravegaClusterRuntimeDockerTest {
 
     @RegisterExtension
-    static final PravegaContainerExtension pulsarContainer = new PravegaContainerExtension();
+    static final PravegaContainerExtension pravegaContainer = new PravegaContainerExtension();
 
     @Test
-    public void testMapPulsarTopics() throws Exception {
-        final PulsarAdmin admin = pulsarContainer.getAdmin();
+    public void testMapPravegaTopic() throws Exception {
+        final StreamManager admin = pravegaContainer.getAdmin();
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
@@ -83,49 +80,21 @@ class PravegaClusterRuntimeDockerTest {
                     implementation.getConnectionImplementation(
                                     module,
                                     Connection.fromTopic(TopicDefinition.fromName("input-topic")))
-                            instanceof PulsarTopic);
+                            instanceof PravegaTopic);
 
             deployer.setup("tenant", implementation);
             deployer.deploy("tenant", implementation, null);
 
-            RetentionPolicies retentionPolicies = admin.namespaces().getRetention("public/default");
-            assertEquals(100, retentionPolicies.getRetentionSizeInMB());
-            assertEquals(60, retentionPolicies.getRetentionTimeInMinutes());
-
-            List<String> topics = admin.topics().getList("public/default");
-            log.info("Topics {}", topics);
-            assertTrue(topics.contains("persistent://public/default/input-topic"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-0"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-1"));
-            assertTrue(topics.contains("persistent://public/default/input-topic-delete"));
+            assertTrue(admin.checkStreamExists("langstream", "input-topic"));
+            assertTrue(admin.checkStreamExists("langstream", "input-topic-2-partitions"));
+            assertTrue(admin.checkStreamExists("langstream", "input-topic-delete"));
 
             deployer.delete("tenant", implementation, null);
-            topics = admin.topics().getList("public/default");
-            log.info("Topics {}", topics);
-            assertTrue(topics.contains("persistent://public/default/input-topic"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-0"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-1"));
-            assertTrue(topics.contains("persistent://public/default/input-topic-delete"));
-
             deployer.cleanup("tenant", implementation);
-            topics = admin.topics().getList("public/default");
-            log.info("Topics {}", topics);
-            assertTrue(topics.contains("persistent://public/default/input-topic"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-0"));
-            assertTrue(
-                    topics.contains(
-                            "persistent://public/default/input-topic-2-partitions-partition-1"));
-            assertFalse(topics.contains("persistent://public/default/input-topic-delete"));
+
+            assertFalse(admin.checkStreamExists("langstream", "input-topic-delete"));
+            assertTrue(admin.checkStreamExists("langstream", "input-topic-2-partitions"));
+            assertTrue(admin.checkStreamExists("langstream", "input-topic"));
         }
     }
 
@@ -133,20 +102,14 @@ class PravegaClusterRuntimeDockerTest {
         return """
                      instance:
                        streamingCluster:
-                         type: "pulsar"
+                         type: "pravega"
                          configuration:
-                           admin:
-                             serviceUrl: "%s"
-                           service:
-                             serviceUrl: "%s"
-                           default-tenant: "public"
-                           default-namespace: "default"
-                           default-retention-policies:
-                             retention-size-in-mb: 100
-                             retention-time-in-minutes: 60
+                           client:
+                             controller-uri: "%s"
+                             scope: "langstream"
                        computeCluster:
                          type: "none"
                      """
-                .formatted(pulsarContainer.getHttpServiceUrl(), pulsarContainer.getBrokerUrl());
+                .formatted(pravegaContainer.getControllerUri());
     }
 }

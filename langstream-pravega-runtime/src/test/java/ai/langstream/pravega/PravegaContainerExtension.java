@@ -15,9 +15,12 @@
  */
 package ai.langstream.pravega;
 
+import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.StreamManager;
+import java.net.URI;
 import java.time.Duration;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -33,8 +36,8 @@ public class PravegaContainerExtension implements BeforeAllCallback, AfterAllCal
 
     private Network network;
 
-    private StreamManager admin;
-    private EventStreamClientFactory client;
+    @Getter private StreamManager admin;
+    @Getter private EventStreamClientFactory client;
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
@@ -64,34 +67,28 @@ public class PravegaContainerExtension implements BeforeAllCallback, AfterAllCal
                                                 "pravega> {}", outputFrame.getUtf8String().trim()));
         // start Pulsar and wait for it to be ready to accept requests
         pravegaContainer.start();
-        /*
-        admin =
-                PulsarAdmin.builder()
-                        .serviceHttpUrl("http://localhost:" + pravegaContainer.getMappedPort(8080))
-                        .build();
 
-        client = PulsarClient.builder().serviceUrl(pravegaContainer.getPulsarBrokerUrl()).build();
+        admin = StreamManager.create(new URI(pravegaContainer.getControllerUri()));
 
-        try {
-            admin.namespaces().createNamespace("public/default");
-        } catch (PulsarAdminException.ConflictException exists) {
-            // ignore
-        } */
+        client =
+                EventStreamClientFactory.withScope(
+                        "langstream",
+                        ClientConfig.builder()
+                                .controllerURI(new URI(pravegaContainer.getControllerUri()))
+                                .build());
+
+        admin.createScope("langstream");
     }
 
     public String getControllerUri() {
         return pravegaContainer.getControllerUri();
     }
 
-    public PravegaContainer getPravegaContainer() {
-        return pravegaContainer;
-    }
-
     public static class PravegaContainer extends GenericContainer<PravegaContainer> {
 
         private static final DockerImageName DEFAULT_IMAGE_NAME =
                 DockerImageName.parse("pravega/pravega");
-        private static final String DEFAULT_TAG = "0.12.0";
+        private static final String DEFAULT_TAG = "0.13.0";
         private static final int CONTROLLER_PORT = 9090;
         private static final int SEGMENT_STORE_PORT = 12345;
 

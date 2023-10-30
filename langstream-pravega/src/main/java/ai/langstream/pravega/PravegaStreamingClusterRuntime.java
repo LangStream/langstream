@@ -43,6 +43,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
         return new PravegaTopic(
                 name,
                 scope,
+                topicDefinition.getPartitions(),
                 creationMode,
                 topicDefinition.getDeletionMode(),
                 topicDefinition.isImplicit(),

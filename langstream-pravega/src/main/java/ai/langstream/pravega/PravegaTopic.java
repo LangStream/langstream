@@ -40,7 +40,7 @@ public record PravegaTopic(
         } else {
             options = new HashMap<>(options);
         }
-        if (partitions < 0) {
+        if (partitions <= 0) {
             partitions = 1;
         }
     }

@@ -91,10 +91,10 @@ public class GatewayResource {
         }
 
         try (final ProduceGateway produceGateway =
-                     new ProduceGateway(
-                             topicConnectionsRuntimeRegistryProvider
-                                     .getTopicConnectionsRuntimeRegistry(),
-                             topicProducerCache)) {
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistryProvider
+                                .getTopicConnectionsRuntimeRegistry(),
+                        topicProducerCache)) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
@@ -142,14 +142,14 @@ public class GatewayResource {
         }
 
         try (final ConsumeGateway consumeGateway =
-                     new ConsumeGateway(
-                             topicConnectionsRuntimeRegistryProvider
-                                     .getTopicConnectionsRuntimeRegistry());
-             final ProduceGateway produceGateway =
-                     new ProduceGateway(
-                             topicConnectionsRuntimeRegistryProvider
-                                     .getTopicConnectionsRuntimeRegistry(),
-                             topicProducerCache);) {
+                        new ConsumeGateway(
+                                topicConnectionsRuntimeRegistryProvider
+                                        .getTopicConnectionsRuntimeRegistry());
+                final ProduceGateway produceGateway =
+                        new ProduceGateway(
+                                topicConnectionsRuntimeRegistryProvider
+                                        .getTopicConnectionsRuntimeRegistry(),
+                                topicProducerCache); ) {
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {

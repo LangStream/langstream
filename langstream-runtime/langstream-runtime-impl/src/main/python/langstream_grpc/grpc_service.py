@@ -17,6 +17,7 @@
 import concurrent
 import importlib
 import json
+import os
 import logging
 import queue
 import threading
@@ -391,7 +392,19 @@ class AgentServer(object):
         self.target = target
         self.grpc_server = grpc.server(self.thread_pool)
         self.port = self.grpc_server.add_insecure_port(target)
-        self.agent = init_agent(json.loads(config), json.loads(context))
+
+        configuration = json.loads(config);
+        logging.info("Configuration: " + json.dumps(configuration))
+        environment = configuration.get("environment", [])
+        logging.info("Environment: " + json.dumps(environment))
+
+        for env in environment:
+            key = env["key"]
+            value = env["value"]
+            logging.info(f"Setting environment variable {key}={value}")
+            os.environ[key] = value
+
+        self.agent = init_agent(configuration, json.loads(context))
 
     def start(self):
         call_method_if_exists(self.agent, "start")

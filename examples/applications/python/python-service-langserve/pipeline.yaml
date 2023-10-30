@@ -22,3 +22,6 @@ pipeline:
     type: "python-service"
     configuration:
       className: example.ChatBotService
+      environment:
+        - key: "OPENAI_API_KEY"
+          value: "${secrets.open-ai.access-key}"

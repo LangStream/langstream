@@ -343,15 +343,23 @@ public class ApplicationPlaceholderResolver {
     }
 
     private static Object resolveReference(String placeholder, Object context) {
-        placeholder = placeholder.trim();
-        int dot = placeholder.indexOf('.');
-        if (dot < 0) {
-            return resolveProperty(context, placeholder);
-        } else {
-            String parent = placeholder.substring(0, dot);
-            String child = placeholder.substring(dot + 1);
-            Object parentValue = resolveProperty(context, parent);
-            return resolveReference(child, parentValue);
+        try {
+            placeholder = placeholder.trim();
+            int dot = placeholder.indexOf('.');
+            if (dot < 0) {
+                return resolveProperty(context, placeholder);
+            } else {
+                String parent = placeholder.substring(0, dot);
+                String child = placeholder.substring(dot + 1);
+                Object parentValue = resolveProperty(context, parent);
+                if (parentValue == null) {
+                    throw new IllegalArgumentException(
+                            "Cannot resolve property " + parent + " in context " + context);
+                }
+                return resolveReference(child, parentValue);
+            }
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException("Cannot resolve reference " + placeholder, error);
         }
     }
 

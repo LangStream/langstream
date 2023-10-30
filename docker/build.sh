@@ -18,6 +18,7 @@
 
 set -e
 only_image=$1
+clean="${2:-clean}"
 
 docker_platforms() {
   if [ "$(uname -m)" == "arm64" ]; then
@@ -32,9 +33,8 @@ common_flags="-DskipTests -PskipPython -Dlicense.skip -Dspotless.skip -ntp"
 
 build_docker_image() {
   module=$1
-  clean="${2:-true}"
   clean_cmd=""
-  if [ "$clean" == "true" ]; then
+  if [ "$clean" == "clean" ]; then
     clean_cmd="clean"
   fi
   ./mvnw install -am -pl $module -T 1C $common_flags

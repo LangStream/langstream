@@ -33,6 +33,7 @@ import ai.langstream.api.runtime.Topic;
 import ai.langstream.pravega.PravegaClientUtils;
 import ai.langstream.pravega.PravegaClusterRuntimeConfiguration;
 import ai.langstream.pravega.PravegaTopic;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
@@ -151,26 +152,12 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                     EventRead<String> stringEventRead = reader.readNextEvent(1000);
                     log.info("Read event {}", stringEventRead);
 
-                    if (stringEventRead != null && !stringEventRead.isCheckpoint()) {
+                    if (stringEventRead != null
+                            && stringEventRead.getEvent() != null
+                            && !stringEventRead.isCheckpoint()) {
                         totalOut.incrementAndGet();
 
-                        Collection<Header> headers = new ArrayList<>();
-                        log.info("decoding event {}", stringEventRead.getEvent());
-                        RecordWrapper wrapper =
-                                mapper.readValue(stringEventRead.getEvent(), RecordWrapper.class);
-                        if (wrapper.headers != null) {
-                            wrapper.headers.forEach(
-                                    (key, value) ->
-                                            headers.add(new SimpleRecord.SimpleHeader(key, value)));
-                        }
-                        SimpleRecord build =
-                                SimpleRecord.builder()
-                                        .key(wrapper.key)
-                                        .value(wrapper.value)
-                                        .headers(headers)
-                                        .timestamp(wrapper.timestamp)
-                                        .origin(topic)
-                                        .build();
+                        SimpleRecord build = convertToRecord(stringEventRead, topic);
                         return List.of(build);
                     }
 
@@ -370,6 +357,26 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         }
     }
 
+    public static SimpleRecord convertToRecord(EventRead<String> stringEventRead, String topic)
+            throws JsonProcessingException {
+        Collection<Header> headers = new ArrayList<>();
+        log.info("decoding event {}", stringEventRead.getEvent());
+        RecordWrapper wrapper = mapper.readValue(stringEventRead.getEvent(), RecordWrapper.class);
+        if (wrapper.headers != null) {
+            wrapper.headers.forEach(
+                    (key, value) -> headers.add(new SimpleRecord.SimpleHeader(key, value)));
+        }
+        SimpleRecord build =
+                SimpleRecord.builder()
+                        .key(wrapper.key)
+                        .value(wrapper.value)
+                        .headers(headers)
+                        .timestamp(wrapper.timestamp)
+                        .origin(topic)
+                        .build();
+        return build;
+    }
+
     private static String serialiseKey(Object o) throws IOException {
         if (o == null) {
             return null;
@@ -392,5 +399,6 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         return mapper.writeValueAsString(wrapper);
     }
 
-    record RecordWrapper(Object key, Object value, Map<String, Object> headers, Long timestamp) {}
+    public record RecordWrapper(
+            Object key, Object value, Map<String, Object> headers, Long timestamp) {}
 }

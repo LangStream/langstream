@@ -17,6 +17,7 @@ package ai.langstream.pravega;
 
 import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
+import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamManager;
 import java.net.URI;
 import java.time.Duration;
@@ -38,6 +39,7 @@ public class PravegaContainerExtension implements BeforeAllCallback, AfterAllCal
 
     @Getter private StreamManager admin;
     @Getter private EventStreamClientFactory client;
+    @Getter private ReaderGroupManager readerGroupManager;
 
     @Override
     public void afterAll(ExtensionContext extensionContext) throws Exception {
@@ -46,6 +48,9 @@ public class PravegaContainerExtension implements BeforeAllCallback, AfterAllCal
         }
         if (admin != null) {
             admin.close();
+        }
+        if (readerGroupManager != null) {
+            readerGroupManager.close();
         }
         if (pravegaContainer != null) {
             pravegaContainer.close();
@@ -69,6 +74,10 @@ public class PravegaContainerExtension implements BeforeAllCallback, AfterAllCal
         pravegaContainer.start();
 
         admin = StreamManager.create(new URI(pravegaContainer.getControllerUri()));
+
+        readerGroupManager =
+                ReaderGroupManager.withScope(
+                        "langstream", new URI(pravegaContainer.getControllerUri()));
 
         client =
                 EventStreamClientFactory.withScope(

@@ -121,7 +121,7 @@ class AgentResourcesFactoryTest {
                                 - containerPort: 8080
                                   name: http
                                 - containerPort: 8000
-                                  name: custom-service-http
+                                  name: service
                                 readinessProbe:
                                   httpGet:
                                     path: /metrics
@@ -225,7 +225,7 @@ class AgentResourcesFactoryTest {
                   ports:
                   - name: http
                     port: 8080
-                  - name: custom-service-http
+                  - name: service
                     port: 8000
                   selector:
                     app: langstream-runtime

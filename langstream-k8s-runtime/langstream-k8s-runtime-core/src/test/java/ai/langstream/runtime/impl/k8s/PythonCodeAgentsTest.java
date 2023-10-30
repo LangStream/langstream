@@ -81,13 +81,6 @@ class PythonCodeAgentsTest {
                                       className: my.python.module.MyClass
                                       config1: value1
                                       config2: value2
-                                  - name: "service1"
-                                    id: "service1"
-                                    type: "python-service"
-                                    configuration:
-                                      className: my.python.module.MyClass
-                                      config1: value1
-                                      config2: value2
                                 """),
                                 buildInstanceYaml(),
                                 null)
@@ -148,6 +141,48 @@ class PythonCodeAgentsTest {
             assertEquals("value2", configuration.get("config2"));
             assertEquals(ComponentType.SINK, step.getComponentType());
         }
+    }
+
+    @Test
+    public void testConfigurePythonService() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                pipeline:
+                                  - name: "service1"
+                                    id: "service1"
+                                    type: "python-service"
+                                    configuration:
+                                      className: my.python.module.MyClass
+                                      config1: value1
+                                      config2: value2
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        @Cleanup
+        ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build();
+
+        Module module = applicationInstance.getModule("module-1");
+
+        ExecutionPlan implementation = deployer.createImplementation("app", applicationInstance);
+        assertEquals(1, implementation.getAgents().size());
+        log.info(
+                "topics {}",
+                implementation.getTopics().keySet().stream()
+                        .map(TopicDefinition::getName)
+                        .toList());
+        assertEquals(0, implementation.getTopics().size());
+
         {
             AgentNode agentImplementation =
                     implementation.getAgentImplementation(module, "service1");

@@ -201,9 +201,9 @@ class AgentResourcesFactoryTest {
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
 
-
         Service service = AgentResourcesFactory.generateHeadlessService(resource);
-        assertEquals("""
+        assertEquals(
+                """
                 ---
                 apiVersion: v1
                 kind: Service
@@ -231,8 +231,8 @@ class AgentResourcesFactoryTest {
                     app: langstream-runtime
                     langstream-agent: my-agent
                     langstream-application: the-'app
-                """, SerializationUtil.writeAsYaml(service));
-
+                """,
+                SerializationUtil.writeAsYaml(service));
     }
 
     @Test

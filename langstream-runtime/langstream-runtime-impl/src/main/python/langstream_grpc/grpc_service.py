@@ -407,9 +407,7 @@ class AgentServer(object):
 
     def start(self):
         call_method_if_exists(self.agent, "start")
-        call_method_new_thread_if_exists(
-            self.agent, "main", crash_process
-        )
+        call_method_new_thread_if_exists(self.agent, "main", crash_process)
 
         agent_pb2_grpc.add_AgentServiceServicer_to_server(
             AgentService(self.agent), self.grpc_server

@@ -22,12 +22,11 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -153,8 +152,8 @@ public class ProduceGateway implements AutoCloseable {
                 if (configuredHeaders.contains(messageHeader.getKey())) {
                     throw new ProduceException(
                             "Header "
-                            + messageHeader.getKey()
-                            + " is configured as parameter-level header.",
+                                    + messageHeader.getKey()
+                                    + " is configured as parameter-level header.",
                             ProduceResponse.Status.BAD_REQUEST);
                 }
                 headers.add(
@@ -202,7 +201,8 @@ public class ProduceGateway implements AutoCloseable {
         if (chatOptions == null) {
             return null;
         }
-        return getProducerCommonHeaders(chatOptions.getHeaders(), context.userParameters(), context.principalValues());
+        return getProducerCommonHeaders(
+                chatOptions.getHeaders(), context.userParameters(), context.principalValues());
     }
 
     public static List<Header> getProducerCommonHeaders(
@@ -210,7 +210,8 @@ public class ProduceGateway implements AutoCloseable {
         if (serviceOptions == null) {
             return null;
         }
-        return getProducerCommonHeaders(serviceOptions.getHeaders(), context.userParameters(), context.principalValues());
+        return getProducerCommonHeaders(
+                serviceOptions.getHeaders(), context.userParameters(), context.principalValues());
     }
 
     public static List<Header> getProducerCommonHeaders(

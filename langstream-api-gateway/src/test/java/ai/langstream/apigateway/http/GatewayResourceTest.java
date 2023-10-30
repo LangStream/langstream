@@ -402,7 +402,6 @@ abstract class GatewayResourceTest {
                 "{\"value\": \"my-value\"}");
     }
 
-
     @Test
     void testService() throws Exception {
         final String topic = genTopic();
@@ -414,38 +413,38 @@ abstract class GatewayResourceTest {
                                         .id("svc")
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
-                                                new Gateway.ServiceOptions(
-                                                        topic, topic, List.of())
-                                        )
+                                                new Gateway.ServiceOptions(topic, topic, List.of()))
                                         .build()));
 
         final String url =
-                "http://localhost:%d/api/gateways/service/tenant1/application1/svc"
-                        .formatted(port);
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
 
-
-        assertMessageContent(new MsgRecord("my-key", "my-value", Map.of()), produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-        assertMessageContent(new MsgRecord("my-key2", "my-value", Map.of()), produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
-        assertMessageContent(new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")), produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
-
+        assertMessageContent(
+                new MsgRecord("my-key", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of()),
+                produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
+                produceAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
 
     @SneakyThrows
     private void assertMessageContent(MsgRecord expected, String actual) {
-        ConsumePushMessage consume =
-                MAPPER.readValue(actual, ConsumePushMessage.class);
-        final MsgRecord actualMsgRecord = new MsgRecord(
-                consume.record().key(),
-                consume.record().value(),
-                consume.record().headers());
+        ConsumePushMessage consume = MAPPER.readValue(actual, ConsumePushMessage.class);
+        final MsgRecord actualMsgRecord =
+                new MsgRecord(
+                        consume.record().key(),
+                        consume.record().value(),
+                        consume.record().headers());
 
         assertEquals(expected, actualMsgRecord);
     }
-
-
-
 
     protected abstract StreamingCluster getStreamingCluster();
 

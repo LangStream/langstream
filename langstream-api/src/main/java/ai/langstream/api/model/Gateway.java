@@ -121,7 +121,6 @@ public final class Gateway {
                 String key, String valueFromAuthentication) {
             return new KeyValueComparison(key, null, null, valueFromAuthentication);
         }
-
     }
 
     public record ProduceOptions(List<KeyValueComparison> headers) {}

@@ -128,7 +128,7 @@ class ModelBuilderTest {
                                     configuration: {}
                                   produce-options:
                                     headers:
-                                    - value-from-parameters: v1 
+                                    - value-from-parameters: v1
                                 - id: g2
                                   type: consume
                                   topic: t1
@@ -173,7 +173,9 @@ class ModelBuilderTest {
         assertEquals("t1", gateway1.getTopic());
         assertEquals("google", gateway1.getAuthentication().getProvider());
         assertTrue(gateway1.getAuthentication().isAllowTestMode());
-        assertEquals(List.of(new Gateway.KeyValueComparison(null, null, "v1", null)), gateway1.getProduceOptions().headers());
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway1.getProduceOptions().headers());
 
         final Gateway gateway2 = gateways.get(1);
         assertEquals("g2", gateway2.getId());
@@ -181,9 +183,9 @@ class ModelBuilderTest {
         assertEquals("t1", gateway2.getTopic());
         assertEquals("github", gateway2.getAuthentication().getProvider());
         assertTrue(gateway2.getAuthentication().isAllowTestMode());
-        assertEquals(List.of(new Gateway.KeyValueComparison(null, null, "v1", null)), gateway2.getConsumeOptions().filters().headers());
-
-
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway2.getConsumeOptions().filters().headers());
 
         final Gateway gateway3 = gateways.get(2);
         assertEquals("g3", gateway3.getId());
@@ -193,8 +195,9 @@ class ModelBuilderTest {
         assertTrue(gateway3.getAuthentication().isAllowTestMode());
         assertEquals("q", gateway3.getChatOptions().getQuestionsTopic());
         assertEquals("a", gateway3.getChatOptions().getAnswersTopic());
-        assertEquals(List.of(new Gateway.KeyValueComparison(null, null, "v1", null)), gateway3.getChatOptions().getHeaders());
-
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway3.getChatOptions().getHeaders());
 
         final Gateway gateway4 = gateways.get(3);
         assertEquals("g4", gateway4.getId());
@@ -204,11 +207,9 @@ class ModelBuilderTest {
         assertTrue(gateway4.getAuthentication().isAllowTestMode());
         assertEquals("q", gateway4.getServiceOptions().getInputTopic());
         assertEquals("a", gateway4.getServiceOptions().getOutputTopic());
-        assertEquals(List.of(new Gateway.KeyValueComparison(null, null, "v1", null)), gateway4.getServiceOptions().getHeaders());
-
-
-
-
+        assertEquals(
+                List.of(new Gateway.KeyValueComparison(null, null, "v1", null)),
+                gateway4.getServiceOptions().getHeaders());
     }
 
     @Test

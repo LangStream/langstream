@@ -24,11 +24,10 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
-import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.api.ProduceResponse;
+import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -238,8 +237,6 @@ public class ConsumeGateway implements AutoCloseable {
             closeReader();
         }
     }
-
-
 
     public static List<Function<Record, Boolean>> createMessageFilters(
             List<Gateway.KeyValueComparison> headersFilters,

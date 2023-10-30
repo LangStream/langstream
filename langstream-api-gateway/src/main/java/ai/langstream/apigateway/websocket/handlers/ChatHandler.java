@@ -138,16 +138,20 @@ public class ChatHandler extends AbstractHandler {
 
     private void setupProducer(AuthenticatedGatewayRequestContext context) throws Exception {
         final List<Header> commonHeaders =
-                ProduceGateway.getProducerCommonHeaders(context.gateway().getChatOptions(), context);
+                ProduceGateway.getProducerCommonHeaders(
+                        context.gateway().getChatOptions(), context);
 
-        setupProducer(context.gateway().getChatOptions().getQuestionsTopic(), commonHeaders, context);
+        setupProducer(
+                context.gateway().getChatOptions().getQuestionsTopic(), commonHeaders, context);
     }
 
     private void setupReader(AuthenticatedGatewayRequestContext context) throws Exception {
         final Gateway.ChatOptions chatOptions = context.gateway().getChatOptions();
         final List<Function<Record, Boolean>> messageFilters =
                 ConsumeGateway.createMessageFilters(
-                        chatOptions.getHeaders(), context.userParameters(), context.principalValues());
+                        chatOptions.getHeaders(),
+                        context.userParameters(),
+                        context.principalValues());
 
         setupReader(chatOptions.getAnswersTopic(), messageFilters, context);
     }

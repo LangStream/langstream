@@ -19,14 +19,13 @@ import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.apigateway.api.ConsumePushMessage;
+import ai.langstream.apigateway.api.ProduceRequest;
+import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import ai.langstream.apigateway.api.ProduceRequest;
-import ai.langstream.apigateway.api.ProduceResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
@@ -89,11 +88,10 @@ public class GatewayResource {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
 
-
         try (final ProduceGateway produceGateway =
-                     new ProduceGateway(
-                             topicConnectionsRuntimeRegistryProvider
-                                     .getTopicConnectionsRuntimeRegistry());) {
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistryProvider
+                                .getTopicConnectionsRuntimeRegistry()); ) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
@@ -109,7 +107,6 @@ public class GatewayResource {
                 .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
         return headers;
     }
-
 
     @PostMapping(
             value = "/service/{tenant}/{application}/{gateway}",
@@ -141,33 +138,37 @@ public class GatewayResource {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
 
-
-        try (final ConsumeGateway consumeGateway = new ConsumeGateway(
-                topicConnectionsRuntimeRegistryProvider
-                        .getTopicConnectionsRuntimeRegistry());
-             final ProduceGateway produceGateway =
-                     new ProduceGateway(
-                             topicConnectionsRuntimeRegistryProvider
-                                     .getTopicConnectionsRuntimeRegistry());) {
+        try (final ConsumeGateway consumeGateway =
+                        new ConsumeGateway(
+                                topicConnectionsRuntimeRegistryProvider
+                                        .getTopicConnectionsRuntimeRegistry());
+                final ProduceGateway produceGateway =
+                        new ProduceGateway(
+                                topicConnectionsRuntimeRegistryProvider
+                                        .getTopicConnectionsRuntimeRegistry()); ) {
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
                 final List<Function<Record, Boolean>> messageFilters =
                         ConsumeGateway.createMessageFilters(
-                                serviceOptions.getHeaders(), authContext.userParameters(),
+                                serviceOptions.getHeaders(),
+                                authContext.userParameters(),
                                 authContext.principalValues());
                 consumeGateway.setup(serviceOptions.getInputTopic(), messageFilters, authContext);
                 final AtomicBoolean stop = new AtomicBoolean(false);
-                consumeGateway.startReadingAsync(consumeThreadPool, () -> stop.get(), record -> {
-                    stop.set(true);
-                    try {
-                        response.getWriter().print(record);
-                        response.getWriter().flush();
-                        response.getWriter().close();
-                    } catch (IOException ioException) {
-                        throw new RuntimeException(ioException);
-                    }
-                });
+                consumeGateway.startReadingAsync(
+                        consumeThreadPool,
+                        () -> stop.get(),
+                        record -> {
+                            stop.set(true);
+                            try {
+                                response.getWriter().print(record);
+                                response.getWriter().flush();
+                                response.getWriter().close();
+                            } catch (IOException ioException) {
+                                throw new RuntimeException(ioException);
+                            }
+                        });
             } catch (Exception ex) {
                 log.error("Error while setting up consume gateway", ex);
                 throw new RuntimeException(ex);
@@ -177,7 +178,6 @@ public class GatewayResource {
             produceGateway.start(serviceOptions.getOutputTopic(), commonHeaders, authContext);
             produceGateway.produceMessage(produceRequest);
         }
-
     }
 
     private Map<String, String> computeQueryString(WebRequest request) {

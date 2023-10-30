@@ -598,7 +598,8 @@ public class ModelBuilder {
             }
             final Gateway.ServiceOptions serviceOptions = gateway.getServiceOptions();
             if (serviceOptions == null) {
-                throw new IllegalArgumentException("Gateway of type 'service' must have service-options");
+                throw new IllegalArgumentException(
+                        "Gateway of type 'service' must have service-options");
             }
 
             if (serviceOptions.getInputTopic() == null) {

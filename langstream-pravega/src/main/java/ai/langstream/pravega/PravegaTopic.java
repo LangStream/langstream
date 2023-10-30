@@ -60,6 +60,7 @@ public record PravegaTopic(
 
         // this is for the Agent
         configuration.put("topic", name);
+        configuration.put("scope", scope);
 
         if (options != null) {
             options.forEach(
@@ -83,6 +84,7 @@ public record PravegaTopic(
 
         // this is for the Agent
         configuration.put("topic", name);
+        configuration.put("scope", scope);
 
         if (options != null) {
             options.forEach(

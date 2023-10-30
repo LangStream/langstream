@@ -56,7 +56,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
         PravegaTopic pravegaTopic = (PravegaTopic) inputConnectionImplementation;
         Map<String, Object> configuration = pravegaTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
-                "readerGroup", key -> "langstream-agent-" + agentImplementation.getId());
+                "reader-group", key -> "langstream-agent-" + agentImplementation.getId());
         return configuration;
     }
 

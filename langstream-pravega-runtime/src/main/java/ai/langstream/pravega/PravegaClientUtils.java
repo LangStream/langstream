@@ -22,6 +22,7 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
+import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamManager;
 import java.net.URI;
 import java.util.Map;
@@ -43,6 +44,22 @@ public class PravegaClientUtils {
     public static StreamManager buildStreamManager(StreamingCluster streamingCluster)
             throws Exception {
         return buildStreamManager(getPravegaClusterRuntimeConfiguration(streamingCluster));
+    }
+
+    public static ReaderGroupManager buildReaderGroupManager(
+            PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration)
+            throws Exception {
+        Map<String, Object> clientConfig = pravegaClusterRuntimeConfiguration.client();
+        String controllerUri =
+                ConfigurationUtils.getString(
+                        "controller-uri", "tcp://localhost:9090", clientConfig);
+
+        return ReaderGroupManager.withScope("langstream", new URI(controllerUri));
+    }
+
+    public static ReaderGroupManager buildReaderGroupManager(StreamingCluster streamingCluster)
+            throws Exception {
+        return buildReaderGroupManager(getPravegaClusterRuntimeConfiguration(streamingCluster));
     }
 
     public static EventStreamClientFactory buildPravegaClient(StreamingCluster streamingCluster)

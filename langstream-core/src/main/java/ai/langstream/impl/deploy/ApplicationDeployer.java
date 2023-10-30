@@ -32,6 +32,7 @@ import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +45,7 @@ public final class ApplicationDeployer implements AutoCloseable {
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
     private DeployContext deployContext;
+    @Getter
     private TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private AssetManagerRegistry assetManagerRegistry;
 

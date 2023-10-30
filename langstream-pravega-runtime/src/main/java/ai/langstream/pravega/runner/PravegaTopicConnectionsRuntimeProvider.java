@@ -18,6 +18,9 @@ package ai.langstream.pravega.runner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
@@ -32,11 +35,26 @@ import ai.langstream.pravega.PravegaClusterRuntimeConfiguration;
 import ai.langstream.pravega.PravegaTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.EventStreamClientFactory;
+import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamManager;
+import io.pravega.client.stream.EventRead;
+import io.pravega.client.stream.EventStreamReader;
+import io.pravega.client.stream.EventStreamWriter;
+import io.pravega.client.stream.EventWriterConfig;
+import io.pravega.client.stream.ReaderConfig;
+import io.pravega.client.stream.ReaderGroupConfig;
 import io.pravega.client.stream.ScalingPolicy;
+import io.pravega.client.stream.Stream;
 import io.pravega.client.stream.StreamConfiguration;
+import io.pravega.client.stream.impl.UTF8StringSerializer;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,11 +75,13 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
     private static class PravegaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
         private EventStreamClientFactory client;
+        private ReaderGroupManager readerGroupManager;
 
         @Override
         @SneakyThrows
         public void init(StreamingCluster streamingCluster) {
             client = PravegaClientUtils.buildPravegaClient(streamingCluster);
+            readerGroupManager = PravegaClientUtils.buildReaderGroupManager(streamingCluster);
         }
 
         @Override
@@ -70,6 +90,9 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             if (client != null) {
                 client.close();
             }
+            if (readerGroupManager != null) {
+                readerGroupManager.close();
+            }
         }
 
         @Override
@@ -77,7 +100,6 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
-            Map<String, Object> copy = new HashMap<>(configuration);
             throw new UnsupportedOperationException();
         }
 
@@ -86,9 +108,91 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
-            Map<String, Object> copy = new HashMap<>(configuration);
-            copy.remove("deadLetterTopicProducer");
-            throw new UnsupportedOperationException();
+
+            String readerId = agentId;
+            String readerGroup = (String) configuration.get("reader-group");
+            String scope = (String) configuration.get("scope");
+            String topic = (String) configuration.get("topic");
+            return new TopicConsumer() {
+
+                EventStreamReader<String> reader;
+
+                AtomicLong totalOut = new AtomicLong();
+
+                @Override
+                public Object getNativeConsumer() {
+                    return TopicConsumer.super.getNativeConsumer();
+                }
+
+                @Override
+                public void start() throws Exception {
+
+                    final ReaderGroupConfig readerGroupConfig =
+                            ReaderGroupConfig.builder().stream(Stream.of(scope, topic)).build();
+                    readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
+
+                    reader =
+                            client.createReader(
+                                    readerId,
+                                    readerGroup,
+                                    new UTF8StringSerializer(),
+                                    ReaderConfig.builder().build());
+                }
+
+                @Override
+                public void close() throws Exception {
+                    if (reader != null) {
+                        reader.close();
+                    }
+                }
+
+                @Override
+                public List<Record> read() throws Exception {
+                    EventRead<String> stringEventRead = reader.readNextEvent(1000);
+                    log.info("Read event {}", stringEventRead);
+
+                    if (stringEventRead != null && !stringEventRead.isCheckpoint()) {
+                        totalOut.incrementAndGet();
+
+                        Collection<Header> headers = new ArrayList<>();
+                        log.info("decoding event {}", stringEventRead.getEvent());
+                        RecordWrapper wrapper =
+                                mapper.readValue(stringEventRead.getEvent(), RecordWrapper.class);
+                        if (wrapper.headers != null) {
+                            wrapper.headers.forEach(
+                                    (key, value) ->
+                                            headers.add(new SimpleRecord.SimpleHeader(key, value)));
+                        }
+                        SimpleRecord build =
+                                SimpleRecord.builder()
+                                        .key(wrapper.key)
+                                        .value(wrapper.value)
+                                        .headers(headers)
+                                        .timestamp(wrapper.timestamp)
+                                        .origin(topic)
+                                        .build();
+                        return List.of(build);
+                    }
+
+                    return List.of();
+                }
+
+                @Override
+                public void commit(List<Record> records) throws Exception {
+                    // TODO ?
+
+                }
+
+                @Override
+                public Map<String, Object> getInfo() {
+                    return Map.of("readerId", readerId, "readerGroup", readerGroup);
+                }
+
+                @Override
+                public long getTotalOut() {
+                    return totalOut.get();
+                }
+            };
         }
 
         @Override
@@ -97,7 +201,65 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            throw new UnsupportedOperationException();
+
+            String scope = (String) configuration.get("scope");
+            String topic = (String) configuration.get("topic");
+            return new TopicProducer() {
+
+                EventStreamWriter<String> eventStreamWriter;
+
+                AtomicLong totalIn = new AtomicLong();
+
+                @Override
+                public void start() {
+                    eventStreamWriter =
+                            client.createEventWriter(
+                                    agentId,
+                                    topic,
+                                    new UTF8StringSerializer(),
+                                    EventWriterConfig.builder().build());
+                }
+
+                @Override
+                public void close() {
+                    if (eventStreamWriter != null) {
+                        eventStreamWriter.close();
+                    }
+                }
+
+                @Override
+                public CompletableFuture<?> write(Record record) {
+                    log.info("Writing record {}", record);
+                    totalIn.incrementAndGet();
+                    try {
+                        String key = serialiseKey(record.key());
+                        String value = serialiseValue(record);
+                        log.info("Writing key {} value {}", key, value);
+                        if (key != null) {
+                            return eventStreamWriter.writeEvent(key, value);
+                        } else {
+                            return eventStreamWriter.writeEvent(value);
+                        }
+                    } catch (IOException err) {
+                        return CompletableFuture.failedFuture(err);
+                    }
+                }
+
+                @Override
+                public Object getNativeProducer() {
+                    return TopicProducer.super.getNativeProducer();
+                }
+
+                @Override
+                public Object getInfo() {
+                    return TopicProducer.super.getInfo();
+                }
+
+                @Override
+                public long getTotalIn() {
+                    return totalIn.get();
+                }
+            };
         }
 
         @Override
@@ -207,4 +369,28 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             }
         }
     }
+
+    private static String serialiseKey(Object o) throws IOException {
+        if (o == null) {
+            return null;
+        }
+
+        if (o instanceof CharSequence || o instanceof Number || o.getClass().isPrimitive()) {
+            return o.toString();
+        }
+
+        return mapper.writeValueAsString(o);
+    }
+
+    private static String serialiseValue(Record record) throws IOException {
+        Map<String, Object> headers = new HashMap<>();
+        if (record.headers() != null) {
+            record.headers().forEach(header -> headers.put(header.key(), header.value()));
+        }
+        RecordWrapper wrapper =
+                new RecordWrapper(record.key(), record.value(), headers, record.timestamp());
+        return mapper.writeValueAsString(wrapper);
+    }
+
+    record RecordWrapper(Object key, Object value, Map<String, Object> headers, Long timestamp) {}
 }

@@ -30,7 +30,8 @@ import lombok.ToString;
 @Getter
 @ToString
 @NoArgsConstructor
-public class AgentSpec extends NamespacedSpec {
+public class
+AgentSpec extends NamespacedSpec {
 
     public record Resources(int parallelism, int size) {}
 

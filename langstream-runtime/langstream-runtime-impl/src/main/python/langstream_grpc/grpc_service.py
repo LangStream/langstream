@@ -326,6 +326,14 @@ def call_method_if_exists(klass, method, *args, **kwargs):
             return method(*args[:defined_positional_parameters_count], **kwargs)
     return None
 
+def call_method_new_thread_if_exists(klass, method, *args, **kwargs):
+    method_thread = threading.Thread(
+        target=call_method_if_exists,
+        args=(klass, method, args, kwargs),
+    )
+    method_thread.start()
+    return None
+
 
 def init_agent(configuration, context) -> Agent:
     full_class_name = configuration["className"]
@@ -360,6 +368,7 @@ class AgentServer(object):
 
     def start(self):
         call_method_if_exists(self.agent, "start")
+        call_method_new_thread_if_exists(self.agent, "main")
         agent_pb2_grpc.add_AgentServiceServicer_to_server(
             AgentService(self.agent), self.grpc_server
         )

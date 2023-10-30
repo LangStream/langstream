@@ -49,8 +49,8 @@ add_routes(
     path="/chain",
     )
 
-class ChatBotService(Agent):
+class ChatBotService(Service):
 
-    def start(self):
+    def main(self):
       uvicorn.run(app, host="localhost", port=8000)
 

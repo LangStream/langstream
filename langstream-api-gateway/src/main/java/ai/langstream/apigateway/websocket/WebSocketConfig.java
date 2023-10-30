@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -50,7 +51,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final TopicProducerCache topicProducerCache;
-    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
+    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool(
+            new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build()
+    );
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

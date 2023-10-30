@@ -40,6 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,7 +60,9 @@ public class GatewayResource {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final TopicProducerCache topicProducerCache;
     private final GatewayRequestHandler gatewayRequestHandler;
-    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
+    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool(
+            new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build()
+    );
 
     @PostMapping(
             value = "/produce/{tenant}/{application}/{gateway}",

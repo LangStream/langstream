@@ -217,12 +217,31 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
     }
 
     public static class MockService extends AbstractAgentCode implements AgentService {
-        @Override
-        public void start() throws Exception {
-            log.info("Starting service");
+
+        public static final AtomicInteger startCounters = new AtomicInteger();
+        public static final AtomicInteger joinCounter = new AtomicInteger();
+        public static final AtomicInteger closeCounter = new AtomicInteger();
+
+        public static void resetCounters() {
+            startCounters.set(0);
+            joinCounter.set(0);
+            closeCounter.set(0);
         }
 
         @Override
-        public void join() throws Exception {}
+        public void start() throws Exception {
+            log.info("Starting service");
+            startCounters.incrementAndGet();
+        }
+
+        @Override
+        public void join() throws Exception {
+            joinCounter.incrementAndGet();
+        }
+
+        @Override
+        public void close() throws Exception {
+            closeCounter.incrementAndGet();
+        }
     }
 }

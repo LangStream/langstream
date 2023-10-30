@@ -334,6 +334,7 @@ def call_method_if_exists(klass, method, *args, **kwargs):
 
 class MainExecutor(threading.Thread):
     def __init__(self, onError, klass, method, *args, **kwargs):
+        threading.Thread.__init__(self)
         self.onError = onError
         self.method = method
         self.klass = klass

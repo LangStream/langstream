@@ -16,9 +16,13 @@
 package ai.langstream.services;
 
 import java.util.Map;
+
+import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
 @Testcontainers
@@ -26,6 +30,9 @@ class ServiceAgentIT extends AbstractStreamingLessApplicationRunner {
 
     @Test
     public void testService() throws Exception {
+
+        MockProcessorAgentsCodeProvider.MockService.resetCounters();
+
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
@@ -44,6 +51,10 @@ class ServiceAgentIT extends AbstractStreamingLessApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             executeAgentRunners(applicationRuntime);
+
+            assertEquals(1, MockProcessorAgentsCodeProvider.MockService.startCounters.get());
+            assertEquals(1, MockProcessorAgentsCodeProvider.MockService.joinCounter.get());
+            assertEquals(1, MockProcessorAgentsCodeProvider.MockService.closeCounter.get());
         }
     }
 }

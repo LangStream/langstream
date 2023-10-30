@@ -317,10 +317,6 @@ class AgentService(AgentServiceServicer):
         return grpc_schema, grpc_value
 
 
-def method_exists(klass, method):
-    return callable(getattr(klass, method, None))
-
-
 def call_method_if_exists(klass, method, *args, **kwargs):
     method = getattr(klass, method, None)
     if callable(method):
@@ -414,20 +410,14 @@ class AgentServer(object):
         main_exists = call_method_new_thread_if_exists(
             self.agent, "main", crash_process
         )
-        if main_exists:
-            logging.info("Agent Service Server started")
-            return None
 
         agent_pb2_grpc.add_AgentServiceServicer_to_server(
             AgentService(self.agent), self.grpc_server
         )
         self.grpc_server.start()
-        logging.info("Server started, listening on " + self.target)
+        logging.info("GRPC Server started, listening on " + self.target)
 
     def stop(self):
-        if method_exists(self.agent, "main"):
-            return
-
         self.grpc_server.stop(None)
         call_method_if_exists(self.agent, "close")
         self.thread_pool.shutdown(wait=True)

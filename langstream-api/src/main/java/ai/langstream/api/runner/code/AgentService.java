@@ -13,11 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.runtime;
+package ai.langstream.api.runner.code;
 
-public enum ComponentType {
-    PROCESSOR,
-    SINK,
-    SOURCE,
-    SERVICE
+import ai.langstream.api.runtime.ComponentType;
+
+/** Body of the agent */
+public interface AgentService extends AgentCode {
+
+    @Override
+    default ComponentType componentType() {
+        return ComponentType.SERVICE;
+    }
+
+    /** Wait for the service to exit */
+    void join() throws Exception;
 }

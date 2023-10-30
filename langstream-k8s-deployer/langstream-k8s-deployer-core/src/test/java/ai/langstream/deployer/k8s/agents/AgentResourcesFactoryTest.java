@@ -24,6 +24,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.TolerationBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -35,7 +36,7 @@ import org.junit.jupiter.api.Test;
 class AgentResourcesFactoryTest {
 
     @Test
-    void testStatefulset() {
+    void testStatefulsetAndService() {
         final AgentCustomResource resource =
                 getCr(
                         """
@@ -119,6 +120,8 @@ class AgentResourcesFactoryTest {
                                 ports:
                                 - containerPort: 8080
                                   name: http
+                                - containerPort: 8000
+                                  name: service
                                 readinessProbe:
                                   httpGet:
                                     path: /metrics
@@ -197,6 +200,39 @@ class AgentResourcesFactoryTest {
                                 name: download-config
                         """,
                 SerializationUtil.writeAsYaml(statefulSet));
+
+        Service service = AgentResourcesFactory.generateHeadlessService(resource);
+        assertEquals(
+                """
+                ---
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  labels:
+                    app: langstream-runtime
+                    langstream-agent: my-agent
+                    langstream-application: the-'app
+                  name: test-agent1
+                  namespace: default
+                  ownerReferences:
+                  - apiVersion: langstream.ai/v1alpha1
+                    kind: Agent
+                    blockOwnerDeletion: true
+                    controller: true
+                    name: test-agent1
+                spec:
+                  clusterIP: None
+                  ports:
+                  - name: http
+                    port: 8080
+                  - name: service
+                    port: 8000
+                  selector:
+                    app: langstream-runtime
+                    langstream-agent: my-agent
+                    langstream-application: the-'app
+                """,
+                SerializationUtil.writeAsYaml(service));
     }
 
     @Test

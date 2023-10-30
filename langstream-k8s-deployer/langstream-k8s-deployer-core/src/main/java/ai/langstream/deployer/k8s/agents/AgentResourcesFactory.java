@@ -107,7 +107,12 @@ public class AgentResourcesFactory {
                 .endMetadata()
                 .withNewSpec()
                 .withPorts(
-                        List.of(new ServicePortBuilder().withName("http").withPort(8080).build()))
+                        List.of(
+                                new ServicePortBuilder().withName("http").withPort(8080).build(),
+                                new ServicePortBuilder()
+                                        .withName("service")
+                                        .withPort(8000)
+                                        .build()))
                 .withSelector(agentLabels)
                 .withClusterIP("None")
                 .endSpec()
@@ -223,8 +228,11 @@ public class AgentResourcesFactory {
                         .withTerminationMessagePolicy("FallbackToLogsOnError")
                         .build();
 
-        final ContainerPort port =
+        final ContainerPort portHttp =
                 new ContainerPortBuilder().withName("http").withContainerPort(8080).build();
+
+        final ContainerPort portCustomServiceHttp =
+                new ContainerPortBuilder().withName("service").withContainerPort(8000).build();
 
         final List<VolumeMount> containerMounts = new ArrayList<>();
         containerMounts.add(
@@ -250,7 +258,7 @@ public class AgentResourcesFactory {
                         .withName("runtime")
                         .withImage(image)
                         .withImagePullPolicy(imagePullPolicy)
-                        .withPorts(List.of(port))
+                        .withPorts(portHttp, portCustomServiceHttp)
                         .withLivenessProbe(createLivenessProbe(agentResourceUnitConfiguration))
                         .withReadinessProbe(createReadinessProbe(agentResourceUnitConfiguration))
                         .withResources(convertResources(resources, agentResourceUnitConfiguration))

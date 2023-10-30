@@ -31,6 +31,7 @@ public class MockProcessorAgentsProvider extends AbstractComposableAgentProvider
                 Set.of(
                         "mock-failing-processor",
                         "mock-failing-sink",
+                        "mock-service",
                         "mock-async-processor",
                         "mock-stateful-processor"),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE));
@@ -43,6 +44,11 @@ public class MockProcessorAgentsProvider extends AbstractComposableAgentProvider
 
     @Override
     protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
-        return ComponentType.PROCESSOR;
+        switch (agentConfiguration.getType()) {
+            case "mock-service":
+                return ComponentType.SERVICE;
+            default:
+                return ComponentType.PROCESSOR;
+        }
     }
 }

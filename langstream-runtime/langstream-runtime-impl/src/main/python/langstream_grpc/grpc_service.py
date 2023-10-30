@@ -17,6 +17,7 @@
 import concurrent
 import importlib
 import json
+import os
 import logging
 import queue
 import threading
@@ -327,6 +328,40 @@ def call_method_if_exists(klass, method, *args, **kwargs):
     return None
 
 
+class MainExecutor(threading.Thread):
+    def __init__(self, onError, klass, method, *args, **kwargs):
+        threading.Thread.__init__(self)
+        self.onError = onError
+        self.method = method
+        self.klass = klass
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        try:
+            logging.info("Starting main method from thread")
+            call_method_if_exists(self.klass, self.method, *self.args, **self.kwargs)
+        except Exception as e:
+            logging.error(e)
+            self.onError()
+
+
+def call_method_new_thread_if_exists(klass, methodName, *args, **kwargs):
+    method = getattr(klass, methodName, None)
+    if callable(method):
+        executor = MainExecutor(crash_process, klass, methodName, *args, **kwargs)
+        executor.start()
+        return True
+
+    return False
+
+
+def crash_process():
+    logging.error("Main method with an error. Exiting process.")
+    os.exit(1)
+    return
+
+
 def init_agent(configuration, context) -> Agent:
     full_class_name = configuration["className"]
     class_name = full_class_name.split(".")[-1]
@@ -356,15 +391,29 @@ class AgentServer(object):
         self.target = target
         self.grpc_server = grpc.server(self.thread_pool)
         self.port = self.grpc_server.add_insecure_port(target)
-        self.agent = init_agent(json.loads(config), json.loads(context))
+
+        configuration = json.loads(config)
+        logging.info("Configuration: " + json.dumps(configuration))
+        environment = configuration.get("environment", [])
+        logging.info("Environment: " + json.dumps(environment))
+
+        for env in environment:
+            key = env["key"]
+            value = env["value"]
+            logging.debug(f"Setting environment variable {key}={value}")
+            os.environ[key] = value
+
+        self.agent = init_agent(configuration, json.loads(context))
 
     def start(self):
         call_method_if_exists(self.agent, "start")
+        call_method_new_thread_if_exists(self.agent, "main", crash_process)
+
         agent_pb2_grpc.add_AgentServiceServicer_to_server(
             AgentService(self.agent), self.grpc_server
         )
         self.grpc_server.start()
-        logging.info("Server started, listening on " + self.target)
+        logging.info("GRPC Server started, listening on " + self.target)
 
     def stop(self):
         self.grpc_server.stop(None)

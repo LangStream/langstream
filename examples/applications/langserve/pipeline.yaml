@@ -14,28 +14,17 @@
 # limitations under the License.
 #
 
-name: "LangChain S3 source"
-topics:
-  - name: "questions-topic"
-    creation-mode: create-if-not-exists
-  - name: "answers-topic"
-    creation-mode: create-if-not-exists
+module: default
+name: "Basic LangServe application"
 pipeline:
-  - name: "Implemented a cha1t-bot using OpenAI and LangChain"
-    id: "chatbot"
-    type: "python-processor"
-    input: "questions-topic"
-    output: "answers-topic"
-    errors:
-      on-failure: "skip"
+  - name: "Start LangServe"
+    id: agent1
+    type: "python-service"
     configuration:
-      className: "langchain_chat.LangChainChat"
-      openai-key: "${ secrets.open-ai.access-key }"
-      astra-db-token: "${ secrets.astra-langchain.token }"
-      astra-db-id: "${ secrets.astra-langchain.database-id }"
-      astra-db-keyspace: "${ secrets.astra-langchain.keyspace }"
-      astra-db-table: "${ secrets.astra-langchain.table }"
+      className: example.ChatBotService
       environment:
+        - key: "OPENAI_API_KEY"
+          value: "${secrets.open-ai.access-key}"
         - key: "LANGCHAIN_TRACING_V2"
           value: "true"
         - key: "LANGCHAIN_ENDPOINT"

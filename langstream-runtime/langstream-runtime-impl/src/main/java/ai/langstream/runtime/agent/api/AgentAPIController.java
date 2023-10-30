@@ -17,6 +17,7 @@ package ai.langstream.runtime.agent.api;
 
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.AgentService;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,8 @@ public class AgentAPIController {
     private AgentProcessor processor;
     private AgentCode source;
     private AgentCode sink;
+
+    private AgentService service;
 
     public void watchProcessor(AgentProcessor processor) {
         this.processor = processor;
@@ -37,6 +40,10 @@ public class AgentAPIController {
 
     public void watchSink(AgentCode sink) {
         this.sink = sink;
+    }
+
+    public void watchService(AgentService service) {
+        this.service = service;
     }
 
     /**
@@ -56,6 +63,9 @@ public class AgentAPIController {
         if (sink != null) {
             result.addAll(sink.getAgentStatus());
         }
+        if (service != null) {
+            result.addAll(service.getAgentStatus());
+        }
         return result;
     }
 
@@ -68,6 +78,9 @@ public class AgentAPIController {
         }
         if (sink != null) {
             sink.restart();
+        }
+        if (service != null) {
+            service.restart();
         }
         return Map.of();
     }

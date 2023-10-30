@@ -76,6 +76,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "-p 8091:8091 "
                                 + "-p 8090:8090 "
                                 + "-p 8790:8790 "
+                                + "-p 8000:8000 "
                                 + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
 
         final List<String> volumes = extractVolumes(lastLine);

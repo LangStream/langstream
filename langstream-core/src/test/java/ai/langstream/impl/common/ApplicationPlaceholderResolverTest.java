@@ -204,7 +204,7 @@ class ApplicationPlaceholderResolverTest {
                                 ApplicationPlaceholderResolver.resolvePlaceholders(
                                         applicationInstance));
         assertEquals(
-                "Property invalid cannot be resolved on a empty context",
+                "Cannot resolve reference secrets.openai-credentials.invalid",
                 illegalArgumentException.getMessage());
     }
 

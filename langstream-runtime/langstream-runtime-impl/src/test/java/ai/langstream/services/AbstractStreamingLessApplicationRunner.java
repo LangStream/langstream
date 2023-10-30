@@ -13,11 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.runtime;
+package ai.langstream.services;
 
-public enum ComponentType {
-    PROCESSOR,
-    SINK,
-    SOURCE,
-    SERVICE
+import ai.langstream.AbstractApplicationRunner;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public abstract class AbstractStreamingLessApplicationRunner extends AbstractApplicationRunner {
+
+    protected String buildInstanceYaml() {
+        return """
+                instance:
+                  streamingCluster:
+                    type: "noop"
+                  computeCluster:
+                     type: "kubernetes"
+                """;
+    }
 }

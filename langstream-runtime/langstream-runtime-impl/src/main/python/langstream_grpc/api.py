@@ -24,6 +24,7 @@ __all__ = [
     "RecordType",
     "Agent",
     "Source",
+    "Service",
     "Sink",
     "Processor",
     "AgentContext",
@@ -178,5 +179,17 @@ class Sink(Agent):
         For an asynchronous result, return a concurrent.futures.Future.
 
         :returns: nothing if the write is successful or a concurrent.futures.Future
+        """
+        pass
+
+
+class Service(Agent):
+    """An agent is a standalone process that can be started and stopped."""
+
+    @abstractmethod
+    def main(self):
+        """This method is called by the runtime to execute the agent.
+
+        :returns: nothing
         """
         pass

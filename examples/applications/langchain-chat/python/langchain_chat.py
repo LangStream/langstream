@@ -207,12 +207,6 @@ class LangChainChat(Processor):
         self.astra_keyspace = config.get("astra-db-keyspace", "")
         self.astra_table_name = config.get("astra-db-table", "")
 
-        self.langsmith_url = config.get("lang-smith-api-url", "https://api.smith.langchain.com")
-        self.langsmith_key = config.get("lang-smith-api-key", "")
-
-        os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ["LANGCHAIN_ENDPOINT"] = self.langsmith_url
-        os.environ["LANGCHAIN_API_KEY"] = self.langsmith_key
 
         cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
 

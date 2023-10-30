@@ -13,11 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.runtime;
+package ai.langstream.runtime.impl.testagents;
 
-public enum ComponentType {
-    PROCESSOR,
-    SINK,
-    SOURCE,
-    SERVICE
+import ai.langstream.api.model.AgentConfiguration;
+import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.impl.common.AbstractAgentProvider;
+import java.util.List;
+import java.util.Set;
+
+public class TestGenericServiceProvider extends AbstractAgentProvider {
+
+    public TestGenericServiceProvider() {
+        super(Set.of("generic-service"), List.of("none"));
+    }
+
+    @Override
+    protected ComponentType getComponentType(AgentConfiguration agentConfiguration) {
+        return ComponentType.SERVICE;
+    }
 }

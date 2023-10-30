@@ -1,2 +1,3 @@
 ai.langstream.runtime.impl.testagents.TestGenericAgentProvider
 ai.langstream.runtime.impl.testagents.TestGenericComposableSinkAgentProvider
+ai.langstream.runtime.impl.testagents.TestGenericServiceProvider

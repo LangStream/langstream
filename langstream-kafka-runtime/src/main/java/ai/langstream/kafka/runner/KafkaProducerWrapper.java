@@ -103,7 +103,7 @@ class KafkaProducerWrapper implements TopicProducer {
                         org.apache.kafka.common.serialization.ByteArraySerializer.class.getName(),
                         copy.get(VALUE_SERIALIZER_CLASS_CONFIG));
         if (!forcedKeySerializer) {
-            log.info(
+            log.debug(
                     "The Producer to {} is configured without a key serializer, we will use reflection to find the right one",
                     topicName);
         } else {
@@ -113,7 +113,7 @@ class KafkaProducerWrapper implements TopicProducer {
                     copy.get(KEY_SERIALIZER_CLASS_CONFIG));
         }
         if (!forcedValueSerializer) {
-            log.info(
+            log.debug(
                     "The Producer to {} is configured without a value serializer, we will use reflection to find the right one",
                     topicName);
         } else {

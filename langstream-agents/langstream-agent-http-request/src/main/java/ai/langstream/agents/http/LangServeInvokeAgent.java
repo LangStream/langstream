@@ -385,7 +385,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
         @Override
         public void onSubscribe(Flow.Subscription subscription) {
-            log.info("onSubscribe {}", subscription);
             this.subscription = subscription;
             subscription.request(1);
         }
@@ -446,10 +445,7 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
         @Override
         public void onComplete() {
             if (!this.isDone()) {
-                log.info("Completed - but end event never received");
                 this.complete(null);
-            } else {
-                log.info("Completed");
             }
         }
 

@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.python;
 
-import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.util.DockerImageUtils;
 import java.io.File;
 import java.nio.file.Files;

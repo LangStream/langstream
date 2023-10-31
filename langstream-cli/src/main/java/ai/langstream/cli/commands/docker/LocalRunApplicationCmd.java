@@ -23,7 +23,6 @@ import ai.langstream.admin.client.http.NoRetryPolicy;
 import ai.langstream.cli.LangStreamCLI;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
-import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.DockerImageUtils;

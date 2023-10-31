@@ -15,6 +15,8 @@
  */
 package ai.langstream.pravega.runner;
 
+import static ai.langstream.pravega.PravegaClientUtils.getScope;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
@@ -61,8 +63,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import static ai.langstream.pravega.PravegaClientUtils.getScope;
 
 @Slf4j
 public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {

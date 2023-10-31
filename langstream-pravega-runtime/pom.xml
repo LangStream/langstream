@@ -29,6 +29,18 @@
   <properties>
     <build.dir>${project.build.directory}</build.dir>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- in the Nar file we must have the same version as the Pravega client -->
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.47.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -45,7 +57,6 @@
       <artifactId>langstream-core</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.pravega</groupId>
       <artifactId>pravega-client</artifactId>

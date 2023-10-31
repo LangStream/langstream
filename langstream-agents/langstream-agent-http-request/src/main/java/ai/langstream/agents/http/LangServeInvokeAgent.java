@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -43,10 +44,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 
@@ -57,7 +60,8 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     private final List<FieldDefinition> fields = new ArrayList<>();
     private TopicProducer topicProducer;
-    private String destination;
+    private String streamToTopic;
+    private int minChunksPerMessage;
     private String contentField;
     private boolean debug;
     static final ObjectMapper mapper = new ObjectMapper();
@@ -72,20 +76,29 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
     private String method;
     private Map<String, Template> headersTemplates;
     private String outputFieldName;
+    private String streamResponseCompletionField;
 
     @SuppressWarnings("unchecked")
     @Override
     public void init(Map<String, Object> configuration) {
-        this.url =
+        url =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "url", () -> "langserve-invoke agent");
-        destination = ConfigurationUtils.getString("stream-to-topic", "", configuration);
-        contentField = ConfigurationUtils.getString("content-field", "content", configuration);
-        this.outputFieldName =
+
+        outputFieldName =
                 ConfigurationUtils.requiredNonEmptyField(
                         configuration, "output-field", () -> "langserve-invoke agent");
-        this.debug = ConfigurationUtils.getBoolean("debug", false, configuration);
-        this.method = ConfigurationUtils.getString("method", "POST", configuration);
+        streamToTopic = ConfigurationUtils.getString("stream-to-topic", "", configuration);
+        streamResponseCompletionField =
+                ConfigurationUtils.getString(
+                        "stream-response-field", outputFieldName, configuration);
+
+        minChunksPerMessage =
+                ConfigurationUtils.getInteger("min-chunks-per-message", 20, configuration);
+        contentField = ConfigurationUtils.getString("content-field", "content", configuration);
+
+        debug = ConfigurationUtils.getBoolean("debug", false, configuration);
+        method = ConfigurationUtils.getString("method", "POST", configuration);
         List<Map<String, Object>> fields =
                 (List<Map<String, Object>>) configuration.getOrDefault("fields", List.of());
         fields.forEach(
@@ -199,25 +212,17 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
                                                     + " with response: "
                                                     + response);
                                 }
-                                final Object responseBody = parseResponseBody(response.body());
-                                context.setResultField(
-                                        responseBody,
-                                        outputFieldName,
-                                        null,
-                                        avroKeySchemaCache,
-                                        avroValueSchemaCache);
+                                final Object responseBody =
+                                        parseResponseBody(response.body(), false);
+                                applyResultFieldToContext(context, responseBody.toString(), false);
                                 Optional<Record> recordResult =
                                         MutableRecord.mutableRecordToRecord(context);
                                 if (log.isDebugEnabled()) {
                                     log.debug("recordResult {}", recordResult);
                                 }
-                                if (recordResult.isPresent()) {
-                                    recordSink.emit(
-                                            new SourceRecordAndResult(
-                                                    record, List.of(recordResult.get()), null));
-                                } else {
-                                    recordSink.emitEmptyList(record);
-                                }
+                                recordSink.emit(
+                                        new SourceRecordAndResult(
+                                                record, List.of(recordResult.orElseThrow()), null));
                             } catch (Exception e) {
                                 log.error("Error processing record: {}", record, e);
                                 recordSink.emitError(record, e);
@@ -233,89 +238,71 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     enum EventType {
         data,
-        end
+        end,
+        emptyLine
     }
 
     private void stream(
             Record record, RecordSink recordSink, HttpRequest request, MutableRecord context) {
-        StringBuilder chunks = new StringBuilder();
-        Flow.Subscriber<String> subscriber =
-                new Flow.Subscriber<String>() {
-                    Flow.Subscription subscription;
-
-                    @Override
-                    public void onSubscribe(Flow.Subscription subscription) {
-                        log.info("onSubscribe {}", subscription);
-                        this.subscription = subscription;
-                        subscription.request(1);
-                    }
-
-                    @Override
-                    public synchronized void onNext(String body) {
-                        chunks.append(body).append("\n");
-                        EventType eventType = parseEventType(body);
-                        log.info("onNext {}", body);
-                        if (eventType == null) {
-                            if (body.startsWith("data: ")) {
-                                body = body.substring("data: ".length());
+        StreamResponseProcessor streamResponseProcessor =
+                new StreamResponseProcessor(
+                        minChunksPerMessage,
+                        new StreamingChunksConsumer() {
+                            @Override
+                            public void consumeChunk(
+                                    String answerId, int index, String chunk, boolean last) {
+                                if (topicProducer == null) {
+                                    // no streaming output
+                                    return;
+                                }
+                                MutableRecord copy = context.copy();
+                                applyResultFieldToContext(copy, chunk, true);
+                                copy.getProperties().put("stream-id", answerId);
+                                copy.getProperties().put("stream-index", index + "");
+                                copy.getProperties().put("stream-last-message", last + "");
+                                Optional<Record> recordResult =
+                                        MutableRecord.mutableRecordToRecord(copy);
+                                if (log.isDebugEnabled()) {
+                                    log.debug("recordResult {}", recordResult);
+                                }
+                                topicProducer
+                                        .write(recordResult.orElseThrow())
+                                        .exceptionally(
+                                                e -> {
+                                                    log.error("Error writing chunk to topic", e);
+                                                    return null;
+                                                });
                             }
-                            final Object responseBody = parseResponseBody(body);
+                        });
 
-                            MutableRecord copy = context.copy();
-                            copy.setResultField(
-                                    responseBody,
-                                    outputFieldName,
-                                    null,
-                                    avroKeySchemaCache,
-                                    avroValueSchemaCache);
-                            Optional<Record> recordResult =
-                                    MutableRecord.mutableRecordToRecord(copy);
-                            if (log.isDebugEnabled()) {
-                                log.debug("recordResult {}", recordResult);
-                            }
-                            if (recordResult.isPresent()) {
-                                topicProducer.write(recordResult.get());
-                            }
-                        }
-                        subscription.request(1);
-                    }
+        httpClient.sendAsync(
+                request, HttpResponse.BodyHandlers.fromLineSubscriber(streamResponseProcessor));
 
-                    @Override
-                    public void onError(Throwable error) {
-                        log.error("Error processing record: {}", record, error);
-                        recordSink.emit(new SourceRecordAndResult(record, null, error));
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        log.info("Streaming answer processing completed");
+        streamResponseProcessor.whenComplete(
+                (r, e) -> {
+                    if (e != null) {
+                        log.error("Error processing record: {}", record, e);
+                        recordSink.emitError(record, e);
+                    } else {
                         MutableRecord copy = context.copy();
-                        copy.setResultField(
-                                chunks.toString(),
-                                outputFieldName,
-                                null,
-                                avroKeySchemaCache,
-                                avroValueSchemaCache);
+                        applyResultFieldToContext(
+                                copy, streamResponseProcessor.buildTotalAnswerMessage(), false);
                         Optional<Record> recordResult = MutableRecord.mutableRecordToRecord(copy);
-                        if (recordResult.isPresent()) {
-                            recordSink.emitSingleResult(record, recordResult.get());
-                        } else {
-                            recordSink.emitEmptyList(record);
-                        }
+                        recordSink.emitSingleResult(record, recordResult.orElseThrow());
                     }
-                };
-
-        httpClient.sendAsync(request, HttpResponse.BodyHandlers.fromLineSubscriber(subscriber));
+                });
     }
 
     private static EventType parseEventType(String body) {
-        if (body == null || body.isEmpty()) {
+        if (body == null) {
             return EventType.end;
         }
         if (body.startsWith("event: end")) {
             return EventType.end;
         } else if (body.startsWith("event: data")) {
             return EventType.data;
+        } else if (body.isEmpty()) {
+            return EventType.emptyLine;
         } else {
             return null;
         }
@@ -330,10 +317,13 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
         return mapper.writeValueAsString(request);
     }
 
-    private Object parseResponseBody(String body) {
+    private Object parseResponseBody(String body, boolean streaming) {
         try {
             Map<String, Object> map =
                     mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
+            if (!streaming) {
+                map = (Map<String, Object>) map.get("output");
+            }
             if (contentField.isEmpty()) {
                 return map;
             } else {
@@ -347,11 +337,13 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     @Override
     public void start() throws Exception {
-        if (!destination.isEmpty()) {
+        if (!streamToTopic.isEmpty()) {
+            log.info("Streaming answers to topic {}", streamToTopic);
             topicProducer =
                     agentContext
                             .getTopicConnectionProvider()
-                            .createProducer(agentContext.getGlobalAgentId(), destination, Map.of());
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(), streamToTopic, Map.of());
             topicProducer.start();
         }
     }
@@ -365,5 +357,125 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
         if (executor != null) {
             executor.shutdownNow();
         }
+    }
+
+    private class StreamResponseProcessor extends CompletableFuture<Void>
+            implements Flow.Subscriber<String> {
+
+        Flow.Subscription subscription;
+
+        private final StringWriter totalAnswer = new StringWriter();
+
+        private final StringWriter writer = new StringWriter();
+        private final AtomicInteger numberOfChunks = new AtomicInteger();
+        private final int minChunksPerMessage;
+
+        private final AtomicInteger currentChunkSize = new AtomicInteger(1);
+        private final AtomicInteger index = new AtomicInteger();
+
+        private final StreamingChunksConsumer streamingChunksConsumer;
+
+        private final String answerId = java.util.UUID.randomUUID().toString();
+
+        public StreamResponseProcessor(
+                int minChunksPerMessage, StreamingChunksConsumer streamingChunksConsumer) {
+            this.minChunksPerMessage = minChunksPerMessage;
+            this.streamingChunksConsumer = streamingChunksConsumer;
+        }
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            log.info("onSubscribe {}", subscription);
+            this.subscription = subscription;
+            subscription.request(1);
+        }
+
+        @Override
+        public synchronized void onNext(String body) {
+            EventType eventType = parseEventType(body);
+            if (eventType == null || eventType == EventType.end) {
+                boolean last = false;
+                String content;
+                if (body.startsWith("data: ")) {
+                    body = body.substring("data: ".length());
+                    final Object responseBody = parseResponseBody(body, true);
+                    if (responseBody == null) {
+                        content = "";
+                    } else {
+                        content = responseBody.toString();
+                    }
+                } else if (eventType == EventType.end) {
+                    content = "";
+                    last = true;
+                } else {
+                    content = "";
+                }
+
+                if (!content.isEmpty()) {
+                    writer.write(content);
+                    totalAnswer.write(content);
+                    numberOfChunks.incrementAndGet();
+                }
+
+                // start from 1 chunk, then double the size until we reach the minChunksPerMessage
+                // this gives better latencies for the first message
+                int currentMinChunksPerMessage = currentChunkSize.get();
+
+                if (numberOfChunks.get() >= currentMinChunksPerMessage || last) {
+                    currentChunkSize.set(
+                            Math.min(currentMinChunksPerMessage * 2, minChunksPerMessage));
+                    String chunk = writer.toString();
+                    streamingChunksConsumer.consumeChunk(
+                            answerId, index.incrementAndGet(), chunk, last);
+                    writer.getBuffer().setLength(0);
+                    numberOfChunks.set(0);
+                }
+                if (last) {
+                    this.complete(null);
+                }
+            }
+            subscription.request(1);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            log.error("IO Error while calling LangServe", error);
+            this.completeExceptionally(error);
+        }
+
+        @Override
+        public void onComplete() {
+            if (!this.isDone()) {
+                log.info("Completed - but end event never received");
+                this.complete(null);
+            } else {
+                log.info("Completed");
+            }
+        }
+
+        public String buildTotalAnswerMessage() {
+            return totalAnswer.toString();
+        }
+    }
+
+    interface StreamingChunksConsumer {
+        void consumeChunk(String answerId, int index, String chunk, boolean last);
+    }
+
+    private void applyResultFieldToContext(
+            MutableRecord mutableRecord, String content, boolean streamingAnswer) {
+        String fieldName = outputFieldName;
+
+        // maybe we want a different field in the streaming answer
+        // typically you want to directly stream the answer as the whole "value"
+        if (streamingAnswer) {
+            fieldName = streamResponseCompletionField;
+        }
+        mutableRecord.setResultField(
+                content,
+                fieldName,
+                Schema.create(Schema.Type.STRING),
+                avroKeySchemaCache,
+                avroValueSchemaCache);
     }
 }

@@ -17,6 +17,7 @@ package ai.langstream.agents.http;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
 import ai.langstream.api.runner.code.Record;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;

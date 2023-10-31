@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,12 @@ class LangServeInvokeAgentTest {
                             () -> {
                                 assertEquals(1, records.size());
                             });
+
+            Record record = records.get(0).resultRecords().get(0);
+            assertEquals(
+                    """
+                    Why don't cats play poker in the wild? Too many cheetahs!""",
+                    record.value());
         }
     }
 
@@ -181,62 +188,7 @@ class LangServeInvokeAgentTest {
         try (LangServeInvokeAgent agent = new LangServeInvokeAgent(); ) {
             agent.init(configuration);
 
-            TopicProducer topicProducer =
-                    new TopicProducer() {
-                        @Override
-                        public CompletableFuture<?> write(Record record) {
-                            streamingAnswers.add(record);
-                            return CompletableFuture.completedFuture(null);
-                        }
-
-                        @Override
-                        public long getTotalIn() {
-                            return 0;
-                        }
-                    };
-
-            TopicConnectionProvider topicConnectionProvider =
-                    new TopicConnectionProvider() {
-                        @Override
-                        public TopicProducer createProducer(
-                                String agentId, String topic, Map<String, Object> config) {
-                            assertEquals("some-topic", topic);
-                            return topicProducer;
-                        }
-                    };
-
-            agent.setContext(
-                    new AgentContext() {
-                        @Override
-                        public TopicConsumer getTopicConsumer() {
-                            return null;
-                        }
-
-                        @Override
-                        public TopicProducer getTopicProducer() {
-                            return null;
-                        }
-
-                        @Override
-                        public String getGlobalAgentId() {
-                            return null;
-                        }
-
-                        @Override
-                        public TopicAdmin getTopicAdmin() {
-                            return null;
-                        }
-
-                        @Override
-                        public TopicConnectionProvider getTopicConnectionProvider() {
-                            return topicConnectionProvider;
-                        }
-
-                        @Override
-                        public Path getCodeDirectory() {
-                            return null;
-                        }
-                    });
+            setupMockTopicProducer(streamingAnswers, agent);
             agent.start();
             List<AgentProcessor.SourceRecordAndResult> records = new CopyOnWriteArrayList<>();
             RecordSink sink = (records::add);
@@ -252,6 +204,7 @@ class LangServeInvokeAgentTest {
             agent.processRecord(input, sink);
 
             Awaitility.await()
+                    .atMost(1, TimeUnit.DAYS)
                     .untilAsserted(
                             () -> {
                                 assertEquals(1, records.size());
@@ -264,6 +217,79 @@ class LangServeInvokeAgentTest {
 
             Record record = records.get(0).resultRecords().get(0);
             log.info("Main answer: {}", record);
+            assertEquals(
+                    """
+                    Why don't cats play poker in the wild?
+
+                    Too many cheetahs!""",
+                    record.value());
+
+            assertEquals("Why", streamingAnswers.get(0).value());
+            assertEquals(" don't", streamingAnswers.get(1).value());
+            assertEquals(" cats play poker in", streamingAnswers.get(2).value());
+            assertEquals(
+                    " the wild?\n" + "\n" + "Too many cheetah", streamingAnswers.get(3).value());
+            assertEquals(4, streamingAnswers.size());
         }
+    }
+
+    private static void setupMockTopicProducer(
+            List<Record> streamingAnswers, LangServeInvokeAgent agent) throws Exception {
+        TopicProducer topicProducer =
+                new TopicProducer() {
+                    @Override
+                    public CompletableFuture<?> write(Record record) {
+                        streamingAnswers.add(record);
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    @Override
+                    public long getTotalIn() {
+                        return 0;
+                    }
+                };
+
+        TopicConnectionProvider topicConnectionProvider =
+                new TopicConnectionProvider() {
+                    @Override
+                    public TopicProducer createProducer(
+                            String agentId, String topic, Map<String, Object> config) {
+                        assertEquals("some-topic", topic);
+                        return topicProducer;
+                    }
+                };
+
+        agent.setContext(
+                new AgentContext() {
+                    @Override
+                    public TopicConsumer getTopicConsumer() {
+                        return null;
+                    }
+
+                    @Override
+                    public TopicProducer getTopicProducer() {
+                        return null;
+                    }
+
+                    @Override
+                    public String getGlobalAgentId() {
+                        return null;
+                    }
+
+                    @Override
+                    public TopicAdmin getTopicAdmin() {
+                        return null;
+                    }
+
+                    @Override
+                    public TopicConnectionProvider getTopicConnectionProvider() {
+                        return topicConnectionProvider;
+                    }
+
+                    @Override
+                    public Path getCodeDirectory() {
+                        return null;
+                    }
+                });
     }
 }

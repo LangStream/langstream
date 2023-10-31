@@ -10,7 +10,7 @@ Export to the ENV the access key to OpenAI
 export OPEN_AI_ACCESS_KEY=...
 ```
 
-The default [secrets file](../../secrets/secrets.yaml) reads from the ENV. Check out the file to learn more about
+The default [secrets file](../../../secrets/secrets.yaml) reads from the ENV. Check out the file to learn more about
 the default settings, you can change them by exporting other ENV variables.
 
 
@@ -26,7 +26,7 @@ export LANGSMITH_APIKEY=xxxxx
 ## Deploy the LangStream application
 
 ```
-./bin/langstream docker run test -app examples/applications/langserve -s examples/secrets/secrets.yaml --start-broker=false
+./bin/langstream docker run test -app examples/applications/python/langserve-service -s examples/secrets/secrets.yaml --start-broker=false
 ```
 
 ## Interact with the application

@@ -13,19 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.azureblobstorage.source;
+package ai.langstream.agents.http;
 
-import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
+import ai.langstream.api.runner.code.AgentProcessor;
+import java.util.Map;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 
-public class AzureBlobStorageSourceCodeProvider implements AgentCodeProvider {
+@Slf4j
+public class HttpRequestAgentProvider implements AgentCodeProvider {
+
+    private static final Map<String, Supplier<AgentProcessor>> FACTORIES =
+            Map.of(
+                    "http-request",
+                    HttpRequestAgent::new,
+                    "langserve-invoke",
+                    LangServeInvokeAgent::new);
+
     @Override
     public boolean supports(String agentType) {
-        return "azure-blob-storage-source".equals(agentType);
+        return FACTORIES.containsKey(agentType);
     }
 
     @Override
-    public AgentCode createInstance(String agentType) {
-        return new AzureBlobStorageSource();
+    public AgentProcessor createInstance(String agentType) {
+        return FACTORIES.get(agentType).get();
     }
 }

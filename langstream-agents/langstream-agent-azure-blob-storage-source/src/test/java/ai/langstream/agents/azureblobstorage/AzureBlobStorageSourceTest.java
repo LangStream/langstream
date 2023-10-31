@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.http;
+package ai.langstream.agents.azureblobstorage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
 import ai.langstream.api.runner.code.Record;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;

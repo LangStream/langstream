@@ -227,9 +227,9 @@ class LangServeInvokeAgentTest {
             assertEquals("Why", streamingAnswers.get(0).value());
             assertEquals(" don't", streamingAnswers.get(1).value());
             assertEquals(" cats play poker in", streamingAnswers.get(2).value());
-            assertEquals(
-                    " the wild?\n" + "\n" + "Too many cheetah", streamingAnswers.get(3).value());
-            assertEquals(4, streamingAnswers.size());
+            assertEquals(" the wild?\n\nToo many cheetah", streamingAnswers.get(3).value());
+            assertEquals("s!", streamingAnswers.get(4).value());
+            assertEquals(5, streamingAnswers.size());
         }
     }
 

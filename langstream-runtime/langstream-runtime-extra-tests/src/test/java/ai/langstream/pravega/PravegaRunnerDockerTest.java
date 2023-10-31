@@ -111,7 +111,7 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, List.of("{\"name\": \"some name\"}"));
+                waitForMessages(consumer, List.of("{\"name\":\"some name\"}"));
             }
         }
     }

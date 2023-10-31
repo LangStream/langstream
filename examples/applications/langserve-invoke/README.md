@@ -2,7 +2,7 @@
 
 This sample application explains how to invoke a LangServe service and leverage streaming capabilities.
 
-## Set up you LangServe environment
+## Set up your LangServe environment
 
 Start you LangServe application, the example below is using the LangServe sample [application](https://github.com/langchain-ai/langserve)
 
@@ -65,4 +65,4 @@ When "topic" is the topic of the joke you want to generate and it is taken from 
 
 ## Interact with the application
 
-You can now interact with the application using the UI.
+You can now interact with the application using the UI opening your browser at http://localhost:8092/

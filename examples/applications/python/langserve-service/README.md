@@ -26,7 +26,7 @@ export LANGSMITH_APIKEY=xxxxx
 ## Deploy the LangStream application
 
 ```
-./bin/langstream docker run test -app examples/applications/langserve -s examples/secrets/secrets.yaml --start-broker=false
+./bin/langstream docker run test -app examples/applications/python/langserve-service -s examples/secrets/secrets.yaml --start-broker=false
 ```
 
 ## Interact with the application

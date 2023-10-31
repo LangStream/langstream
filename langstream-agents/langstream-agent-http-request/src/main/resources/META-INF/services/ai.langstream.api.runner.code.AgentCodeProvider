@@ -1,1 +1,1 @@
-ai.langstream.agents.azureblobstorage.source.HttpRequestAgentProvider
+ai.langstream.agents.http.HttpRequestAgentProvider

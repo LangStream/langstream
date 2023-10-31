@@ -1,1 +1,1 @@
-ai.langstream.agents.azureblobstorage.source.AzureBlobStorageSourceCodeProvider
+ai.langstream.agents.http.AzureBlobStorageSourceCodeProvider

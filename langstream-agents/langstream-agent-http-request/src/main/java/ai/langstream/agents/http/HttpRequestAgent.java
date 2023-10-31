@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.azureblobstorage.source;
+package ai.langstream.agents.http;
 
 import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
@@ -191,6 +191,12 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
                                     recordSink.emit(
                                             new SourceRecordAndResult(record, List.of(), e));
                                 }
+                            })
+                    .exceptionally(
+                            error -> {
+                                log.error("Error processing record: {}", record, error);
+                                recordSink.emit(new SourceRecordAndResult(record, null, error));
+                                return null;
                             });
         } catch (Throwable error) {
             log.error("Error processing record: {}", record, error);

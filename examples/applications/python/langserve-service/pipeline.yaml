@@ -18,7 +18,7 @@ module: default
 name: "Basic LangServe application"
 pipeline:
   - name: "Start LangServe"
-    id: agent1
+    id: langserve-service
     type: "python-service"
     configuration:
       className: example.ChatBotService

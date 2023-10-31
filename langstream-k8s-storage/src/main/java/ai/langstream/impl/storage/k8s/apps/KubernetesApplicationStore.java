@@ -20,6 +20,7 @@ import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.ApplicationStatus;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
@@ -493,5 +494,37 @@ public class KubernetesApplicationStore implements ApplicationStore {
             }
             return new StreamLogResult(onLogLine.onPodLogNotAvailable(), true);
         }
+    }
+
+    @Override
+    public String getExecutorServiceURI(String tenant, String applicationId, String executorId) {
+        final ApplicationCustomResource application =
+                getApplicationCustomResource(tenant, applicationId);
+        if (application == null) {
+            return null;
+        }
+        SerializedApplicationInstance serializedApplicationInstanceFromCr =
+                getSerializedApplicationInstanceFromCr(application);
+        final SerializedApplicationInstance.AgentRunnerDefinition agentId =
+                serializedApplicationInstanceFromCr.getAgentRunners().values().stream()
+                        .filter(a -> a.getAgentId().equals(executorId))
+                        .findFirst()
+                        .orElse(null);
+        if (agentId == null) {
+            throw new IllegalArgumentException(
+                    "Executor "
+                            + executorId
+                            + " not found. Ensure the agent is of type 'service' and not composite.");
+        }
+        if (!ComponentType.SERVICE.equals(ComponentType.valueOf(agentId.getComponentType()))) {
+            throw new IllegalArgumentException(
+                    "Executor " + executorId + " is not of type 'service'.");
+        }
+        // avoid Service looks up for performance
+        final String namespace = tenantToNamespace(tenant);
+        final String svcName =
+                AgentResourcesFactory.getAgentCustomResourceName(
+                        applicationId, agentId.getAgentId());
+        return KubeUtil.computeServiceUrl(svcName, namespace, 8000);
     }
 }

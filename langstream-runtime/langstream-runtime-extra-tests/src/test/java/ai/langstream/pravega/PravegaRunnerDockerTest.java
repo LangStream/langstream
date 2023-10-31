@@ -19,17 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.kafka.AbstractKafkaApplicationRunner;
-import io.pravega.client.stream.EventRead;
-import io.pravega.client.stream.EventStreamReader;
-import io.pravega.client.stream.ReaderConfig;
-import io.pravega.client.stream.ReaderGroupConfig;
-import io.pravega.client.stream.Stream;
-import io.pravega.client.stream.impl.UTF8StringSerializer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -80,27 +77,30 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            StreamingCluster streamingCluster =
+                    applicationRuntime.applicationInstance().getInstance().streamingCluster();
             TopicConnectionsRuntime topicConnectionsRuntime =
                     applicationDeployer
                             .getTopicConnectionsRuntimeRegistry()
-                            .getTopicConnectionsRuntime(
-                                    applicationRuntime
-                                            .applicationInstance()
-                                            .getInstance()
-                                            .streamingCluster())
+                            .getTopicConnectionsRuntime(streamingCluster)
                             .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(
-                    applicationRuntime.applicationInstance().getInstance().streamingCluster());
+            topicConnectionsRuntime.init(streamingCluster);
             PravegaTopic inputTopicHandle =
                     (PravegaTopic) applicationRuntime.implementation().getTopicByName(inputTopic);
+            PravegaTopic outputTopicHandle =
+                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(outputTopic);
             try (TopicProducer producer =
-                    topicConnectionsRuntime.createProducer(
-                            "test",
-                            applicationRuntime
-                                    .applicationInstance()
-                                    .getInstance()
-                                    .streamingCluster(),
-                            inputTopicHandle.createProducerConfiguration())) {
+                            topicConnectionsRuntime.createProducer(
+                                    "test",
+                                    streamingCluster,
+                                    inputTopicHandle.createProducerConfiguration());
+                    TopicConsumer consumer =
+                            topicConnectionsRuntime.createConsumer(
+                                    "test",
+                                    streamingCluster,
+                                    withReaderGroup(
+                                            outputTopicHandle.createConsumerConfiguration()))) {
+                consumer.start();
                 producer.start();
 
                 producer.write(
@@ -111,21 +111,21 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                try (EventStreamReader<String> consumer = createConsumer(outputTopic)) {
-                    waitForMessages(
-                            consumer,
-                            List.of(
-                                    "{\"key\":null,\"value\":\"{\\\"name\\\":\\\"some name\\\"}\",\"headers\":{},\"timestamp\":null}"));
-                }
+                waitForMessages(consumer, List.of("{\"name\": \"some name\"}"));
             }
         }
     }
 
+    private static Map<String, Object> withReaderGroup(Map<String, Object> map) {
+        Map<String, Object> copy = new HashMap<>(map);
+        copy.put("reader-group", "test-group" + UUID.randomUUID());
+        return copy;
+    }
+
     @Test
-    @Disabled
     public void testDeadLetter() throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = {"app-step1"};
+        String[] expectedAgents = {"app-step2"};
         String inputTopic = "input-topic-" + UUID.randomUUID();
         String outputTopic = "output-topic-" + UUID.randomUUID();
 
@@ -142,7 +142,7 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                             creation-mode: create-if-not-exists
                         pipeline:
                           - name: "some agent"
-                            id: "step1"
+                            id: "step2"
                             type: "mock-failing-processor"
                             input: "%s"
                             output: "%s"
@@ -156,46 +156,58 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
         try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            StreamingCluster streamingCluster =
+                    applicationRuntime.applicationInstance().getInstance().streamingCluster();
             TopicConnectionsRuntime topicConnectionsRuntime =
                     applicationDeployer
                             .getTopicConnectionsRuntimeRegistry()
-                            .getTopicConnectionsRuntime(
-                                    applicationRuntime
-                                            .applicationInstance()
-                                            .getInstance()
-                                            .streamingCluster())
+                            .getTopicConnectionsRuntime(streamingCluster)
                             .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(
-                    applicationRuntime.applicationInstance().getInstance().streamingCluster());
+            topicConnectionsRuntime.init(streamingCluster);
             PravegaTopic inputTopicHandle =
                     (PravegaTopic) applicationRuntime.implementation().getTopicByName(inputTopic);
-            try (TopicProducer producer =
-                    topicConnectionsRuntime.createProducer(
-                            "test",
+            PravegaTopic outputTopicHandle =
+                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(outputTopic);
+            PravegaTopic inputTopicHandleDeadletter =
+                    (PravegaTopic)
                             applicationRuntime
-                                    .applicationInstance()
-                                    .getInstance()
-                                    .streamingCluster(),
-                            inputTopicHandle.createProducerConfiguration())) {
+                                    .implementation()
+                                    .getTopicByName(inputTopic + "-deadletter");
+            try (TopicProducer producer =
+                            topicConnectionsRuntime.createProducer(
+                                    "test",
+                                    streamingCluster,
+                                    inputTopicHandle.createProducerConfiguration());
+                    TopicConsumer consumer =
+                            topicConnectionsRuntime.createConsumer(
+                                    "test",
+                                    streamingCluster,
+                                    withReaderGroup(
+                                            outputTopicHandle.createConsumerConfiguration()));
+                    TopicConsumer consumerDeadletter =
+                            topicConnectionsRuntime.createConsumer(
+                                    "test",
+                                    streamingCluster,
+                                    withReaderGroup(
+                                            inputTopicHandleDeadletter
+                                                    .createConsumerConfiguration()))) {
+                consumer.start();
+                consumerDeadletter.start();
                 producer.start();
-                try (EventStreamReader<String> consumer = createConsumer(outputTopic);
-                        EventStreamReader<String> consumerDeadletter =
-                                createConsumer(inputTopic + "-deadletter")) {
 
-                    List<Object> expectedMessages = new ArrayList<>();
-                    List<Object> expectedMessagesDeadletter = new ArrayList<>();
-                    for (int i = 0; i < 10; i++) {
-                        producer.write(SimpleRecord.of(null, "fail-me-" + i)).get();
-                        producer.write(SimpleRecord.of(null, "keep-me-" + i)).get();
-                        expectedMessages.add("keep-me-" + i);
-                        expectedMessagesDeadletter.add("fail-me-" + i);
-                    }
-
-                    executeAgentRunners(applicationRuntime);
-
-                    waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
-                    waitForMessages(consumer, expectedMessages);
+                List<Object> expectedMessages = new ArrayList<>();
+                List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                for (int i = 0; i < 10; i++) {
+                    producer.write(SimpleRecord.of(null, "fail-me-" + i)).get();
+                    producer.write(SimpleRecord.of(null, "keep-me-" + i)).get();
+                    expectedMessages.add("keep-me-" + i);
+                    expectedMessagesDeadletter.add("fail-me-" + i);
                 }
+
+                executeAgentRunners(applicationRuntime);
+
+                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                waitForMessages(consumer, expectedMessages);
             }
         }
     }
@@ -215,19 +227,7 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                 .formatted(pravegaContainer.getControllerUri());
     }
 
-    protected EventStreamReader<String> createConsumer(String topic) throws Exception {
-        pravegaContainer
-                .getReaderGroupManager()
-                .createReaderGroup(
-                        "test",
-                        ReaderGroupConfig.builder().stream(Stream.of("langstream", topic)).build());
-        return pravegaContainer
-                .getClient()
-                .createReader(
-                        "test", "test", new UTF8StringSerializer(), ReaderConfig.builder().build());
-    }
-
-    protected List<String> waitForMessages(EventStreamReader<String> consumer, List<?> expected) {
+    protected List<String> waitForMessages(TopicConsumer consumer, List<?> expected) {
         return waitForMessages(
                 consumer,
                 (received) -> {
@@ -249,19 +249,21 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
     }
 
     protected List<String> waitForMessages(
-            EventStreamReader<String> consumer,
-            Consumer<List<String>> assertionOnReceivedMessages) {
+            TopicConsumer consumer, Consumer<List<String>> assertionOnReceivedMessages) {
         List<String> received = new ArrayList<>();
 
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            EventRead<String> message = consumer.readNextEvent(2000);
-                            if (message != null) {
-                                log.info("Received message {}", message);
-                                received.add(message.getEvent());
-                            }
+                            List<Record> messages = consumer.read();
+
+                            log.info("Received messages {}", messages);
+                            received.addAll(
+                                    messages.stream()
+                                            .map(Record::value)
+                                            .map(String::valueOf)
+                                            .toList());
                             log.info("Result:  {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
 

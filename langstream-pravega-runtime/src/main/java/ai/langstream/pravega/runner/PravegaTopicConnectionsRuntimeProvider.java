@@ -187,18 +187,16 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
-            Map<String, Object> copy = new HashMap<>(configuration);
-
-            String scope = (String) configuration.get("scope");
             String topic = (String) configuration.get("topic");
             return new TopicProducer() {
 
                 EventStreamWriter<String> eventStreamWriter;
 
-                AtomicLong totalIn = new AtomicLong();
+                final AtomicLong totalIn = new AtomicLong();
 
                 @Override
                 public void start() {
+                    log.info("Creating event stream writer for topic {}", topic);
                     eventStreamWriter =
                             client.createEventWriter(
                                     agentId,
@@ -216,7 +214,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
                 @Override
                 public CompletableFuture<?> write(Record record) {
-                    log.info("Writing record {}", record);
+                    log.info("Writing to {} record {}", topic, record);
                     totalIn.incrementAndGet();
                     try {
                         String key = serialiseKey(record.key());
@@ -234,12 +232,12 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
                 @Override
                 public Object getNativeProducer() {
-                    return TopicProducer.super.getNativeProducer();
+                    return eventStreamWriter;
                 }
 
                 @Override
                 public Object getInfo() {
-                    return TopicProducer.super.getInfo();
+                    return Map.of("stream", topic);
                 }
 
                 @Override

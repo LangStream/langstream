@@ -55,6 +55,8 @@ public interface ApplicationStore extends GenericStore {
 
     Map<String, Integer> getResourceUsage(String tenant);
 
+    String getExecutorServiceURI(String tenant, String applicationId, String executorId);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

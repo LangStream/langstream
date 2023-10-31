@@ -16,8 +16,9 @@
 #
 
 gateways:
+  - id: chatbot
+    type: service
+    service-options:
+      agent-id: langserve-service
 
-#  - id: chatbot
-#    type: service
-#    agent: service1
 

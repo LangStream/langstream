@@ -248,5 +248,11 @@ class ApplicationServiceResourceLimitTest {
         public void initialize(Map<String, Object> configuration) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public String getExecutorServiceURI(
+                String tenant, String applicationId, String executorId) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

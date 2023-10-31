@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.python;
 
-import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.util.DockerImageUtils;
 import java.io.File;
 import java.nio.file.Files;
@@ -56,12 +55,14 @@ public class LoadPythonDependenciesCmd extends BasePythonCmd {
 
     @CommandLine.Option(
             names = {"--langstream-runtime-version"},
-            description = "Version of the LangStream runtime to use")
-    private String dockerImageVersion = VersionProvider.getMavenVersion();
+            description = "Version of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE_VERSION}")
+    private String dockerImageVersion;
 
     @CommandLine.Option(
             names = {"--langstream-runtime-docker-image"},
-            description = "Docker image of the LangStream runtime to use")
+            description = "Docker image of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE}")
     private String dockerImageName;
 
     @Override

@@ -23,7 +23,6 @@ import ai.langstream.admin.client.http.NoRetryPolicy;
 import ai.langstream.cli.LangStreamCLI;
 import ai.langstream.cli.NamedProfile;
 import ai.langstream.cli.api.model.Gateways;
-import ai.langstream.cli.commands.VersionProvider;
 import ai.langstream.cli.commands.applications.MermaidAppDiagramGenerator;
 import ai.langstream.cli.commands.applications.UIAppCmd;
 import ai.langstream.cli.util.DockerImageUtils;
@@ -143,12 +142,14 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--langstream-runtime-version"},
-            description = "Version of the LangStream runtime to use")
-    private String dockerImageVersion = VersionProvider.getMavenVersion();
+            description = "Version of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE_VERSION}")
+    private String dockerImageVersion;
 
     @CommandLine.Option(
             names = {"--langstream-runtime-docker-image"},
-            description = "Docker image of the LangStream runtime to use")
+            description = "Docker image of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE}")
     private String dockerImageName;
 
     @CommandLine.Option(

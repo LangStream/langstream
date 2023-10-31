@@ -175,6 +175,7 @@
             <platform>windows</platform>
             <platform>unix</platform>
           </platforms>
+          <environmentSetupFileName>langstream.env</environmentSetupFileName>
           <programs>
             <program>
               <mainClass>ai.langstream.cli.LangStreamCLI</mainClass>

@@ -143,8 +143,9 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--langstream-runtime-version"},
-            description = "Version of the LangStream runtime to use")
-    private String dockerImageVersion = VersionProvider.getMavenVersion();
+            description = "Version of the LangStream runtime to use",
+            defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE_VERSION}")
+    private String dockerImageVersion;
 
     @CommandLine.Option(
             names = {"--langstream-runtime-docker-image"},

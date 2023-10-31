@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.util;
 
+import ai.langstream.cli.commands.VersionProvider;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -22,9 +23,12 @@ public class DockerImageUtils {
 
     public static DockerImage computeDockerImage(
             String dockerImageVersion, String dockerImageName) {
-        if (dockerImageVersion != null && dockerImageVersion.endsWith("-SNAPSHOT")) {
-            // built-from-sources, not a release
-            dockerImageVersion = "latest-dev";
+        if (dockerImageVersion == null) {
+            dockerImageVersion = VersionProvider.getMavenVersion();
+            if (dockerImageVersion != null && dockerImageVersion.endsWith("-SNAPSHOT")) {
+                // built-from-sources, not a release
+                dockerImageVersion = "latest-dev";
+            }
         }
 
         if (dockerImageName == null) {

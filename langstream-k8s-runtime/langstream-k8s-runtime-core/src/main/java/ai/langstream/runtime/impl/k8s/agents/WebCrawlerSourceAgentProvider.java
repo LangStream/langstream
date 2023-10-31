@@ -29,7 +29,6 @@ import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.lang.module.Configuration;
 import java.util.List;
 import java.util.Set;
 import lombok.Data;
@@ -56,8 +55,9 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
             ExecutionPlan physicalApplicationInstance,
             ComputeClusterRuntime clusterRuntime,
             StreamingClusterRuntime streamingClusterRuntime) {
-        final String stateStorage = ConfigurationUtils.getString("state-storage", "s3",
-                agentConfiguration.getConfiguration());
+        final String stateStorage =
+                ConfigurationUtils.getString(
+                        "state-storage", "s3", agentConfiguration.getConfiguration());
         if (stateStorage.equals("s3")) {
             return null;
         }

@@ -69,6 +69,13 @@
 		</dependency>
 
 		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>langstream-pravega-runtime</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
@@ -239,6 +246,16 @@
 								<artifactItem>
 									<groupId>${project.groupId}</groupId>
 									<artifactId>langstream-pulsar-runtime</artifactId>
+									<version>${project.version}</version>
+									<type>nar</type>
+									<classifier>nar</classifier>
+									<overWrite>false</overWrite>
+									<outputDirectory>${project.build.directory}/agents</outputDirectory>
+								</artifactItem>
+
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>langstream-pravega-runtime</artifactId>
 									<version>${project.version}</version>
 									<type>nar</type>
 									<classifier>nar</classifier>

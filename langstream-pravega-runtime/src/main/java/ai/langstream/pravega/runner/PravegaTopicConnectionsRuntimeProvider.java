@@ -27,6 +27,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
@@ -49,11 +50,13 @@ import io.pravega.client.stream.Stream;
 import io.pravega.client.stream.StreamConfiguration;
 import io.pravega.client.stream.impl.UTF8StringSerializer;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.SneakyThrows;
@@ -101,7 +104,80 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
-            throw new UnsupportedOperationException();
+
+            String readerGroup = "reader-" + UUID.randomUUID().toString();
+            String readerId = "reader-" + UUID.randomUUID().toString();
+            String scope = (String) configuration.get("scope");
+            String topic = (String) configuration.get("topic");
+
+            return new TopicReader() {
+
+                EventStreamReader<String> reader;
+
+                AtomicLong totalOut = new AtomicLong();
+
+                @Override
+                public void start() throws Exception {
+
+                    final ReaderGroupConfig readerGroupConfig =
+                            ReaderGroupConfig.builder().stream(Stream.of(scope, topic)).build();
+                    readerGroupManager.createReaderGroup(readerGroup, readerGroupConfig);
+
+                    reader =
+                            client.createReader(
+                                    readerId,
+                                    readerGroup,
+                                    new UTF8StringSerializer(),
+                                    ReaderConfig.builder().build());
+                }
+
+                @Override
+                public void close() throws Exception {
+                    if (reader != null) {
+                        reader.close();
+                    }
+                }
+
+                @Override
+                public TopicReadResult read() throws Exception {
+                    EventRead<String> stringEventRead = reader.readNextEvent(1000);
+                    log.info("Read event {}", stringEventRead);
+
+                    if (stringEventRead != null
+                            && stringEventRead.getEvent() != null
+                            && !stringEventRead.isCheckpoint()) {
+                        totalOut.incrementAndGet();
+
+                        SimpleRecord build = convertToRecord(stringEventRead, topic);
+                        return new TopicReadResult() {
+                            @Override
+                            public List<Record> records() {
+                                return List.of(build);
+                            }
+
+                            @Override
+                            public byte[] offset() {
+                                ByteBuffer position = stringEventRead.getPosition().toBytes();
+                                byte[] array = new byte[position.remaining()];
+                                position.get(array);
+                                return array;
+                            }
+                        };
+                    }
+                    return new TopicReadResult() {
+                        @Override
+                        public List<Record> records() {
+                            return List.of();
+                        }
+
+                        @Override
+                        public byte[] offset() {
+                            // TODO
+                            return new byte[0];
+                        }
+                    };
+                }
+            };
         }
 
         @Override

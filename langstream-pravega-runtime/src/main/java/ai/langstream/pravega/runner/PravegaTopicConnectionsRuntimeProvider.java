@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import static ai.langstream.pravega.PravegaClientUtils.getScope;
+
 @Slf4j
 public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -110,6 +112,8 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             String scope = (String) configuration.get("scope");
             String topic = (String) configuration.get("topic");
 
+            // TODO: recover from "initialPosition"
+
             return new TopicReader() {
 
                 EventStreamReader<String> reader;
@@ -135,6 +139,12 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 public void close() throws Exception {
                     if (reader != null) {
                         reader.close();
+                    }
+
+                    try {
+                        readerGroupManager.deleteReaderGroup(readerGroup);
+                    } catch (Exception err) {
+                        log.info("Error deleting reader group {}", readerGroup, err);
                     }
                 }
 
@@ -264,6 +274,13 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             String topic = (String) configuration.get("topic");
+
+            if (agentId == null) {
+                agentId = UUID.randomUUID().toString();
+            }
+
+            String producerId = agentId;
+
             return new TopicProducer() {
 
                 EventStreamWriter<String> eventStreamWriter;
@@ -275,7 +292,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                     log.info("Creating event stream writer for topic {}", topic);
                     eventStreamWriter =
                             client.createEventWriter(
-                                    agentId,
+                                    producerId,
                                     topic,
                                     new UTF8StringSerializer(),
                                     EventWriterConfig.builder().build());
@@ -356,6 +373,12 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                     PravegaClientUtils.getPravegarClusterRuntimeConfiguration(
                             logicalInstance.getInstance().streamingCluster());
             try (StreamManager admin = PravegaClientUtils.buildStreamManager(configuration)) {
+                String scope = getScope(configuration);
+                boolean scopeExists = admin.checkScopeExists(scope);
+                if (!scopeExists) {
+                    log.info("Creating scope {}", scope);
+                    admin.createScope(scope);
+                }
                 for (Topic topic : applicationInstance.getLogicalTopics()) {
                     deployTopic(admin, (PravegaTopic) topic);
                 }

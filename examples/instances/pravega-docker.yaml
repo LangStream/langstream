@@ -16,7 +16,7 @@
 #
 
 # Start Pravega.io standalone in Docker with
-# docker run -it --rm -p 9090:9090 pravega/pravega:0.13.0 standalone
+# docker run -it --rm -p 9090:9090 -p 12345:12345 pravega/pravega:0.13.0 standalone
 
 instance:
   streamingCluster:

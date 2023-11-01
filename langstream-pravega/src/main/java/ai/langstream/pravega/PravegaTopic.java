@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public record PravegaTopic(
         String name,
-        String scope,
         int partitions,
         String createMode,
         String deleteMode,
@@ -60,7 +59,6 @@ public record PravegaTopic(
 
         // this is for the Agent
         configuration.put("topic", name);
-        configuration.put("scope", scope);
 
         if (options != null) {
             options.forEach(
@@ -84,7 +82,6 @@ public record PravegaTopic(
 
         // this is for the Agent
         configuration.put("topic", name);
-        configuration.put("scope", scope);
 
         if (options != null) {
             options.forEach(

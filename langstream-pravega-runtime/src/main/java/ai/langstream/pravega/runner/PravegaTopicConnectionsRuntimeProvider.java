@@ -83,10 +83,15 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         private EventStreamClientFactory client;
         private ReaderGroupManager readerGroupManager;
 
+        private String scope;
+
         @Override
         @SneakyThrows
         public void init(StreamingCluster streamingCluster) {
             client = PravegaClientUtils.buildPravegaClient(streamingCluster);
+            PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration
+                    = PravegaClientUtils.getPravegarClusterRuntimeConfiguration(streamingCluster);
+            scope = PravegaClientUtils.getScope(pravegaClusterRuntimeConfiguration);
             readerGroupManager = PravegaClientUtils.buildReaderGroupManager(streamingCluster);
         }
 
@@ -109,7 +114,6 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
             String readerGroup = "reader-" + UUID.randomUUID().toString();
             String readerId = "reader-" + UUID.randomUUID().toString();
-            String scope = (String) configuration.get("scope");
             String topic = (String) configuration.get("topic");
 
             // TODO: recover from "initialPosition"
@@ -198,7 +202,6 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
             String readerId = agentId;
             String readerGroup = (String) configuration.get("reader-group");
-            String scope = (String) configuration.get("scope");
             String topic = (String) configuration.get("topic");
             return new TopicConsumer() {
 
@@ -380,23 +383,23 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                     admin.createScope(scope);
                 }
                 for (Topic topic : applicationInstance.getLogicalTopics()) {
-                    deployTopic(admin, (PravegaTopic) topic);
+                    deployTopic(admin, (PravegaTopic) topic, scope);
                 }
             }
         }
 
-        private static void deployTopic(StreamManager admin, PravegaTopic topic) throws Exception {
+        private static void deployTopic(StreamManager admin, PravegaTopic topic, String scope) throws Exception {
             String createMode = topic.createMode();
             StreamConfiguration streamConfig =
                     StreamConfiguration.builder()
                             .scalingPolicy(ScalingPolicy.fixed(topic.partitions()))
                             .build();
-            boolean exists = admin.checkStreamExists(topic.scope(), topic.name());
+            boolean exists = admin.checkStreamExists(scope, topic.name());
             switch (createMode) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {
                     if (!exists) {
                         log.info("Topic {} does not exist, creating", topic.name());
-                        admin.createStream(topic.scope(), topic.name(), streamConfig);
+                        admin.createStream(scope, topic.name(), streamConfig);
                     }
                 }
                 case TopicDefinition.CREATE_MODE_NONE -> {
@@ -406,7 +409,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             }
         }
 
-        private static void deleteTopic(StreamManager admin, PravegaTopic topic) throws Exception {
+        private static void deleteTopic(StreamManager admin, PravegaTopic topic, String scope) throws Exception {
 
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {}
@@ -427,14 +430,14 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 return;
             }
 
-            if (!admin.checkStreamExists(topic.scope(), topic.name())) {
+            if (!admin.checkStreamExists(scope, topic.name())) {
                 return;
             }
 
-            log.info("Deleting topic {} in scope {}", topic.name(), topic.scope());
+            log.info("Deleting topic {} in scope {}", topic.name(), scope);
             try {
-                admin.sealStream(topic.scope(), topic.name());
-                admin.deleteStream(topic.scope(), topic.name());
+                admin.sealStream(scope, topic.name());
+                admin.deleteStream(scope, topic.name());
             } catch (Exception error) {
                 log.info("Topic {} didn't exit. Not a problem", topic);
             }
@@ -444,11 +447,14 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         @SneakyThrows
         public void delete(ExecutionPlan applicationInstance) {
             Application logicalInstance = applicationInstance.getApplication();
+            PravegaClusterRuntimeConfiguration configuration
+                    = PravegaClientUtils.getPravegarClusterRuntimeConfiguration(logicalInstance.getInstance().streamingCluster());
+            String scope = getScope(configuration);
             try (StreamManager admin =
                     PravegaClientUtils.buildStreamManager(
                             logicalInstance.getInstance().streamingCluster())) {
                 for (Topic topic : applicationInstance.getLogicalTopics()) {
-                    deleteTopic(admin, (PravegaTopic) topic);
+                    deleteTopic(admin, (PravegaTopic) topic, scope);
                 }
             }
         }

@@ -1,4 +1,4 @@
-# Slack channel witer
+# Slack channel writer
 
 This sample application shows how to write to a slack channel
 

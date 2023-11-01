@@ -318,19 +318,26 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
     }
 
     private Object parseResponseBody(String body, boolean streaming) {
+        if (body == null) {
+            return "";
+        }
         try {
-            Map<String, Object> map =
-                    mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
-            if (!streaming) {
-                map = (Map<String, Object>) map.get("output");
-            }
-            if (contentField.isEmpty()) {
-                return map;
-            } else {
-                return map.get(contentField);
+            if (body.startsWith("{")) {
+                Map<String, Object> map =
+                        mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
+                if (!streaming) {
+                    map = (Map<String, Object>) map.get("output");
+                }
+                if (contentField.isEmpty()) {
+                    return map;
+                } else {
+                    return map.get(contentField);
+                }
+            } else if (body.startsWith("\"")) {
+                body = mapper.readValue(body, String.class);
             }
         } catch (JsonProcessingException ex) {
-            log.debug("Not able to parse response to json: {}, {}", body, ex);
+            log.info("Not able to parse response to json: {}, {}", body, ex);
         }
         return body;
     }

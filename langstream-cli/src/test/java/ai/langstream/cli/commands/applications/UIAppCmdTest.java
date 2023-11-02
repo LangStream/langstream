@@ -28,7 +28,7 @@ class UIAppCmdTest {
 	boolean Result = UIAppCmd.checkAndLaunch("echo", 80);
         assertTrue( Result );
         // fail
-	boolean Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
+	Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
         assertFalse( Result );
     }
 }

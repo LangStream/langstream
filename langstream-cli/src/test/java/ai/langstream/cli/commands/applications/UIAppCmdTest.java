@@ -29,7 +29,7 @@ class UIAppCmdTest {
 	boolean Result = UIAppCmd.checkAndLaunch( command, 80);
         assertTrue( Result, command + "isn't found in filesystem should be true" );
         // fail
-	String command = "_no_such_command_";
+	command = "_no_such_command_";
 	Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
         assertFalse( Result, command + "isn't found in filesystemi should be false" );
     }

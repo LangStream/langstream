@@ -104,7 +104,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                     }
                 }
             };
-        startServer(port, () - > appModel, apiGatewayUrl, logSupplier, getLogger());
+        startServer(port, () -> appModel, apiGatewayUrl, logSupplier, getLogger());
         Thread.sleep(Long.MAX_VALUE);
     }
 
@@ -143,7 +143,7 @@ public class UIAppCmd extends BaseApplicationCmd {
         final HttpHandler logsHandler = new LogsHandler(logsStream);
 
         HttpHandler blockingHandler =
-            exchange - > {
+            exchange -> {
                 exchange.startBlocking();
                 if (exchange.isInIoThread()) {
                     exchange.dispatch(logsHandler);
@@ -158,7 +158,7 @@ public class UIAppCmd extends BaseApplicationCmd {
             Handlers.resource(
                 new ClassPathResourceManager(UIAppCmd.class.getClassLoader(), "app-ui"));
         HttpHandler appConfigHandler =
-            exchange - > {
+            exchange -> {
                 final AppModel result = appModel.get();
                 result.setBaseUrl("ws://localhost:" + actualPort.get());
                 final String json = jsonBodyWriter.writeValueAsString(result);
@@ -261,7 +261,7 @@ public class UIAppCmd extends BaseApplicationCmd {
             final byte[] bytes = "\n".getBytes(StandardCharsets.UTF_8);
 
             logSupplier.run(
-                line - > {
+                line -> {
                     try {
                         exchange.getOutputStream().write(line.getBytes(StandardCharsets.UTF_8));
                         exchange.getOutputStream().write(bytes);

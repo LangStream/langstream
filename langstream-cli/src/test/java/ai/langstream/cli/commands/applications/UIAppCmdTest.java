@@ -24,8 +24,8 @@ class UIAppCmdTest {
     @Test
     void openBrowser() {
         // ok
-        UIAppCmd.openBrowserAtPort("http://8.8.8.8:", 80);
+        UIAppCmd.checkAndLaunch("echo", 80);
         // fail
-        UIAppCmd.openBrowserAtPort("http://10.0.0.0:", 80);
+        UIAppCmd.checkAndLaunch("_no_such_command_", 80);
     }
 }

@@ -1,4 +1,4 @@
-# Slack channel witer
+# Slack channel writer
 
 This sample application shows how to write to a slack channel
 
@@ -16,6 +16,4 @@ Since the application opens a gateway, we can use the gateway API to send and co
 ```
 langstream gateway produce slack produce-input -p sessionId=$(uuidgen) -v "hello"
 ```
-
-This is currently working because the slack message and token are hardcoded and need to be referenced by variables.
 

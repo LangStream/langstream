@@ -157,6 +157,40 @@ public class WebCrawlerSourceTest {
 
     @Test
     @Disabled("This test is disabled because it connects to a real live website")
+    void testReadDataStaxDocs() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String url = "https://docs.datastax.com/";
+        String allowed = "https://docs.datastax.com/";
+
+        WebCrawlerSource agentSource =
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of("/en/dse/6.8/dse-admin/sitemap.xml"),
+                        url,
+                        Map.of("reindex-interval-seconds", "30", "max-urls", 5));
+        List<Record> read = agentSource.read();
+        Set<String> urls = new HashSet<>();
+        agentSource.setOnReindexStart(
+                () -> {
+                    urls.clear();
+                });
+        int count = 0;
+        while (count < 30000) {
+            log.info("read: {}", read);
+            for (Record r : read) {
+                String docUrl = r.key().toString();
+                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+            }
+            count += read.size();
+            agentSource.commit(read);
+            read = agentSource.read();
+        }
+        agentSource.close();
+    }
+
+    @Test
+    @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamGithubRepo() throws Exception {
         try {
             String bucket = "langstream-test-" + UUID.randomUUID();

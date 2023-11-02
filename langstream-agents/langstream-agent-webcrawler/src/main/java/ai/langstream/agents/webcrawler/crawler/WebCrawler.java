@@ -357,34 +357,45 @@ public class WebCrawler {
     }
 
     private void handleSitemapsFile(String url) throws Exception {
-        HttpResponse<byte[]> response = downloadUrl(url);
-        SiteMapParser siteMapParser = new SiteMapParser();
-        AbstractSiteMap abstractSiteMap = siteMapParser.parseSiteMap(response.body(), new URL(url));
-        if (abstractSiteMap instanceof SiteMap siteMap) {
 
-            Collection<SiteMapURL> siteMapUrls = siteMap.getSiteMapUrls();
+        if (isUrlForbidden(url)) {
+            log.info("Sitemap {} is forbidden. Skipping", url);
+            return;
+        }
 
-            siteMapUrls.forEach(
-                    siteMapUrl -> {
-                        log.info("Adding url from sitemap : {}", siteMapUrl.getUrl());
-                        String loc = siteMapUrl.getUrl().toString();
-                        if (configuration.isAllowedUrl(loc)) {
-                            addPageUrl(loc, null);
-                        } else {
-                            log.debug("Ignoring not allowed url: {}", loc);
-                            discardUrl(loc, new URLReference(loc, URLReference.Type.PAGE, 0));
-                        }
-                    });
-        } else if (abstractSiteMap instanceof SiteMapIndex siteMapIndex) {
-            log.info("It is a sitemap index");
-            Collection<AbstractSiteMap> sitemaps = siteMapIndex.getSitemaps(true);
-            sitemaps.forEach(
-                    s -> {
-                        log.info("Adding this sitemap : {}", s.getUrl());
-                        forceAddUrl(s.getUrl().toString(), URLReference.Type.SITEMAP, 0);
-                    });
-        } else {
-            log.warn("Unknown sitemap type: {}", abstractSiteMap.getClass().getName());
+        try {
+            HttpResponse<byte[]> response = downloadUrl(url);
+            SiteMapParser siteMapParser = new SiteMapParser();
+            AbstractSiteMap abstractSiteMap =
+                    siteMapParser.parseSiteMap(response.body(), new URL(url));
+            if (abstractSiteMap instanceof SiteMap siteMap) {
+
+                Collection<SiteMapURL> siteMapUrls = siteMap.getSiteMapUrls();
+
+                siteMapUrls.forEach(
+                        siteMapUrl -> {
+                            log.info("Adding url from sitemap : {}", siteMapUrl.getUrl());
+                            String loc = siteMapUrl.getUrl().toString();
+                            if (configuration.isAllowedUrl(loc)) {
+                                addPageUrl(loc, null);
+                            } else {
+                                log.debug("Ignoring not allowed url: {}", loc);
+                                discardUrl(loc, new URLReference(loc, URLReference.Type.PAGE, 0));
+                            }
+                        });
+            } else if (abstractSiteMap instanceof SiteMapIndex siteMapIndex) {
+                log.info("It is a sitemap index");
+                Collection<AbstractSiteMap> sitemaps = siteMapIndex.getSitemaps(true);
+                sitemaps.forEach(
+                        s -> {
+                            log.info("Adding this sitemap : {}", s.getUrl());
+                            forceAddUrl(s.getUrl().toString(), URLReference.Type.SITEMAP, 0);
+                        });
+            } else {
+                log.warn("Unknown sitemap type: {}", abstractSiteMap.getClass().getName());
+            }
+        } catch (crawlercommons.sitemaps.UnknownFormatException e) {
+            log.warn("Error while parsing the sitemap file at {}", url, e);
         }
     }
 

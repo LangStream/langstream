@@ -15,7 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +25,10 @@ class UIAppCmdTest {
     @Test
     void openBrowser() {
         // ok
-        assertTrue(1>0);
+        assertTrue( 'a' = 'a' );
 //        assertTrue(UIAppCmd.checkAndLaunch("echo", 80));
         // fail
-        assertFalse(0>1);
+        assertFalse( 'a' = 'b' );
 //        assertFalse(UIAppCmd.checkAndLaunch("_no_such_command_", 80));
     }
 }

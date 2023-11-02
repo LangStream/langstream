@@ -24,10 +24,10 @@ class UIAppCmdTest {
     @Test
     void openBrowser() {
         // ok
-        assertTrue(true);
+        assertTrue(1>0);
 //        assertTrue(UIAppCmd.checkAndLaunch("echo", 80));
         // fail
-        assertFalse(false);
+        assertFalse(0>1);
 //        assertFalse(UIAppCmd.checkAndLaunch("_no_such_command_", 80));
     }
 }

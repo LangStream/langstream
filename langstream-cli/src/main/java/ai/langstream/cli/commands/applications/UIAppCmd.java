@@ -202,7 +202,9 @@ public class UIAppCmd extends BaseApplicationCmd {
 			} catch (InterruptedException interruptedException) {
          		   Thread.currentThread().interrupt();
 			   return false;
-			    } catch (IOException ioException ) { return false; }
+			} catch (IOException ioException ) {
+				return false;
+			}
 		} else {
 			return false;
 		}

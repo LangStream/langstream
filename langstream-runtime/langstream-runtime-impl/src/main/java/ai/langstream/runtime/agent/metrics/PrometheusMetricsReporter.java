@@ -17,15 +17,13 @@ package ai.langstream.runtime.agent.metrics;
 
 import ai.langstream.api.runner.code.MetricsReporter;
 import io.prometheus.client.Counter;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PrometheusMetricsReporter implements MetricsReporter {
 
     private final String agentName;
-    private static Map<String, io.prometheus.client.Counter> counters
-            = new ConcurrentHashMap<>();
+    private static Map<String, io.prometheus.client.Counter> counters = new ConcurrentHashMap<>();
 
     public PrometheusMetricsReporter(String agentName) {
         this.agentName = agentName;
@@ -42,14 +40,16 @@ public class PrometheusMetricsReporter implements MetricsReporter {
 
     @Override
     public Counter counter(String name, String help) {
-        String finalName = this.agentName.isEmpty() ? agentName : this.agentName + "_" + name;
-        io.prometheus.client.Counter counter = counters.computeIfAbsent(name, k -> {
-            return io.prometheus.client.Counter.build()
-                    .name(sanitizeMetricName(finalName))
-                    .labelNames("agent")
-                    .help(help)
-                    .register();
-        });
+        io.prometheus.client.Counter counter =
+                counters.computeIfAbsent(
+                        name,
+                        k -> {
+                            return io.prometheus.client.Counter.build()
+                                    .name(sanitizeMetricName(name))
+                                    .labelNames("agent_id")
+                                    .help(help)
+                                    .register();
+                        });
 
         io.prometheus.client.Counter.Child counterWithLabel = counter.labels(agentName);
         return new Counter() {
@@ -74,5 +74,4 @@ public class PrometheusMetricsReporter implements MetricsReporter {
 
         return sanitizedName;
     }
-
 }

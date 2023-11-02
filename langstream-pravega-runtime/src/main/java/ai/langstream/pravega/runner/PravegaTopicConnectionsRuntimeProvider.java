@@ -89,8 +89,8 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         @SneakyThrows
         public void init(StreamingCluster streamingCluster) {
             client = PravegaClientUtils.buildPravegaClient(streamingCluster);
-            PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration
-                    = PravegaClientUtils.getPravegarClusterRuntimeConfiguration(streamingCluster);
+            PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration =
+                    PravegaClientUtils.getPravegarClusterRuntimeConfiguration(streamingCluster);
             scope = PravegaClientUtils.getScope(pravegaClusterRuntimeConfiguration);
             readerGroupManager = PravegaClientUtils.buildReaderGroupManager(streamingCluster);
         }
@@ -388,7 +388,8 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             }
         }
 
-        private static void deployTopic(StreamManager admin, PravegaTopic topic, String scope) throws Exception {
+        private static void deployTopic(StreamManager admin, PravegaTopic topic, String scope)
+                throws Exception {
             String createMode = topic.createMode();
             StreamConfiguration streamConfig =
                     StreamConfiguration.builder()
@@ -409,7 +410,8 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             }
         }
 
-        private static void deleteTopic(StreamManager admin, PravegaTopic topic, String scope) throws Exception {
+        private static void deleteTopic(StreamManager admin, PravegaTopic topic, String scope)
+                throws Exception {
 
             switch (topic.createMode()) {
                 case TopicDefinition.CREATE_MODE_CREATE_IF_NOT_EXISTS -> {}
@@ -447,8 +449,9 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         @SneakyThrows
         public void delete(ExecutionPlan applicationInstance) {
             Application logicalInstance = applicationInstance.getApplication();
-            PravegaClusterRuntimeConfiguration configuration
-                    = PravegaClientUtils.getPravegarClusterRuntimeConfiguration(logicalInstance.getInstance().streamingCluster());
+            PravegaClusterRuntimeConfiguration configuration =
+                    PravegaClientUtils.getPravegarClusterRuntimeConfiguration(
+                            logicalInstance.getInstance().streamingCluster());
             String scope = getScope(configuration);
             try (StreamManager admin =
                     PravegaClientUtils.buildStreamManager(

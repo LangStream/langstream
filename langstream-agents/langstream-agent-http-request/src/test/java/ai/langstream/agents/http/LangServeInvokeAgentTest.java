@@ -49,17 +49,31 @@ import org.junit.jupiter.api.Test;
 class LangServeInvokeAgentTest {
 
     @Test
-    public void testInvoke(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+    void testInvokeJSONMap(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        String response =
+                """
+                        {"output":{"content":"Why don't cats play poker in the wild? Too many cheetahs!","additional_kwargs":{},"type":"ai","example":false},"callback_events":[]}
+                        """;
+        testInvoke(wireMockRuntimeInfo, response);
+    }
+
+    @Test
+    void testInvokeJSONString(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        String response =
+                """
+                        "Why don't cats play poker in the wild? Too many cheetahs!"
+                        """;
+        testInvoke(wireMockRuntimeInfo, response);
+    }
+
+    private void testInvoke(WireMockRuntimeInfo wireMockRuntimeInfo, String response)
+            throws Exception {
         stubFor(
                 post("/chain/invoke")
                         .withRequestBody(
                                 equalTo("""
                         {"input":{"topic":"cats"}}"""))
-                        .willReturn(
-                                okJson(
-                                        """
-                        {"output":{"content":"Why don't cats play poker in the wild? Too many cheetahs!","additional_kwargs":{},"type":"ai","example":false},"callback_events":[]}
-                        """)));
+                        .willReturn(okJson(response)));
         Map<String, Object> configuration =
                 Map.of(
                         "fields",
@@ -101,7 +115,7 @@ class LangServeInvokeAgentTest {
     }
 
     @Test
-    public void testStreamingOutput(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+    void testStreamingJSONMap(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String response =
                 """
                 event: data
@@ -162,7 +176,76 @@ class LangServeInvokeAgentTest {
                 data: {"content": "", "additional_kwargs": {}, "type": "AIMessageChunk", "example": false}
 
                 event: end""";
+        testStreamingOutput(wireMockRuntimeInfo, response);
+    }
 
+    @Test
+    void testStreamingJSONString(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        String response =
+                """
+                event: data
+                data: ""
+
+                event: data
+                data: "Why"
+
+                event: data
+                data: " don"
+
+                event: data
+                data: "'t"
+
+                event: data
+                data: " cats"
+
+                event: data
+                data: " play"
+
+                event: data
+                data: " poker"
+
+                event: data
+                data: " in"
+
+                event: data
+                data: " the"
+
+                event: data
+                data: " wild"
+
+                event: data
+                data: "?\\n\\n"
+
+                event: data
+                data: "Too"
+
+                event: data
+                data: " many"
+
+                event: data
+                data: " che"
+
+                event: data
+                data: "et"
+
+                event: data
+                data: "ah"
+
+                event: data
+                data: "s"
+
+                event: data
+                data: "!"
+
+                event: data
+                data: ""
+
+                event: end""";
+        testStreamingOutput(wireMockRuntimeInfo, response);
+    }
+
+    private void testStreamingOutput(WireMockRuntimeInfo wireMockRuntimeInfo, String response)
+            throws Exception {
         stubFor(
                 post("/chain/stream")
                         .withRequestBody(

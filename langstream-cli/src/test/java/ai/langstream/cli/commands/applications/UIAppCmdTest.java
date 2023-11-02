@@ -24,8 +24,8 @@ class UIAppCmdTest {
     @Test
     void openBrowser() {
         // ok
-        UIAppCmd.checkAndLaunch("echo", 80);
+        assertTrue(UIAppCmd.checkAndLaunch("echo", 80));
         // fail
-        UIAppCmd.checkAndLaunch("_no_such_command_", 80);
+        assertFalse(UIAppCmd.checkAndLaunch("_no_such_command_", 80));
     }
 }

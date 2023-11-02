@@ -179,42 +179,55 @@ public class UIAppCmd extends BaseApplicationCmd {
         actualPort.set(
                 ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
-        logger.log("Started UI at http://localhost:" + actualPort.get());
+        logger.log("Starting UI at http://localhost:" + actualPort.get());
 	String os = System.getProperty("os.name").toLowerCase();
 	logger.log("Operating system identified as: " + os);
-        openBrowserAtPort("http://localhost:", actualPort.get());
+        if ( openBrowserAtPort("http://localhost:", actualPort.get()) ) {
+		logger.log("Started UI at http://localhost:" + actualPort.get());
+	} else {
+		logger.log("Could not Start browser.  Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at http://localhost:" + actualPort.get());
+	}
 
         return server;
     }
 
-    	static void checkAndLaunch (String openCommand, int port) {
+    	static boolean checkAndLaunch (String openCommand, int port) {
 		File f = new File(openCommand);
 		boolean existsInFilesystem = f.exists();
 		if ( existsInFilesystem ) {
 			try {
-	     			new ProcessBuilder(openCommand, "http://localhost:" + port).start().waitFor();
+	     			new ProcessBuilder(openCommand, "http://localhost:" + port).start();
+				Thread.sleep(1000);
+				return true;
 			} catch (InterruptedException interruptedException) {
          		   Thread.currentThread().interrupt();
-			    } catch (IOException ioException) { }
-			}
+			   return false;
+			    } catch (IOException ioException ) { return false; }
+		} else {
+			return false;
+		}
 	}
 
-    static void openBrowserAtPort(String URL, int port) {
+    static boolean openBrowserAtPort(String URL, int port) {
 	String os = System.getProperty("os.name").toLowerCase();
 	String openCommand = "";
             if(os.indexOf("win") >= 0) {
                 Desktop desktop = Desktop.getDesktop();
                 try {
                 	desktop.browse(new URI(URL + port));
-			}
-		catch (Exception e) {}
+		}
+		catch (Exception e) {
+			return false;
+		}
+		return true;
             } else if (os.indexOf("mac") >= 0) {
 		        openCommand = "/usr/bin/open";
-			checkAndLaunch (openCommand, port);
+			return checkAndLaunch (openCommand, port);
             } else if (os.indexOf("nix") >=0 || os.indexOf("nux") >=0) {
 		        openCommand = "/usr/bin/xdg-open";
-			checkAndLaunch (openCommand, port);
+			return checkAndLaunch (openCommand, port);
 			}
+	    return false;
     }
 
     @Data

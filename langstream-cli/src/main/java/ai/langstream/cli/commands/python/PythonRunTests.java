@@ -13,18 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli.commands;
+package ai.langstream.cli.commands.python;
 
-import ai.langstream.cli.commands.python.LoadPythonDependenciesCmd;
-import ai.langstream.cli.commands.python.PythonRunTests;
-import lombok.Getter;
+import java.util.List;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "python",
-        header = "Tools for Python developers",
-        subcommands = {LoadPythonDependenciesCmd.class, PythonRunTests.class})
-@Getter
-public class RootPythonCmd {
-    @CommandLine.ParentCommand private RootCmd rootCmd;
+@CommandLine.Command(name = "run-tests", header = "Execute python tests")
+public class PythonRunTests extends BasePythonCmd {
+
+    @CommandLine.Option(
+            names = {"-c", "--command"},
+            description = "Application directory path")
+    protected String command = "python3 -m unittest";
+
+    protected void addSpecificCommand(List<String> commandLine) {
+        log("Running tests");
+        log("Command is");
+        log(command);
+        commandLine.add("PYTHONPATH=$PYTHONPATH:/app-code-download/python/lib " + command);
+    }
 }

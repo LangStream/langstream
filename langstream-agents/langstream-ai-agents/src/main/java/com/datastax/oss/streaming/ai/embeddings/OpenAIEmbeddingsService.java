@@ -43,11 +43,11 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
         this.openAIClient = openAIClient;
         this.model = model;
         this.metricsReporter = metricsReporter;
-        this.totalTokens = metricsReporter.counter("openai_embeddings_total_tokens");
-        this.promptTokens = metricsReporter.counter("openai_embeddings_prompt_tokens");
-        this.numCalls = metricsReporter.counter("openai_embeddings_num_calls");
-        this.numTexts = metricsReporter.counter("openai_embeddings_num_texts");
-        this.numErrors = metricsReporter.counter("openai_embeddings_num_errors");
+        this.totalTokens = metricsReporter.counter("openai_embeddings_total_tokens", "Total number of tokens exchanged with OpenAI");
+        this.promptTokens = metricsReporter.counter("openai_embeddings_prompt_tokens", "Total number of prompt tokens sent to OpenAI");
+        this.numCalls = metricsReporter.counter("openai_embeddings_num_calls", "Total number of calls to OpenAI");
+        this.numTexts = metricsReporter.counter("openai_embeddings_num_texts", "Total number of texts sent to OpenAI");
+        this.numErrors = metricsReporter.counter("openai_embeddings_num_errors", "Total number of errors while calling OpenAI");
     }
 
     @Override

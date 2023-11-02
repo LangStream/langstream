@@ -18,12 +18,17 @@ package ai.langstream.runtime.agent.metrics;
 import ai.langstream.api.runner.code.MetricsReporter;
 import io.prometheus.client.Counter;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class PrometheusMetricsReporter implements MetricsReporter {
 
-    private final String prefix;
+    private final String agentName;
+    private static Map<String, io.prometheus.client.Counter> counters
+            = new ConcurrentHashMap<>();
 
-    public PrometheusMetricsReporter(String prefix) {
-        this.prefix = prefix;
+    public PrometheusMetricsReporter(String agentName) {
+        this.agentName = agentName;
     }
 
     public PrometheusMetricsReporter() {
@@ -31,21 +36,43 @@ public class PrometheusMetricsReporter implements MetricsReporter {
     }
 
     @Override
-    public MetricsReporter withPrefix(String prefix) {
-        String newPrefix = this.prefix.isEmpty() ? prefix : this.prefix + "_" + prefix;
-        return new PrometheusMetricsReporter(newPrefix);
+    public MetricsReporter withAgentName(String agentName) {
+        return new PrometheusMetricsReporter(agentName);
     }
 
     @Override
-    public Counter counter(String name) {
-        String finalName = this.prefix.isEmpty() ? prefix : this.prefix + "_" + name;
-        io.prometheus.client.Counter counter =
-                io.prometheus.client.Counter.build().name(finalName).register();
+    public Counter counter(String name, String help) {
+        String finalName = this.agentName.isEmpty() ? agentName : this.agentName + "_" + name;
+        io.prometheus.client.Counter counter = counters.computeIfAbsent(name, k -> {
+            return io.prometheus.client.Counter.build()
+                    .name(sanitizeMetricName(finalName))
+                    .labelNames("agent")
+                    .help(help)
+                    .register();
+        });
+
+        io.prometheus.client.Counter.Child counterWithLabel = counter.labels(agentName);
         return new Counter() {
             @Override
             public void count(int value) {
-                counter.inc(value);
+                counterWithLabel.inc(value);
             }
         };
     }
+
+    private static String sanitizeMetricName(String metricName) {
+        // Define a regular expression pattern to match forbidden characters
+        String pattern = "[^a-zA-Z0-9_]+";
+
+        // Replace all forbidden characters with an underscore
+        String sanitizedName = metricName.replaceAll(pattern, "_");
+
+        // Make sure the name starts with a letter or underscore
+        if (!Character.isLetter(sanitizedName.charAt(0)) && sanitizedName.charAt(0) != '_') {
+            sanitizedName = "_" + sanitizedName;
+        }
+
+        return sanitizedName;
+    }
+
 }

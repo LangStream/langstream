@@ -58,6 +58,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
     private AgentContext agentContext;
+    private Map<String, Object> configuration;
 
     private TopicProducerStreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
@@ -132,9 +133,12 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     @Override
     @SneakyThrows
     public void init(Map<String, Object> configuration) {
-        configuration = new HashMap<>(configuration);
+        this.configuration = new HashMap<>(configuration);
+    }
 
-        MetricsReporter reporter = agentContext.getMetricsReporter().withPrefix(agentId());
+    @Override
+    public void start() throws Exception {
+        MetricsReporter reporter = agentContext.getMetricsReporter().withAgentName(agentId());
 
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
@@ -159,10 +163,6 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                         dataSource,
                         streamingAnswersConsumerFactory,
                         stepsConfig.get(0));
-    }
-
-    @Override
-    public void start() throws Exception {
         streamingAnswersConsumerFactory.setAgentContext(agentContext);
         step.getTransformStep().start();
     }

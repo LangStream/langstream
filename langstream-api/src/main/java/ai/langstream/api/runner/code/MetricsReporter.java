@@ -18,16 +18,16 @@ package ai.langstream.api.runner.code;
 public interface MetricsReporter {
     static MetricsReporter DISABLED =
             new MetricsReporter() {
-                public Counter counter(String name) {
+                public Counter counter(String name, String help) {
                     return Counter.NOOP;
                 }
             };
 
-    default MetricsReporter withPrefix(String prefix) {
+    default MetricsReporter withAgentName(String prefix) {
         return this;
     }
 
-    Counter counter(String name);
+    Counter counter(String name, String help);
 
     interface Counter {
 

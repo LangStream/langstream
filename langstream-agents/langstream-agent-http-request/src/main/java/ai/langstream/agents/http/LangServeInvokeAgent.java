@@ -26,19 +26,13 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,8 +42,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Flow;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 
@@ -71,7 +63,7 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     private AgentContext agentContext;
     private ExecutorService executor;
-    private HttpClient httpClient;
+    private LangServeClient langServeClient;
     private String url;
     private String method;
     private Map<String, Template> headersTemplates;
@@ -127,15 +119,18 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
         CookieManager cookieManager = new CookieManager();
         cookieManager.setCookiePolicy(
                 handleCookies ? CookiePolicy.ACCEPT_ALL : CookiePolicy.ACCEPT_NONE);
-        httpClient =
-                HttpClient.newBuilder()
-                        .followRedirects(
-                                allowRedirects
-                                        ? HttpClient.Redirect.NORMAL
-                                        : HttpClient.Redirect.NEVER)
-                        .cookieHandler(cookieManager)
-                        .executor(executor)
-                        .build();
+
+        langServeClient =
+                new LangServeClient(
+                        LangServeClient.Options.builder()
+                                .allowRedirects(allowRedirects)
+                                .method(method)
+                                .url(url)
+                                .minChunksPerMessage(minChunksPerMessage)
+                                .debug(debug)
+                                .executorService(executor)
+                                .cookieManager(cookieManager)
+                                .build());
     }
 
     @Override
@@ -161,178 +156,67 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
             final JsonRecord jsonRecord = context.toJsonRecord();
 
             final URI uri = URI.create(url);
-            final String body = buildBody(context);
+            final Map<String, Object> body = buildBody(context);
 
-            final HttpRequest.BodyPublisher bodyPublisher =
-                    HttpRequest.BodyPublishers.ofString(body);
+            Map<String, String> headers = new HashMap<>();
+            headersTemplates.forEach((key, value) -> headers.put(key, value.execute(jsonRecord)));
 
-            final HttpRequest.Builder requestBuilder =
-                    HttpRequest.newBuilder()
-                            .uri(uri)
-                            .version(HttpClient.Version.HTTP_1_1)
-                            .method(this.method, bodyPublisher);
-            requestBuilder.header("Content-Type", "application/json");
-            headersTemplates.forEach(
-                    (key, value) -> requestBuilder.header(key, value.execute(jsonRecord)));
-            final HttpRequest request = requestBuilder.build();
-            if (debug) {
-                log.info("Sending request {}", request);
-                log.info("Body {}", body);
-            }
-
-            if (url.endsWith("/invoke")) {
-                invoke(record, recordSink, request, context);
-            } else if (url.endsWith("/stream")) {
-                stream(record, recordSink, request, context);
-            } else {
-                recordSink.emitError(
-                        record, new UnsupportedOperationException("Unsupported url: " + url));
-            }
+            CompletableFuture<String> execute =
+                    langServeClient.execute(
+                            body,
+                            headers,
+                            new LangServeClient.StreamingChunksConsumer() {
+                                @Override
+                                public void consumeChunk(
+                                        String answerId, int index, String chunk, boolean last) {
+                                    if (topicProducer == null) {
+                                        // no streaming output
+                                        return;
+                                    }
+                                    MutableRecord copy = context.copy();
+                                    applyResultFieldToContext(copy, chunk, true);
+                                    copy.getProperties().put("stream-id", answerId);
+                                    copy.getProperties().put("stream-index", index + "");
+                                    copy.getProperties().put("stream-last-message", last + "");
+                                    Optional<Record> recordResult =
+                                            MutableRecord.mutableRecordToRecord(copy);
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("recordResult {}", recordResult);
+                                    }
+                                    topicProducer
+                                            .write(recordResult.orElseThrow())
+                                            .exceptionally(
+                                                    e -> {
+                                                        log.error(
+                                                                "Error writing chunk to topic", e);
+                                                        return null;
+                                                    });
+                                }
+                            });
+            execute.whenComplete(
+                    (result, error) -> {
+                        if (error != null) {
+                            recordSink.emitError(record, error);
+                        } else {
+                            MutableRecord copy = context.copy();
+                            applyResultFieldToContext(copy, result, false);
+                            Record finalRecord =
+                                    MutableRecord.mutableRecordToRecord(copy).orElseThrow();
+                            recordSink.emitSingleResult(record, finalRecord);
+                        }
+                    });
         } catch (Throwable error) {
             log.error("Error processing record: {}", record, error);
-            recordSink.emit(new SourceRecordAndResult(record, null, error));
+            recordSink.emitError(record, error);
         }
     }
 
-    private void invoke(
-            Record record, RecordSink recordSink, HttpRequest request, MutableRecord context) {
-        httpClient
-                .sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(
-                        response -> {
-                            if (debug) {
-                                log.info("Response {}", response);
-                                log.info("Response body {}", response.body());
-                            }
-                            try {
-                                if (response.statusCode() >= 400) {
-                                    throw new RuntimeException(
-                                            "Error processing record: "
-                                                    + record
-                                                    + " with response: "
-                                                    + response);
-                                }
-                                final Object responseBody =
-                                        parseResponseBody(response.body(), false);
-                                applyResultFieldToContext(context, responseBody.toString(), false);
-                                Optional<Record> recordResult =
-                                        MutableRecord.mutableRecordToRecord(context);
-                                if (log.isDebugEnabled()) {
-                                    log.debug("recordResult {}", recordResult);
-                                }
-                                recordSink.emit(
-                                        new SourceRecordAndResult(
-                                                record, List.of(recordResult.orElseThrow()), null));
-                            } catch (Exception e) {
-                                log.error("Error processing record: {}", record, e);
-                                recordSink.emitError(record, e);
-                            }
-                        })
-                .exceptionally(
-                        error -> {
-                            log.error("Error processing record: {}", record, error);
-                            recordSink.emit(new SourceRecordAndResult(record, null, error));
-                            return null;
-                        });
-    }
-
-    enum EventType {
-        data,
-        end,
-        emptyLine
-    }
-
-    private void stream(
-            Record record, RecordSink recordSink, HttpRequest request, MutableRecord context) {
-        StreamResponseProcessor streamResponseProcessor =
-                new StreamResponseProcessor(
-                        minChunksPerMessage,
-                        new StreamingChunksConsumer() {
-                            @Override
-                            public void consumeChunk(
-                                    String answerId, int index, String chunk, boolean last) {
-                                if (topicProducer == null) {
-                                    // no streaming output
-                                    return;
-                                }
-                                MutableRecord copy = context.copy();
-                                applyResultFieldToContext(copy, chunk, true);
-                                copy.getProperties().put("stream-id", answerId);
-                                copy.getProperties().put("stream-index", index + "");
-                                copy.getProperties().put("stream-last-message", last + "");
-                                Optional<Record> recordResult =
-                                        MutableRecord.mutableRecordToRecord(copy);
-                                if (log.isDebugEnabled()) {
-                                    log.debug("recordResult {}", recordResult);
-                                }
-                                topicProducer
-                                        .write(recordResult.orElseThrow())
-                                        .exceptionally(
-                                                e -> {
-                                                    log.error("Error writing chunk to topic", e);
-                                                    return null;
-                                                });
-                            }
-                        });
-
-        httpClient.sendAsync(
-                request, HttpResponse.BodyHandlers.fromLineSubscriber(streamResponseProcessor));
-
-        streamResponseProcessor.whenComplete(
-                (r, e) -> {
-                    if (e != null) {
-                        log.error("Error processing record: {}", record, e);
-                        recordSink.emitError(record, e);
-                    } else {
-                        MutableRecord copy = context.copy();
-                        applyResultFieldToContext(
-                                copy, streamResponseProcessor.buildTotalAnswerMessage(), false);
-                        Optional<Record> recordResult = MutableRecord.mutableRecordToRecord(copy);
-                        recordSink.emitSingleResult(record, recordResult.orElseThrow());
-                    }
-                });
-    }
-
-    private static EventType parseEventType(String body) {
-        if (body == null) {
-            return EventType.end;
-        }
-        if (body.startsWith("event: end")) {
-            return EventType.end;
-        } else if (body.startsWith("event: data")) {
-            return EventType.data;
-        } else if (body.isEmpty()) {
-            return EventType.emptyLine;
-        } else {
-            return null;
-        }
-    }
-
-    private String buildBody(MutableRecord context) throws IOException {
+    private Map<String, Object> buildBody(MutableRecord context) throws IOException {
         Map<String, Object> values = new HashMap<>();
         for (FieldDefinition field : fields) {
             values.put(field.name, field.expressionEvaluator.evaluate(context));
         }
-        Map<String, Object> request = Map.of("input", values);
-        return mapper.writeValueAsString(request);
-    }
-
-    private Object parseResponseBody(String body, boolean streaming) {
-        try {
-            Map<String, Object> map =
-                    mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
-            if (!streaming) {
-                map = (Map<String, Object>) map.get("output");
-            }
-            if (contentField.isEmpty()) {
-                return map;
-            } else {
-                return map.get(contentField);
-            }
-        } catch (JsonProcessingException ex) {
-            log.debug("Not able to parse response to json: {}, {}", body, ex);
-        }
-        return body;
+        return values;
     }
 
     @Override
@@ -357,105 +241,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
         if (executor != null) {
             executor.shutdownNow();
         }
-    }
-
-    private class StreamResponseProcessor extends CompletableFuture<Void>
-            implements Flow.Subscriber<String> {
-
-        Flow.Subscription subscription;
-
-        private final StringWriter totalAnswer = new StringWriter();
-
-        private final StringWriter writer = new StringWriter();
-        private final AtomicInteger numberOfChunks = new AtomicInteger();
-        private final int minChunksPerMessage;
-
-        private final AtomicInteger currentChunkSize = new AtomicInteger(1);
-        private final AtomicInteger index = new AtomicInteger();
-
-        private final StreamingChunksConsumer streamingChunksConsumer;
-
-        private final String answerId = java.util.UUID.randomUUID().toString();
-
-        public StreamResponseProcessor(
-                int minChunksPerMessage, StreamingChunksConsumer streamingChunksConsumer) {
-            this.minChunksPerMessage = minChunksPerMessage;
-            this.streamingChunksConsumer = streamingChunksConsumer;
-        }
-
-        @Override
-        public void onSubscribe(Flow.Subscription subscription) {
-            this.subscription = subscription;
-            subscription.request(1);
-        }
-
-        @Override
-        public synchronized void onNext(String body) {
-            EventType eventType = parseEventType(body);
-            if (eventType == null || eventType == EventType.end) {
-                boolean last = false;
-                String content;
-                if (body.startsWith("data: ")) {
-                    body = body.substring("data: ".length());
-                    final Object responseBody = parseResponseBody(body, true);
-                    if (responseBody == null) {
-                        content = "";
-                    } else {
-                        content = responseBody.toString();
-                    }
-                } else if (eventType == EventType.end) {
-                    content = "";
-                    last = true;
-                } else {
-                    content = "";
-                }
-
-                if (!content.isEmpty()) {
-                    writer.write(content);
-                    totalAnswer.write(content);
-                    numberOfChunks.incrementAndGet();
-                }
-
-                // start from 1 chunk, then double the size until we reach the minChunksPerMessage
-                // this gives better latencies for the first message
-                int currentMinChunksPerMessage = currentChunkSize.get();
-
-                if (numberOfChunks.get() >= currentMinChunksPerMessage || last) {
-                    currentChunkSize.set(
-                            Math.min(currentMinChunksPerMessage * 2, minChunksPerMessage));
-                    String chunk = writer.toString();
-                    streamingChunksConsumer.consumeChunk(
-                            answerId, index.incrementAndGet(), chunk, last);
-                    writer.getBuffer().setLength(0);
-                    numberOfChunks.set(0);
-                }
-                if (last) {
-                    this.complete(null);
-                }
-            }
-            subscription.request(1);
-        }
-
-        @Override
-        public void onError(Throwable error) {
-            log.error("IO Error while calling LangServe", error);
-            this.completeExceptionally(error);
-        }
-
-        @Override
-        public void onComplete() {
-            if (!this.isDone()) {
-                this.complete(null);
-            }
-        }
-
-        public String buildTotalAnswerMessage() {
-            return totalAnswer.toString();
-        }
-    }
-
-    interface StreamingChunksConsumer {
-        void consumeChunk(String answerId, int index, String chunk, boolean last);
     }
 
     private void applyResultFieldToContext(

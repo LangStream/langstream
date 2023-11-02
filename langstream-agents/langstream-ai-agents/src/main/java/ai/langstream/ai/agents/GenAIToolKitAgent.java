@@ -24,6 +24,7 @@ import ai.langstream.ai.agents.services.ServiceProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -133,10 +134,12 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     public void init(Map<String, Object> configuration) {
         configuration = new HashMap<>(configuration);
 
+        MetricsReporter reporter = agentContext.getMetricsReporter().withPrefix(agentId());
+
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.remove("datasource");
-        serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration);
+        serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration, reporter);
 
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);

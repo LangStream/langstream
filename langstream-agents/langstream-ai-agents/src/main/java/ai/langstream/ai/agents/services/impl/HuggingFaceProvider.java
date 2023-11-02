@@ -16,6 +16,7 @@
 package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -54,7 +55,8 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
     }
 
     @Override
-    public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
+    public ServiceProvider createImplementation(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter) {
         return new HuggingFaceServiceProvider(
                 (Map<String, Object>) agentConfiguration.get("huggingface"));
     }

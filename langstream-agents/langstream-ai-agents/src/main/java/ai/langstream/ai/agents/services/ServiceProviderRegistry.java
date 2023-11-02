@@ -15,6 +15,7 @@
  */
 package ai.langstream.ai.agents.services;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
@@ -45,7 +46,8 @@ public class ServiceProviderRegistry {
         public void close() {}
     }
 
-    public static ServiceProvider getServiceProvider(Map<String, Object> agentConfiguration) {
+    public static ServiceProvider getServiceProvider(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter) {
         if (agentConfiguration == null || agentConfiguration.isEmpty()) {
             return null;
         }
@@ -58,7 +60,7 @@ public class ServiceProviderRegistry {
         Optional<ServiceLoader.Provider<ServiceProviderProvider>> provider =
                 loader.stream().filter(p -> p.get().supports(agentConfiguration)).findFirst();
         if (provider.isPresent()) {
-            return provider.get().get().createImplementation(agentConfiguration);
+            return provider.get().get().createImplementation(agentConfiguration, metricsReporter);
         } else {
             return NoServiceProvider.INSTANCE;
         }

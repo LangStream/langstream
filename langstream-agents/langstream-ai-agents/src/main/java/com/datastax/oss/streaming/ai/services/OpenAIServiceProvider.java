@@ -16,6 +16,7 @@
 package com.datastax.oss.streaming.ai.services;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
@@ -27,13 +28,16 @@ import java.util.Map;
 public class OpenAIServiceProvider implements ServiceProvider {
 
     private final OpenAIAsyncClient client;
+    private final MetricsReporter metricsReporter;
 
     public OpenAIServiceProvider(TransformStepConfig config) {
         client = TransformFunctionUtil.buildOpenAsyncAIClient(config.getOpenai());
+        metricsReporter = MetricsReporter.DISABLED;
     }
 
-    public OpenAIServiceProvider(OpenAIAsyncClient client) {
+    public OpenAIServiceProvider(OpenAIAsyncClient client, MetricsReporter metricsReporter) {
         this.client = client;
+        this.metricsReporter = metricsReporter;
     }
 
     @Override
@@ -44,7 +48,7 @@ public class OpenAIServiceProvider implements ServiceProvider {
     @Override
     public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration) {
         String model = (String) additionalConfiguration.get("model");
-        return new OpenAIEmbeddingsService(client, model);
+        return new OpenAIEmbeddingsService(client, model, metricsReporter);
     }
 
     @Override

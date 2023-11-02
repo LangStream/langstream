@@ -13,16 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.ai.agents.services;
+package ai.langstream.api.runner.code;
 
-import ai.langstream.api.runner.code.MetricsReporter;
-import com.datastax.oss.streaming.ai.services.ServiceProvider;
-import java.util.Map;
+public interface MetricsReporter {
+    static MetricsReporter DISABLED =
+            new MetricsReporter() {
+                public Counter counter(String name) {
+                    return Counter.NOOP;
+                }
+            };
 
-public interface ServiceProviderProvider {
+    default MetricsReporter withPrefix(String prefix) {
+        return this;
+    }
 
-    boolean supports(Map<String, Object> agentConfiguration);
+    Counter counter(String name);
 
-    ServiceProvider createImplementation(
-            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter);
+    interface Counter {
+
+        Counter NOOP = (value) -> {};
+
+        void count(int value);
+    }
 }

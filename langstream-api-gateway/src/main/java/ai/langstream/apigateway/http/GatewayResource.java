@@ -36,10 +36,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,6 +76,7 @@ public class GatewayResource {
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
     protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final TopicProducerCache topicProducerCache;
     private final ApplicationStore applicationStore;
@@ -87,15 +90,13 @@ public class GatewayResource {
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build());
 
-    @PostMapping(
-            value = "/produce/{tenant}/{application}/{gateway}",
-            consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/produce/{tenant}/{application}/{gateway}", consumes = "*/*")
     ProduceResponse produce(
             WebRequest request,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway,
-            @RequestBody ProduceRequest produceRequest)
+            @RequestBody String payload)
             throws ProduceGateway.ProduceException {
 
         final Map<String, String> queryString = computeQueryString(request);
@@ -125,8 +126,23 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
             produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
+            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
             produceGateway.produceMessage(produceRequest);
             return ProduceResponse.OK;
+        }
+    }
+
+    private ProduceRequest parseProduceRequest(WebRequest request, String payload)
+            throws ProduceGateway.ProduceException {
+        final String contentType = request.getHeader("Content-Type");
+        if (contentType == null || contentType.equals(MediaType.TEXT_PLAIN_VALUE)) {
+            return new ProduceRequest(null, payload, null);
+        } else if (contentType.equals(MediaType.APPLICATION_JSON_VALUE)) {
+            return ProduceGateway.parseProduceRequest(payload);
+        } else {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Unsupported content type: %s", contentType));
         }
     }
 
@@ -187,7 +203,7 @@ public class GatewayResource {
             String tenant,
             String application,
             String gateway)
-            throws IOException {
+            throws IOException, ProduceGateway.ProduceException {
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
@@ -225,24 +241,37 @@ public class GatewayResource {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Only POST method is supported");
             }
-            final ProduceRequest produceRequest =
-                    MAPPER.readValue(servletRequest.getInputStream(), ProduceRequest.class);
+            final String payload =
+                    new String(
+                            servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
             return handleServiceWithTopics(produceRequest, authContext);
         }
     }
 
     private CompletableFuture<ResponseEntity> handleServiceWithTopics(
             ProduceRequest produceRequest, AuthenticatedGatewayRequestContext authContext) {
+
+        final String langstreamServiceRequestId = UUID.randomUUID().toString();
+
         final CompletableFuture<ResponseEntity> completableFuture = new CompletableFuture<>();
-        try (final ConsumeGateway consumeGateway =
-                        new ConsumeGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry());
-                final ProduceGateway produceGateway =
-                        new ProduceGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry(),
-                                topicProducerCache); ) {
+        try (final ProduceGateway produceGateway =
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistryProvider
+                                .getTopicConnectionsRuntimeRegistry(),
+                        topicProducerCache); ) {
+
+            final ConsumeGateway consumeGateway =
+                    new ConsumeGateway(
+                            topicConnectionsRuntimeRegistryProvider
+                                    .getTopicConnectionsRuntimeRegistry());
+            completableFuture.thenRunAsync(
+                    () -> {
+                        if (consumeGateway != null) {
+                            consumeGateway.close();
+                        }
+                    },
+                    consumeThreadPool);
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
@@ -251,7 +280,15 @@ public class GatewayResource {
                                 serviceOptions.getHeaders(),
                                 authContext.userParameters(),
                                 authContext.principalValues());
-                consumeGateway.setup(serviceOptions.getInputTopic(), messageFilters, authContext);
+                messageFilters.add(
+                        record -> {
+                            final Header header = record.getHeader(SERVICE_REQUEST_ID_HEADER);
+                            if (header == null) {
+                                return false;
+                            }
+                            return langstreamServiceRequestId.equals(header.valueAsString());
+                        });
+                consumeGateway.setup(serviceOptions.getOutputTopic(), messageFilters, authContext);
                 final AtomicBoolean stop = new AtomicBoolean(false);
                 consumeGateway.startReadingAsync(
                         consumeThreadPool,
@@ -266,9 +303,18 @@ public class GatewayResource {
             }
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(serviceOptions, authContext);
-            produceGateway.start(serviceOptions.getOutputTopic(), commonHeaders, authContext);
-            produceGateway.produceMessage(produceRequest);
+            produceGateway.start(serviceOptions.getInputTopic(), commonHeaders, authContext);
+
+            Map<String, String> passedHeaders = produceRequest.headers();
+            if (passedHeaders == null) {
+                passedHeaders = new HashMap<>();
+            }
+            passedHeaders.put(SERVICE_REQUEST_ID_HEADER, langstreamServiceRequestId);
+            produceGateway.produceMessage(
+                    new ProduceRequest(
+                            produceRequest.key(), produceRequest.value(), passedHeaders));
         } catch (Throwable t) {
+            log.error("Error on service gateway", t);
             completableFuture.completeExceptionally(t);
         }
         return completableFuture;

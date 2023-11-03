@@ -29,7 +29,10 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
@@ -49,8 +52,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -95,6 +101,7 @@ abstract class GatewayResourceTest {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     static List<String> topics;
+    static List<CompletableFuture<Void>> futures = new ArrayList<>();
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -207,6 +214,10 @@ abstract class GatewayResourceTest {
     @AfterEach
     public void afterEach() {
         Metrics.globalRegistry.clear();
+        for (CompletableFuture<Void> future : futures) {
+            future.cancel(true);
+        }
+        futures.clear();
     }
 
     @SneakyThrows
@@ -497,8 +508,12 @@ abstract class GatewayResourceTest {
 
     @Test
     void testService() throws Exception {
-        final String topic = genTopic();
-        prepareTopicsForTest(topic);
+        final String inputTopic = genTopic();
+        final String outputTopic = genTopic();
+        prepareTopicsForTest(inputTopic, outputTopic);
+
+        startTopicExchange(inputTopic, outputTopic);
+
         testGateways =
                 new Gateways(
                         List.of(
@@ -507,7 +522,7 @@ abstract class GatewayResourceTest {
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
                                                 new Gateway.ServiceOptions(
-                                                        null, topic, topic, List.of()))
+                                                        null, inputTopic, outputTopic, List.of()))
                                         .build()));
 
         final String url =
@@ -526,16 +541,50 @@ abstract class GatewayResourceTest {
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
     }
 
+    private void startTopicExchange(String fromTopic, String toTopic) throws Exception {
+        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                    topicConnectionsRuntimeProvider.getTopicConnectionsRuntimeRegistry();
+            final StreamingCluster streamingCluster = getStreamingCluster();
+            try (final TopicConsumer consumer = topicConnectionsRuntimeRegistry
+                    .getTopicConnectionsRuntime(streamingCluster)
+                    .asTopicConnectionsRuntime()
+                    .createConsumer(null, streamingCluster, Map.of("topic", fromTopic));) {
+                consumer.start();
+
+                try (final TopicProducer producer = topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime()
+                        .createProducer(null, streamingCluster, Map.of("topic", toTopic));) {
+
+                    producer.start();
+                    while (true) {
+
+                        final List<Record> records = consumer.read();
+                        for (Record record : records) {
+                            producer.write(record);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        futures.add(future);
+    }
+
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
 
     @SneakyThrows
     private void assertMessageContent(MsgRecord expected, String actual) {
         ConsumePushMessage consume = MAPPER.readValue(actual, ConsumePushMessage.class);
+        final Map<String, String> headers = consume.record().headers();
+        assertNotNull(headers.remove("langstream-service-request-id"));
         final MsgRecord actualMsgRecord =
                 new MsgRecord(
                         consume.record().key(),
                         consume.record().value(),
-                        consume.record().headers());
+                        headers);
 
         assertEquals(expected, actualMsgRecord);
     }

@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.server.ResponseStatusException;
 
 @ControllerAdvice
@@ -37,6 +38,10 @@ public class ResourceErrorsHandler {
         if (exception instanceof IllegalArgumentException) {
             log.error("Bad request", exception);
             return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage());
+        }
+        if (exception instanceof AsyncRequestTimeoutException) {
+            log.error("Request timed out", exception);
+            return ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT, "Request timed out");
         }
         log.error("Internal error", exception);
         return ProblemDetail.forStatusAndDetail(

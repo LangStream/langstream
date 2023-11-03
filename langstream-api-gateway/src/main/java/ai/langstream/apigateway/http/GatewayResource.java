@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,6 +75,7 @@ public class GatewayResource {
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
     protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final TopicProducerCache topicProducerCache;
     private final ApplicationStore applicationStore;
@@ -233,6 +235,9 @@ public class GatewayResource {
 
     private CompletableFuture<ResponseEntity> handleServiceWithTopics(
             ProduceRequest produceRequest, AuthenticatedGatewayRequestContext authContext) {
+
+        final String langstreamServiceRequestId = UUID.randomUUID().toString();
+
         final CompletableFuture<ResponseEntity> completableFuture = new CompletableFuture<>();
         try (final ConsumeGateway consumeGateway =
                         new ConsumeGateway(
@@ -251,7 +256,15 @@ public class GatewayResource {
                                 serviceOptions.getHeaders(),
                                 authContext.userParameters(),
                                 authContext.principalValues());
-                consumeGateway.setup(serviceOptions.getInputTopic(), messageFilters, authContext);
+                messageFilters.add(
+                        record -> {
+                            final Header header = record.getHeader(SERVICE_REQUEST_ID_HEADER);
+                            if (header == null) {
+                                return false;
+                            }
+                            return langstreamServiceRequestId.equals(header.valueAsString());
+                        });
+                consumeGateway.setup(serviceOptions.getOutputTopic(), messageFilters, authContext);
                 final AtomicBoolean stop = new AtomicBoolean(false);
                 consumeGateway.startReadingAsync(
                         consumeThreadPool,
@@ -266,8 +279,14 @@ public class GatewayResource {
             }
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(serviceOptions, authContext);
-            produceGateway.start(serviceOptions.getOutputTopic(), commonHeaders, authContext);
-            produceGateway.produceMessage(produceRequest);
+            produceGateway.start(serviceOptions.getInputTopic(), commonHeaders, authContext);
+
+            Map<String, String> passedHeaders = produceRequest.headers();
+            if (passedHeaders == null) {
+                passedHeaders = new HashMap<>();
+            }
+            passedHeaders.put(SERVICE_REQUEST_ID_HEADER, langstreamServiceRequestId);
+            produceGateway.produceMessage(new ProduceRequest(produceRequest.key(), produceRequest.value(), passedHeaders));
         } catch (Throwable t) {
             completableFuture.completeExceptionally(t);
         }

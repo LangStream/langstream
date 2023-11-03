@@ -43,7 +43,7 @@
     <netty.iouring.version>0.0.21.Final</netty.iouring.version>
     <testcontainers.version>1.18.3</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
-    <lombok.version>1.18.28</lombok.version>
+    <lombok.version>1.18.30</lombok.version>
     <jackson.version>2.14.2</jackson.version>
     <guava.version>32.0.0-jre</guava.version>
     <google-api.version>1.33.0</google-api.version>

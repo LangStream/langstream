@@ -16,7 +16,6 @@
 package ai.langstream.pulsar;
 
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;

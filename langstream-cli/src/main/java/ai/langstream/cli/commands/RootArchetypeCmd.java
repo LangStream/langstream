@@ -21,7 +21,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "archetypes",
-        header = "Use LangStream Archetypes",
+        header = "Use ${ROOT-COMMAND-NAME} Archetypes",
         subcommands = {ListArchetypesCmd.class})
 @Getter
 public class RootArchetypeCmd {

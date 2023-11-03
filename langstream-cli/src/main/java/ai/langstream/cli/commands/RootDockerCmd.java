@@ -21,7 +21,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "docker",
-        header = "Run LangStream locally",
+        header = "Run ${ROOT-COMMAND-NAME} locally",
         subcommands = {LocalRunApplicationCmd.class})
 @Getter
 public class RootDockerCmd {

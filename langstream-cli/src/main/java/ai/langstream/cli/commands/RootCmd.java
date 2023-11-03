@@ -21,11 +21,9 @@ import picocli.AutoComplete;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-        name = "langstream",
         mixinStandardHelpOptions = true,
         versionProvider = VersionProvider.class,
         scope = CommandLine.ScopeType.INHERIT,
-        header = "LangStream CLI",
         subcommands = {
             RootArchetypeCmd.class,
             RootAppCmd.class,

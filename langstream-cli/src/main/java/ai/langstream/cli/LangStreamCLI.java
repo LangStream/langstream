@@ -17,6 +17,7 @@ package ai.langstream.cli;
 
 import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.cli.commands.RootCmd;
+import ai.langstream.cli.commands.VersionProvider;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -43,7 +44,19 @@ public class LangStreamCLI {
     }
 
     public static int execute(String[] args) {
+        String name = System.getenv("LANGSTREAM_CLI_CUSTOMIZE_NAME");
+        String description = System.getenv("LANGSTREAM_CLI_CUSTOMIZE_DESCRIPTION");
+        if (name == null) {
+            name = "langstream";
+        }
+        if (description == null) {
+            description = "LangStream CLI";
+        }
+        String version = System.getenv("LANGSTREAM_CLI_CUSTOMIZE_VERSION");
+        VersionProvider.initialize(description, version);
         final CommandLine cmdLine = new CommandLine(new RootCmd());
+        cmdLine.setCommandName(name);
+        cmdLine.getCommandSpec().usageMessage().header(description);
         CommandLine gen = cmdLine.getSubcommands().get("generate-completion");
         gen.getCommandSpec().usageMessage().hidden(true);
         return cmdLine.setExecutionExceptionHandler(

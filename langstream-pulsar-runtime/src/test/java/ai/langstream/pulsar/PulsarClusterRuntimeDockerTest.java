@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pravega;
+package ai.langstream.pulsar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +31,7 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import java.util.List;
 import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;

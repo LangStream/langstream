@@ -1,1 +1,1 @@
-ai.langstream.pravega.runner.PulsarTopicConnectionsRuntimeProvider
+ai.langstream.pulsar.runner.PulsarTopicConnectionsRuntimeProvider

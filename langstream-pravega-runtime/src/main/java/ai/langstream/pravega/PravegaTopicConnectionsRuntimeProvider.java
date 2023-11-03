@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pravega.runner;
+package ai.langstream.pravega;
 
 import static ai.langstream.pravega.PravegaClientUtils.getScope;
 

@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pravega;
+package ai.langstream.pulsar;
 
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;

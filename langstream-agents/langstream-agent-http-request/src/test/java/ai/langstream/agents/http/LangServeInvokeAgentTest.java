@@ -58,6 +58,15 @@ class LangServeInvokeAgentTest {
     }
 
     @Test
+    void testInvokeJSONMapWithoutContent(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        String response =
+                """
+                        {"output":"Why don't cats play poker in the wild? Too many cheetahs!"}
+                        """;
+        testInvoke(wireMockRuntimeInfo, response);
+    }
+
+    @Test
     void testInvokeJSONString(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         String response =
                 """

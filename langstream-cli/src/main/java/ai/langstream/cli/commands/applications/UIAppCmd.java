@@ -213,7 +213,6 @@ public class UIAppCmd extends BaseApplicationCmd {
     }
 
     static boolean openBrowserAtPort(String URL, int port) {
-        String os = System.getProperty("os.name").toLowerCase();
         String openCommand = "";
         if (SystemUtils.IS_OS_MAC || SystemUtils.IS_OS_WINDOWS) {
             Desktop desktop = Desktop.getDesktop();

@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class UIAppCmdTest {
@@ -39,17 +40,16 @@ class UIAppCmdTest {
     @Test
     void openBrowser() throws IOException {
         // write test file
-        String fname = "/tmp/testfile";
+        String fname = "/tmp/" + UUID.randomUUID().toString();
         writeExecutableFile(fname, "#!/usr/bin/bash\necho hello\n");
         // ok
         String command = fname;
         boolean Result = UIAppCmd.checkAndLaunch(command, 80);
         assertTrue(Result, command + "\nif found in filesystem should be true");
+        new File(fname).delete();
         // fail
         command = "_no_such_command_";
         Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
         assertFalse(Result, command + "\nif not found in filesystemi should be false");
-
-        new File(fname).delete();
     }
 }

@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-ai</artifactId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.4.3-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-cli</artifactId>
@@ -175,6 +175,7 @@
             <platform>windows</platform>
             <platform>unix</platform>
           </platforms>
+          <environmentSetupFileName>langstream.env</environmentSetupFileName>
           <programs>
             <program>
               <mainClass>ai.langstream.cli.LangStreamCLI</mainClass>

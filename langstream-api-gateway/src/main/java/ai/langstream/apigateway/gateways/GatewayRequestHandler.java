@@ -82,29 +82,41 @@ public class GatewayRequestHandler {
             Map<String, String> queryString,
             Map<String, String> httpHeaders,
             GatewayRequestValidator validator) {
-        Map<String, String> options = new HashMap<>();
-        Map<String, String> userParameters = new HashMap<>();
-
-        final String credentials = queryString.remove("credentials");
-        final String testCredentials = queryString.remove("test-credentials");
-
-        for (Map.Entry<String, String> entry : queryString.entrySet()) {
-            if (entry.getKey().startsWith("option:")) {
-                options.put(entry.getKey().substring("option:".length()), entry.getValue());
-            } else if (entry.getKey().startsWith("param:")) {
-                userParameters.put(entry.getKey().substring("param:".length()), entry.getValue());
-            } else {
-                throw new IllegalArgumentException(
-                        "invalid query parameter "
-                                + entry.getKey()
-                                + ". "
-                                + "To specify a gateway parameter, use the format param:<parameter_name>."
-                                + "To specify a option, use the format option:<option_name>.");
-            }
-        }
 
         final Application application = getResolvedApplication(tenant, applicationId);
         final Gateway gateway = extractGateway(gatewayId, application, expectedGatewayType);
+
+        final Map<String, String> options = new HashMap<>();
+        final Map<String, String> userParameters = new HashMap<>();
+
+        final String credentials = queryString.remove("credentials");
+        final String testCredentials = queryString.remove("test-credentials");
+        final boolean checkOptions;
+
+        if (expectedGatewayType == Gateway.GatewayType.service
+                && gateway.getServiceOptions().getAgentId() != null) {
+            checkOptions = false;
+        } else {
+            checkOptions = true;
+        }
+
+        if (checkOptions) {
+            for (Map.Entry<String, String> entry : queryString.entrySet()) {
+                if (entry.getKey().startsWith("option:")) {
+                    options.put(entry.getKey().substring("option:".length()), entry.getValue());
+                } else if (entry.getKey().startsWith("param:")) {
+                    userParameters.put(
+                            entry.getKey().substring("param:".length()), entry.getValue());
+                } else {
+                    throw new IllegalArgumentException(
+                            "invalid query parameter "
+                                    + entry.getKey()
+                                    + ". "
+                                    + "To specify a gateway parameter, use the format param:<parameter_name>."
+                                    + "To specify a option, use the format option:<option_name>.");
+                }
+            }
+        }
 
         final List<String> requiredParameters = validator.getAllRequiredParameters(gateway);
         Set<String> allUserParameterKeys = new HashSet<>(userParameters.keySet());

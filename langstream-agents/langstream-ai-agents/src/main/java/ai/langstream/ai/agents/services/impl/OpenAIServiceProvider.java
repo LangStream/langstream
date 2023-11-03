@@ -16,6 +16,7 @@
 package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.datastax.oss.streaming.ai.model.config.OpenAIConfig;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
@@ -29,11 +30,13 @@ public class OpenAIServiceProvider implements ServiceProviderProvider {
     }
 
     @Override
-    public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
+    public ServiceProvider createImplementation(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter) {
         OpenAIConfig config =
                 TransformFunctionUtil.convertFromMap(
                         (Map<String, Object>) agentConfiguration.get("openai"), OpenAIConfig.class);
         OpenAIAsyncClient client = TransformFunctionUtil.buildOpenAsyncAIClient(config);
-        return new com.datastax.oss.streaming.ai.services.OpenAIServiceProvider(client);
+        return new com.datastax.oss.streaming.ai.services.OpenAIServiceProvider(
+                client, metricsReporter);
     }
 }

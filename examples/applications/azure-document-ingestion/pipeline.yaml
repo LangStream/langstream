@@ -19,18 +19,18 @@ assets:
     asset-type: "astra-keyspace"
     creation-mode: create-if-not-exists
     config:
-      keyspace: "${secrets.astra.keyspace}"
+      keyspace: "{{secrets.astra.keyspace}}"
       datasource: "AstraDatasource"
   - name: "langstream-docs-table"
     asset-type: "cassandra-table"
     creation-mode: create-if-not-exists
     config:
-      table-name: "${secrets.astra.table}"
-      keyspace: "${secrets.astra.keyspace}"
+      table-name: "{{secrets.astra.table}}"
+      keyspace: "{{secrets.astra.keyspace}}"
       datasource: "AstraDatasource"
       create-statements:
         - |
-          CREATE TABLE IF NOT EXISTS "${secrets.astra.keyspace}"."${secrets.astra.table}" (
+          CREATE TABLE IF NOT EXISTS "{{secrets.astra.keyspace}}"."{{secrets.astra.table}}" (
           filename TEXT,
           chunk_text_length TEXT,
           chunk_num_tokens TEXT,
@@ -42,16 +42,16 @@ assets:
           embeddings_vector VECTOR<FLOAT, 1536>,
           PRIMARY KEY (filename, chunk_id));
         - |
-          CREATE CUSTOM INDEX IF NOT EXISTS ${secrets.astra.table}_ann_index ON ${secrets.astra.keyspace}.${secrets.astra.table}(embeddings_vector) USING 'StorageAttachedIndex';
+          CREATE CUSTOM INDEX IF NOT EXISTS {{secrets.astra.table}}_ann_index ON {{secrets.astra.keyspace}}.{{secrets.astra.table}}(embeddings_vector) USING 'StorageAttachedIndex';
 name: "Embeddings processor"
 pipeline:
   - name: "Azure blob source"
     type: "azure-blob-storage-source"
     configuration:
-      container: "${secrets.azure.container}"
-      endpoint: "https://${secrets.azure.storage-account-name}.blob.core.windows.net/${secrets.azure.container}"
-      storage-account-name: "${secrets.azure.storage-account-name}"
-      storage-account-key: "${secrets.azure.storage-access-key}"
+      container: "{{secrets.azure.container}}"
+      endpoint: "https://{{secrets.azure.storage-account-name}}.blob.core.windows.net/{{secrets.azure.container}}"
+      storage-account-name: "{{secrets.azure.storage-account-name}}"
+      storage-account-key: "{{secrets.azure.storage-access-key}}"
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -87,9 +87,9 @@ pipeline:
     id: "step1"
     type: "compute-ai-embeddings"
     configuration:
-      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      model: "{{secrets.open-ai.embeddings-model}}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
-      text: "{{ value.text }}"
+      text: "{{ value.text }}}"
       batch-size: 10
       # this is in milliseconds. It is important to take this value into consideration when using this agent in the chat response pipeline
       # in fact this value impacts the latency of the response
@@ -99,6 +99,6 @@ pipeline:
     type: "vector-db-sink"
     configuration:
       datasource: "AstraDatasource"
-      table-name: "${secrets.astra.table}"
-      keyspace: "${secrets.astra.keyspace}"
+      table-name: "{{secrets.astra.table}}"
+      keyspace: "{{secrets.astra.keyspace}}"
       mapping: "filename=value.name,chunk_text_length=value.chunk_text_length, chunk_num_tokens=value.chunk_num_tokens, chunk_id=value.chunk_id, contents=value.text, name=value.name, product_name=value.product_name, product_version=value.product_version, embeddings_vector=value.embeddings"

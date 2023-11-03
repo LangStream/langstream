@@ -31,6 +31,7 @@ import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -52,12 +53,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected static final String ATTRIBUTE_CONSUME_GATEWAY = "__consume_gateway";
     protected final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     protected final ApplicationStore applicationStore;
+    private final TopicProducerCache topicProducerCache;
 
     public AbstractHandler(
             ApplicationStore applicationStore,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            TopicProducerCache topicProducerCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
         this.applicationStore = applicationStore;
+        this.topicProducerCache = topicProducerCache;
     }
 
     public abstract String path();
@@ -256,7 +260,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected void setupProducer(
             String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context)
             throws Exception {
-        final ProduceGateway produceGateway = new ProduceGateway(topicConnectionsRuntimeRegistry);
+        final ProduceGateway produceGateway =
+                new ProduceGateway(topicConnectionsRuntimeRegistry, topicProducerCache);
 
         try {
             produceGateway.start(topic, commonHeaders, context);

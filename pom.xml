@@ -21,7 +21,7 @@
 
   <groupId>ai.langstream</groupId>
   <artifactId>langstream-ai</artifactId>
-  <version>0.3.2-SNAPSHOT</version>
+  <version>0.4.3-SNAPSHOT</version>
   <name>LangStream</name>
   <description>LangStream is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
@@ -66,7 +66,7 @@
     <minio.version>8.5.4</minio.version>
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
-    <wiremock.version>3.0.0-beta-10</wiremock.version> 
+    <wiremock.version>3.0.1</wiremock.version>
     <burningwave.version>0.25.5</burningwave.version>
     <jjwt.version>0.11.5</jjwt.version>
     <commons-codec.version>1.16.0</commons-codec.version>
@@ -814,6 +814,8 @@
         <module>langstream-pulsar-runtime</module>
         <module>langstream-kafka</module>
         <module>langstream-kafka-runtime</module>
+        <module>langstream-pravega</module>
+        <module>langstream-pravega-runtime</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-providers</module>
         <module>langstream-webservice</module>
@@ -843,6 +845,8 @@
         <module>langstream-pulsar-runtime</module>
         <module>langstream-kafka</module>
         <module>langstream-kafka-runtime</module>
+        <module>langstream-pravega</module>
+        <module>langstream-pravega-runtime</module>
         <module>langstream-k8s-runtime</module>
         <module>langstream-codestorage-providers</module>
         <module>langstream-k8s-storage</module>

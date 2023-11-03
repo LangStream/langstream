@@ -23,6 +23,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +43,9 @@ public class ConsumeHandler extends AbstractHandler {
     public ConsumeHandler(
             ApplicationStore applicationStore,
             ExecutorService executor,
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
-        super(applicationStore, topicConnectionsRuntimeRegistry);
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            TopicProducerCache topicProducerCache) {
+        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
         this.executor = executor;
     }
 

@@ -137,8 +137,34 @@ terraform plan
 ```bash
 terraform apply
 ```
-6. Connect to the VM as needed to check that service is running as expected
+or to auto-approve:
+```bash
+terraform apply -auto-approve
+```
+6. **Connect to the VM as needed to check that service is running as expected**
 ```bash
 chmod 600 /Users/`whoami`/.ssh/azure.pem
-ssh -i ~/.ssh/azure.pem adminuser@1.2.3.4 # substitute with the actual VM IP
+ssh -i ~/.ssh/azure.pem adminuser@40.78.159.250 # substitute with the actual VM IP
 ```
+7. **Verify service is running**
+```bash
+systemctl status myapp.service
+```
+If it's not, you can troubleshoot by running the command directly and inspecting the output, like:
+```bash
+sudo su -
+runuser -l adminuser -c '/home/adminuser/.langstream/candidates/current/bin/langstream docker run test -app /home/adminuser/app -s /home/adminuser/secrets.yaml'
+```
+Additionally, you can check the cloud init output log on the VM to ensure the Terraform deployment ran correctly
+```bash
+cat /var/log/cloud-init-output.log
+```
+9. **Upload PDFs**
+You can now upload PDFs to your Azure storage container to get them processed. As a reminder, the PDFs we used for this demo assume a naming convention starting with product-name version-name and then any other details, like "MyProduct DocVersion2 public report.pdf". 
+10. **Check results**
+To inspect the results, navigate to the CQL Console in the Astra UI and run:
+```SQL
+SELECT * FROM mykeyspace.mytable limit 2;
+```
+where mykeyspace and mytable are the keyspace and table used in your secrets.yaml file.
+You should now see vectorized data in your table!

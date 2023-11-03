@@ -17,6 +17,7 @@ package ai.langstream.apigateway;
 
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.config.StorageProperties;
+import ai.langstream.apigateway.config.TopicProperties;
 import ai.langstream.apigateway.runner.CodeConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,8 @@ import org.springframework.core.env.Environment;
 @EnableConfigurationProperties({
     StorageProperties.class,
     GatewayTestAuthenticationProperties.class,
-    CodeConfiguration.class
+    CodeConfiguration.class,
+    TopicProperties.class
 })
 public class LangStreamApiGateway {
 

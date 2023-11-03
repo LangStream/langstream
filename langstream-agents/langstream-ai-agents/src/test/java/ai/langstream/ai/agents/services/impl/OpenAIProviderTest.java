@@ -22,6 +22,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -77,7 +78,8 @@ class OpenAIProviderTest {
                                         "access-key",
                                         "xxxxxxx",
                                         "url",
-                                        vmRuntimeInfo.getHttpBaseUrl())));
+                                        vmRuntimeInfo.getHttpBaseUrl())),
+                        MetricsReporter.DISABLED);
 
         List<String> chunks = new CopyOnWriteArrayList<>();
         CompletionsService service = implementation.getCompletionsService(Map.of());
@@ -181,7 +183,8 @@ class OpenAIProviderTest {
                                         "access-key",
                                         "xxxxxxx",
                                         "url",
-                                        vmRuntimeInfo.getHttpBaseUrl())));
+                                        vmRuntimeInfo.getHttpBaseUrl())),
+                        MetricsReporter.DISABLED);
 
         List<String> chunks = new CopyOnWriteArrayList<>();
         CompletionsService service = implementation.getCompletionsService(Map.of());

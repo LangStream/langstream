@@ -18,6 +18,7 @@ package ai.langstream.apigateway.websocket;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.handlers.ChatHandler;
 import ai.langstream.apigateway.websocket.handlers.ConsumeHandler;
@@ -27,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -48,7 +50,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final GatewayRequestHandler gatewayRequestHandler;
-    private final ExecutorService consumeThreadPool = Executors.newCachedThreadPool();
+    private final TopicProducerCache topicProducerCache;
+    private final ExecutorService consumeThreadPool =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build());
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
@@ -58,16 +63,21 @@ public class WebSocketConfig implements WebSocketConfigurer {
                         new ConsumeHandler(
                                 applicationStore,
                                 consumeThreadPool,
-                                topicConnectionsRuntimeRegistry),
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         CONSUME_PATH)
                 .addHandler(
-                        new ProduceHandler(applicationStore, topicConnectionsRuntimeRegistry),
+                        new ProduceHandler(
+                                applicationStore,
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         PRODUCE_PATH)
                 .addHandler(
                         new ChatHandler(
                                 applicationStore,
                                 consumeThreadPool,
-                                topicConnectionsRuntimeRegistry),
+                                topicConnectionsRuntimeRegistry,
+                                topicProducerCache),
                         CHAT_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(

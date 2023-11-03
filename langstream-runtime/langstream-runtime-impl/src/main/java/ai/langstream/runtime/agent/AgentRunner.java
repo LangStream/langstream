@@ -29,6 +29,7 @@ import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runner.code.BadRecordHandler;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
@@ -43,6 +44,7 @@ import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
+import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.prometheus.client.hotspot.DefaultExports;
@@ -87,6 +89,8 @@ public class AgentRunner {
                 log.error("Unexpected error", error);
                 System.exit(-1);
             };
+
+    private static PrometheusMetricsReporter metricsReporter = new PrometheusMetricsReporter();
 
     public interface MainErrorHandler {
         void handleError(Throwable error);
@@ -1045,6 +1049,11 @@ public class AgentRunner {
             this.basePersistentStateDirectory = basePersistentStateDirectory;
             this.agentsWithPersistentState = agentsWithPersistentState;
             ensurePersistentStateDirectoriesExist();
+        }
+
+        @Override
+        public MetricsReporter getMetricsReporter() {
+            return metricsReporter;
         }
 
         private void ensurePersistentStateDirectoriesExist() {

@@ -8,8 +8,9 @@ terraform {
 }
 
 locals {
+  secret_content = file("${path.module}/../../secrets/secrets.yaml")
   pipeline_content = file("${path.module}/pipeline.yaml")
-  secret_content = file("${path.module}/../../secrets/secrets-azure-document-ingestion.yaml")
+  config_content = file("${path.module}/configuration.yaml")
 }
 # Note: Replace "${path.module}/pipeline.yaml" with the actual relative path to your pipeline.yaml file.
 provider "azurerm" {
@@ -128,65 +129,77 @@ resource "azurerm_linux_virtual_machine" "example" {
   }
 
   custom_data = base64encode(<<-EOT
-#!/bin/bash
-      "echo '$${local.secret_content}' > /root/secrets.yaml"
-      "echo '$${local.pipeline_content}' > /root/pipeline.yaml"
+    #!/bin/bash
+    cat > /root/secrets.yaml <<SECRETS
+    ${local.secret_content}
+    SECRETS
 
-      apt-get update -y
-      apt-get install -y apt-transport-https ca-certificates curl software-properties-common git jq lsb-release unzip openjdk-17-jre openjdk-17-jdk
+    cat > /root/configuration.yaml <<CONFIGURATION
+    ${local.config_content}
+    CONFIGURATION
 
-      # Install Azure CLI
-      curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
-      tee /etc/apt/sources.list.d/azure-cli.list > /dev/null
-      apt-get update
-      apt-get install azure-cli -y
+    cat > /root/pipeline.yaml <<PIPELINE
+    ${local.pipeline_content}
+    PIPELINE
 
-      # Install Docker
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-      add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-      apt-get update -y
-      apt-get install -y docker-ce docker-ce-cli containerd.io
-      systemctl start docker
-      systemctl enable docker
+    apt-get update -y
+    apt-get install -y apt-transport-https ca-certificates curl software-properties-common git jq lsb-release unzip openjdk-17-jre openjdk-17-jdk
 
-      # Create a new user for running the application
-      useradd -m -s /bin/bash adminuser
+    # Install Azure CLI
+    curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
+    tee /etc/apt/sources.list.d/azure-cli.list > /dev/null
+    apt-get update
+    apt-get install azure-cli -y
 
-      # Install the LangStream binary:
-      runuser -l adminuser -c 'curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash'
+    # Install Docker
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io
+    usermod -aG docker adminuser
+    systemctl start docker
+    systemctl enable docker
 
-      runuser -l adminuser -c 'source /home/adminuser/.bashrc'
+    # Create a new user for running the application
+    useradd -m -s /bin/bash adminuser
 
-      # Move and change ownership of the secrets and pipeline files to the new user
-      mv /root/secrets.yaml /home/adminuser/
-      mv /root/pipeline.yaml /home/adminuser/
-      chown adminuser:adminuser /home/adminuser/secrets.yaml
-      chown adminuser:adminuser /home/adminuser/pipeline.yaml
+    # Install the LangStream binary:
+    runuser -l adminuser -c 'curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash'
 
-      runuser -l adminuser -c 'chmod 600 /home/adminuser/secrets.yaml'  # Change the file permission to be readable only by the owner
+    runuser -l adminuser -c 'source /home/adminuser/.bashrc'
 
-      # Create a systemd service file to run the application
-      cat > /etc/systemd/system/myapp.service <<EOF
-[Unit]
-Description=My Application Service
-After=network.target
+    # Move and change ownership of the secrets and pipeline files to the new user
+    mv /root/secrets.yaml /home/adminuser/
+    mkdir /home/adminuser/app
+    mv /root/pipeline.yaml /home/adminuser/app/
+    mv /root/configuration.yaml /home/adminuser/app/
+    chown adminuser:adminuser /home/adminuser/secrets.yaml
+    chown -R adminuser:adminuser /home/adminuser/app/
 
-[Service]
-User=adminuser
-WorkingDirectory=/home/adminuser
-ExecStart="/home/adminuser/.langstream/candidates/current/bin/langstream docker run test -app . -s /home/adminuser/secrets.yaml"
-Restart=always
+    runuser -l adminuser -c 'chmod 600 /home/adminuser/secrets.yaml'  # Change the file permission to be readable only by the owner
 
-[Install]
-WantedBy=multi-user.target
-EOF
-      # Reload systemd, enable and start the service
-      systemctl daemon-reload
-      systemctl enable myapp.service
-      systemctl start myapp.service
+    # Create a systemd service file to run the application
+    cat > /etc/systemd/system/myapp.service <<EOF
+    [Unit]
+    Description=My Application Service
+    After=network.target
 
-      EOT
+    [Service]
+    User=adminuser
+    WorkingDirectory=/home/adminuser/app
+    ExecStart=/home/adminuser/.langstream/candidates/current/bin/langstream docker run test -app /home/adminuser/app -s /home/adminuser/secrets.yaml
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    # Reload systemd, enable and start the service
+    systemctl daemon-reload
+    systemctl enable myapp.service
+    systemctl start myapp.service
+
+    EOT
   )
 }
 

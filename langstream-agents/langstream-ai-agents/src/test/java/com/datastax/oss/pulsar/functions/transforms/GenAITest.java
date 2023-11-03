@@ -25,6 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
@@ -209,7 +210,7 @@ public class GenAITest {
                                         new ObjectMapper()
                                                 .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
-                .thenReturn(new OpenAIServiceProvider(client));
+                .thenReturn(new OpenAIServiceProvider(client, MetricsReporter.DISABLED));
 
         Record<GenericObject> record = Utils.createTestAvroKeyValueRecord();
         Utils.TestContext context = new Utils.TestContext(record, config);
@@ -271,7 +272,7 @@ public class GenAITest {
                                         new ObjectMapper()
                                                 .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
-                .thenReturn(new OpenAIServiceProvider(client));
+                .thenReturn(new OpenAIServiceProvider(client, MetricsReporter.DISABLED));
 
         Record<GenericObject> record = Utils.createTestAvroKeyValueRecord();
         Utils.TestContext context = new Utils.TestContext(record, config);

@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
@@ -159,20 +160,38 @@ public class KubeUtil {
             }
             final String podName = pod.getMetadata().getName();
             // this is podname + servicename + namespace
-            String podUrl =
-                    "http://"
-                            + pod.getMetadata().getName()
-                            + "."
-                            + pod.getSpec().getSubdomain()
-                            + "."
-                            + pod.getMetadata().getNamespace()
-                            + ".svc.cluster.local:8080";
+            String podUrl = computePodUrl(pod, 8080);
             log.debug("Pod url: {}", podUrl);
             status = status.withUrl(podUrl);
 
             podStatuses.put(podName, status);
         }
         return podStatuses;
+    }
+
+    public static String computePodUrl(Pod pod, int port) {
+        return "http://%s.%s.%s.svc.cluster.local:%d"
+                .formatted(
+                        pod.getMetadata().getName(),
+                        pod.getSpec().getSubdomain(),
+                        pod.getMetadata().getNamespace(),
+                        port);
+    }
+
+    public static String computeServiceUrl(Service service, int port) {
+        return "http://%s.%s.svc.cluster.local:%d"
+                .formatted(
+                        service.getMetadata().getName(),
+                        service.getMetadata().getNamespace(),
+                        port);
+    }
+
+    public static String computeServiceUrl(String serviceName, String namespace, int port) {
+        return "http://%s.%s.svc.cluster.local:%d".formatted(serviceName, namespace, port);
+    }
+
+    public static String computeServiceUrl(String serviceName, String namespace) {
+        return "http://%s.%s.svc.cluster.local".formatted(serviceName, namespace);
     }
 
     private static PodStatus getStatusFromContainerState(ContainerState state) {

@@ -15,6 +15,7 @@
  */
 package ai.langstream.ai.agents.services;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import java.util.Map;
 
@@ -22,5 +23,6 @@ public interface ServiceProviderProvider {
 
     boolean supports(Map<String, Object> agentConfiguration);
 
-    ServiceProvider createImplementation(Map<String, Object> agentConfiguration);
+    ServiceProvider createImplementation(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter);
 }

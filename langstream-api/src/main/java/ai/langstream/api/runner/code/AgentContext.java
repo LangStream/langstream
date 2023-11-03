@@ -42,6 +42,10 @@ public interface AgentContext {
 
     TopicConnectionProvider getTopicConnectionProvider();
 
+    default MetricsReporter getMetricsReporter() {
+        return MetricsReporter.DISABLED;
+    }
+
     default BadRecordHandler getBadRecordHandler() {
         return DEFAULT_BAD_RECORD_HANDLER;
     }

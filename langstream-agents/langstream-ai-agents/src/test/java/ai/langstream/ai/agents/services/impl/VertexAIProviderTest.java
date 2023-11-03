@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
@@ -73,7 +74,8 @@ class VertexAIProviderTest {
                                         "region",
                                         "us-central1",
                                         "token",
-                                        "xxxx")));
+                                        "xxxx")),
+                        MetricsReporter.DISABLED);
 
         EmbeddingsService embeddingsService =
                 implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));
@@ -142,7 +144,8 @@ class VertexAIProviderTest {
                                         "region",
                                         "us-central1",
                                         "token",
-                                        "xxxx")));
+                                        "xxxx")),
+                        MetricsReporter.DISABLED);
         CompletionsService service =
                 implementation.getCompletionsService(
                         Map.of(
@@ -209,7 +212,8 @@ class VertexAIProviderTest {
                                         "region",
                                         "us-central1",
                                         "token",
-                                        "xxxx")));
+                                        "xxxx")),
+                        MetricsReporter.DISABLED);
         CompletionsService service =
                 implementation.getCompletionsService(
                         Map.of(
@@ -249,7 +253,8 @@ class VertexAIProviderTest {
                                         "region",
                                         "us-central1",
                                         "serviceAccountJson",
-                                        "PUT-HERE-YOUR-JSON-KEY")));
+                                        "PUT-HERE-YOUR-JSON-KEY")),
+                        MetricsReporter.DISABLED);
 
         EmbeddingsService embeddingsService =
                 implementation.getEmbeddingsService(Map.of("model", "textembedding-gecko"));

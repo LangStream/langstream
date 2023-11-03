@@ -21,6 +21,7 @@ import static com.datastax.oss.streaming.ai.util.TransformFunctionUtil.buildStep
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -495,7 +496,8 @@ public class TransformFunction
             if (config.getHuggingface() != null) {
                 return new HuggingFaceProvider()
                         .createImplementation(
-                                TransformFunctionUtil.convertToMap(config.getHuggingface()));
+                                TransformFunctionUtil.convertToMap(config.getHuggingface()),
+                                MetricsReporter.DISABLED);
             }
         }
         return new ServiceProvider.NoopServiceProvider();

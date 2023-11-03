@@ -16,7 +16,11 @@
 package ai.langstream.ai.agents;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +62,9 @@ class GenAIToolKitAgentTest {
 
     Object compute(String expression, Object value) throws Exception {
         GenAIToolKitAgent agent = new GenAIToolKitAgent();
+        AgentContext mockContext = mock(AgentContext.class);
+        when(mockContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
+        agent.setContext(mockContext);
         agent.init(
                 Map.of(
                         "steps",

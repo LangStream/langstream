@@ -145,6 +145,7 @@ public class ConsumeGateway implements AutoCloseable {
                                 log.debug("[{}] Started reader", logRef);
                                 readMessages(stop, onMessage);
                             } catch (Throwable ex) {
+                                log.error("[{}] Error reading messages", logRef, ex);
                                 throw new RuntimeException(ex);
                             } finally {
                                 closeReader();
@@ -153,8 +154,7 @@ public class ConsumeGateway implements AutoCloseable {
                         executor);
     }
 
-    protected void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage)
-            throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
         while (true) {
             if (interrupted) {
                 return;

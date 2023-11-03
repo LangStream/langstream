@@ -601,15 +601,22 @@ public class ModelBuilder {
                 throw new IllegalArgumentException(
                         "Gateway of type 'service' must have service-options");
             }
+            if (serviceOptions.getAgentId() == null) {
+                if (serviceOptions.getInputTopic() == null) {
+                    throw new IllegalArgumentException(
+                            "Gateway of type 'service' must have service-options.input-topic");
+                }
 
-            if (serviceOptions.getInputTopic() == null) {
-                throw new IllegalArgumentException(
-                        "Gateway of type 'service' must have service-options.input-topic");
-            }
-
-            if (serviceOptions.getOutputTopic() == null) {
-                throw new IllegalArgumentException(
-                        "Gateway of type 'service' must have service-options.output-topic");
+                if (serviceOptions.getOutputTopic() == null) {
+                    throw new IllegalArgumentException(
+                            "Gateway of type 'service' must have service-options.output-topic");
+                }
+            } else {
+                if (serviceOptions.getInputTopic() != null
+                        || serviceOptions.getOutputTopic() != null) {
+                    throw new IllegalArgumentException(
+                            "Gateway of type 'service' with service-options.agent-id must not include service-options.input-topic and service-options.output-topic");
+                }
             }
         }
     }

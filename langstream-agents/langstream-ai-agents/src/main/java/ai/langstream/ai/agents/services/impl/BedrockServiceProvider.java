@@ -20,6 +20,7 @@ import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import ai.langstream.ai.agents.services.impl.bedrock.BaseInvokeModelRequest;
 import ai.langstream.ai.agents.services.impl.bedrock.BedrockClient;
 import ai.langstream.ai.agents.services.impl.bedrock.TitanEmbeddingsModel;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -50,7 +51,8 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
     }
 
     @Override
-    public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
+    public ServiceProvider createImplementation(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter) {
         Map<String, Object> config = (Map<String, Object>) agentConfiguration.get("bedrock");
         String accessKey = (String) config.get("access-key");
         String secretKey = (String) config.get("secret-key");

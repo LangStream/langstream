@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
@@ -88,7 +89,8 @@ public class ChatCompletionsStepTest {
                 .thenReturn(Mono.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
         when(openAIClient.getChatCompletionsStream(eq("test-model"), any()))
                 .thenAnswer(a -> Flux.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
-        this.completionService = new OpenAICompletionService(openAIClient);
+        this.completionService =
+                new OpenAICompletionService(openAIClient, MetricsReporter.DISABLED);
     }
 
     @Test

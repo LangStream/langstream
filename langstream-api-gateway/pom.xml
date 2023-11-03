@@ -21,11 +21,11 @@
 	<parent>
 		<groupId>ai.langstream</groupId>
 		<artifactId>langstream-ai</artifactId>
-		<version>0.3.2-SNAPSHOT</version>
+		<version>0.4.3-SNAPSHOT</version>
 	</parent>
 	<groupId>ai.langstream</groupId>
 	<artifactId>langstream-api-gateway</artifactId>
-	<version>0.3.2-SNAPSHOT</version>
+	<version>0.4.3-SNAPSHOT</version>
 	<name>LangStream - API Gateway</name>
 	<properties>
 		<java.version>17</java.version>
@@ -64,6 +64,13 @@
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>langstream-pulsar-runtime</artifactId>
+			<version>${project.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>langstream-pravega-runtime</artifactId>
 			<version>${project.version}</version>
 			<scope>provided</scope>
 		</dependency>
@@ -141,6 +148,10 @@
 			<groupId>ai.langstream</groupId>
 			<artifactId>langstream-core</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
 		</dependency>
 
 		<dependency>
@@ -235,6 +246,16 @@
 								<artifactItem>
 									<groupId>${project.groupId}</groupId>
 									<artifactId>langstream-pulsar-runtime</artifactId>
+									<version>${project.version}</version>
+									<type>nar</type>
+									<classifier>nar</classifier>
+									<overWrite>false</overWrite>
+									<outputDirectory>${project.build.directory}/agents</outputDirectory>
+								</artifactItem>
+
+								<artifactItem>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>langstream-pravega-runtime</artifactId>
 									<version>${project.version}</version>
 									<type>nar</type>
 									<classifier>nar</classifier>

@@ -16,13 +16,14 @@
 package ai.langstream.cli.commands;
 
 import ai.langstream.cli.commands.python.LoadPythonDependenciesCmd;
+import ai.langstream.cli.commands.python.PythonRunTests;
 import lombok.Getter;
 import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "python",
         header = "Tools for Python developers",
-        subcommands = {LoadPythonDependenciesCmd.class})
+        subcommands = {LoadPythonDependenciesCmd.class, PythonRunTests.class})
 @Getter
 public class RootPythonCmd {
     @CommandLine.ParentCommand private RootCmd rootCmd;

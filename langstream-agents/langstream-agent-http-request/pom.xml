@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-agents</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.3.2-SNAPSHOT</version>
+    <version>0.4.3-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -63,6 +63,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

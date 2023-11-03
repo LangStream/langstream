@@ -858,7 +858,7 @@ abstract class ProduceConsumeHandlerTest {
 
         assertEquals(ProduceResponse.Status.BAD_REQUEST, response.status());
         assertEquals(
-                "Unrecognized token 'invalid': was expecting (JSON String, Number, Array, Object or token "
+                "Error while parsing JSON payload: Unrecognized token 'invalid': was expecting (JSON String, Number, Array, Object or token "
                         + "'null', 'true' or 'false')\n"
                         + " at [Source: (String)\"invalid-json\"; line: 1, column: 8]",
                 response.reason());

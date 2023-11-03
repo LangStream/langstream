@@ -323,10 +323,11 @@ abstract class GatewayResourceTest {
 
         request =
                 HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "plain/text")
+                        .header("Content-Type", "text/plain")
                         .POST(HttpRequest.BodyPublishers.ofString("my-string"))
                         .build();
         response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        log.info("Response body: {}", response.body());
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());

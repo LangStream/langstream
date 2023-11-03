@@ -220,7 +220,7 @@ abstract class GatewayResourceTest {
     }
 
     @SneakyThrows
-    void produceAndExpectOk(String url, String content) {
+    void produceJsonAndExpectOk(String url, String content) {
         final HttpRequest request =
                 HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -233,8 +233,21 @@ abstract class GatewayResourceTest {
                 {"status":"OK","reason":null}""", response.body());
     }
 
+
     @SneakyThrows
-    String produceAndGetBody(String url, String content) {
+    String produceTextAndGetBody(String url, String content) {
+        final HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString(content))
+                        .build();
+        final HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
+    }
+
+    @SneakyThrows
+    String produceJsonAndGetBody(String url, String content) {
         final HttpRequest request =
                 HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -247,7 +260,7 @@ abstract class GatewayResourceTest {
     }
 
     @SneakyThrows
-    void produceAndExpectBadRequest(String url, String content, String errorMessage) {
+    void produceJsonAndExpectBadRequest(String url, String content, String errorMessage) {
         final HttpRequest request =
                 HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -263,7 +276,7 @@ abstract class GatewayResourceTest {
     }
 
     @SneakyThrows
-    void produceAndExpectUnauthorized(String url, String content) {
+    void produceJsonAndExpectUnauthorized(String url, String content) {
         final HttpRequest request =
                 HttpRequest.newBuilder(URI.create(url))
                         .header("Content-Type", "application/json")
@@ -297,9 +310,30 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
-        produceAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
-        produceAndExpectOk(url, "{\"key\": \"my-key\"}");
-        produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
+        produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
+        produceJsonAndExpectOk(url, "{\"key\": \"my-key\"}");
+        produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
+        HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString("my-string"))
+                        .build();
+        HttpResponse<String> response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        assertEquals("""
+                {"status":"OK","reason":null}""", response.body());
+
+        request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .header("Content-Type", "plain/text")
+                        .POST(HttpRequest.BodyPublishers.ofString("my-string"))
+                        .build();
+        response =
+                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        assertEquals("""
+                {"status":"OK","reason":null}""", response.body());
+
     }
 
     @Test
@@ -334,10 +368,10 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
-        produceAndExpectOk(url + "1", "{\"key\": \"my-key\", \"value\": \"my-value\"}");
-        produceAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
-        produceAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
-        produceAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
+        produceJsonAndExpectOk(url + "1", "{\"key\": \"my-key\", \"value\": \"my-value\"}");
+        produceJsonAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
+        produceJsonAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
+        produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
 
         final String metrics =
                 mockMvc.perform(get("/management/prometheus"))
@@ -389,17 +423,17 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/gw".formatted(port);
 
         final String content = "{\"value\": \"my-value\"}";
-        produceAndExpectBadRequest(baseUrl, content, "missing required parameter session-id");
-        produceAndExpectBadRequest(
+        produceJsonAndExpectBadRequest(baseUrl, content, "missing required parameter session-id");
+        produceJsonAndExpectBadRequest(
                 baseUrl + "?param:otherparam=1", content, "missing required parameter session-id");
-        produceAndExpectBadRequest(
+        produceJsonAndExpectBadRequest(
                 baseUrl + "?param:session-id=", content, "missing required parameter session-id");
-        produceAndExpectBadRequest(
+        produceJsonAndExpectBadRequest(
                 baseUrl + "?param:session-id=ok&param:another-non-declared=y",
                 content,
                 "unknown parameters: [another-non-declared]");
-        produceAndExpectOk(baseUrl + "?param:session-id=1", content);
-        produceAndExpectOk(baseUrl + "?param:session-id=string-value", content);
+        produceJsonAndExpectOk(baseUrl + "?param:session-id=1", content);
+        produceJsonAndExpectOk(baseUrl + "?param:session-id=string-value", content);
     }
 
     @Test
@@ -446,10 +480,10 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
-        produceAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}");
-        produceAndExpectUnauthorized(baseUrl + "?credentials=", "{\"value\": \"my-value\"}");
-        produceAndExpectUnauthorized(baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
-        produceAndExpectOk(
+        produceJsonAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}");
+        produceJsonAndExpectUnauthorized(baseUrl + "?credentials=", "{\"value\": \"my-value\"}");
+        produceJsonAndExpectUnauthorized(baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
+        produceJsonAndExpectOk(
                 baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
     }
 
@@ -494,11 +528,11 @@ abstract class GatewayResourceTest {
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
-        produceAndExpectUnauthorized(
+        produceJsonAndExpectUnauthorized(
                 baseUrl + "?test-credentials=test", "{\"value\": \"my-value\"}");
-        produceAndExpectOk(
+        produceJsonAndExpectOk(
                 baseUrl + "?test-credentials=test-user-password", "{\"value\": \"my-value\"}");
-        produceAndExpectUnauthorized(
+        produceJsonAndExpectUnauthorized(
                 ("http://localhost:%d/api/gateways/produce/tenant1/application1/produce-no-test?test-credentials=test"
                                 + "-user-password")
                         .formatted(port),
@@ -529,13 +563,17 @@ abstract class GatewayResourceTest {
 
         assertMessageContent(
                 new MsgRecord("my-key", "my-value", Map.of()),
-                produceAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+                produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
         assertMessageContent(
                 new MsgRecord("my-key2", "my-value", Map.of()),
-                produceAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+                produceJsonAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+
+        assertMessageContent(
+                new MsgRecord(null, "my-text", Map.of()),
+                produceTextAndGetBody(url, "my-text"));
         assertMessageContent(
                 new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
-                produceAndGetBody(
+                produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
     }

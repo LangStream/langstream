@@ -144,13 +144,18 @@ public class ProduceGateway implements AutoCloseable {
     }
 
     public void produceMessage(String payload) throws ProduceException {
+        final ProduceRequest produceRequest = parseProduceRequest(payload);
+        produceMessage(produceRequest);
+    }
+
+    public static ProduceRequest parseProduceRequest(String payload) throws ProduceException {
         final ProduceRequest produceRequest;
         try {
             produceRequest = mapper.readValue(payload, ProduceRequest.class);
         } catch (JsonProcessingException err) {
-            throw new ProduceException(err.getMessage(), ProduceResponse.Status.BAD_REQUEST);
+            throw new ProduceException("Error while parsing JSON payload: " + err.getMessage(), ProduceResponse.Status.BAD_REQUEST);
         }
-        produceMessage(produceRequest);
+        return produceRequest;
     }
 
     public void produceMessage(ProduceRequest produceRequest) throws ProduceException {

@@ -36,6 +36,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -91,13 +92,13 @@ public class GatewayResource {
 
     @PostMapping(
             value = "/produce/{tenant}/{application}/{gateway}",
-            consumes = MediaType.APPLICATION_JSON_VALUE)
+            consumes = "*/*")
     ProduceResponse produce(
             WebRequest request,
             @NotBlank @PathVariable("tenant") String tenant,
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway,
-            @RequestBody ProduceRequest produceRequest)
+            @RequestBody String payload)
             throws ProduceGateway.ProduceException {
 
         final Map<String, String> queryString = computeQueryString(request);
@@ -127,8 +128,23 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
             produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
+            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
             produceGateway.produceMessage(produceRequest);
             return ProduceResponse.OK;
+        }
+    }
+
+    private ProduceRequest parseProduceRequest(WebRequest request, String payload)
+            throws ProduceGateway.ProduceException {
+        final String contentType = request.getHeader("Content-Type");
+        if (contentType == null || contentType.equals(MediaType.TEXT_PLAIN_VALUE)) {
+            return new ProduceRequest(null, payload, null);
+        } else if (contentType.equals(MediaType.APPLICATION_JSON_VALUE)) {
+            return ProduceGateway.parseProduceRequest(payload);
+        } else {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Unsupported content type: %s", contentType));
         }
     }
 
@@ -189,7 +205,7 @@ public class GatewayResource {
             String tenant,
             String application,
             String gateway)
-            throws IOException {
+            throws IOException, ProduceGateway.ProduceException {
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
@@ -227,8 +243,8 @@ public class GatewayResource {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Only POST method is supported");
             }
-            final ProduceRequest produceRequest =
-                    MAPPER.readValue(servletRequest.getInputStream(), ProduceRequest.class);
+            final String payload = new String(servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
             return handleServiceWithTopics(produceRequest, authContext);
         }
     }

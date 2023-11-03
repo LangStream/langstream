@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pravega.runner;
+package ai.langstream.pulsar.runner;
 
-import static ai.langstream.pravega.PulsarClientUtils.buildPulsarAdmin;
-import static ai.langstream.pravega.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
+import static ai.langstream.pulsar.PulsarClientUtils.buildPulsarAdmin;
+import static ai.langstream.pulsar.PulsarClientUtils.getPulsarClusterRuntimeConfiguration;
 import static java.util.Map.entry;
 
 import ai.langstream.api.model.Application;
@@ -35,9 +35,9 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
-import ai.langstream.pravega.PulsarClientUtils;
-import ai.langstream.pravega.PulsarClusterRuntimeConfiguration;
-import ai.langstream.pravega.PulsarTopic;
+import ai.langstream.pulsar.PulsarClientUtils;
+import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
+import ai.langstream.pulsar.PulsarTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.ByteBuffer;

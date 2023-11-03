@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pravega.runner;
+package ai.langstream.pravega;
 
 import static ai.langstream.pravega.PravegaClientUtils.getScope;
 
@@ -33,9 +33,6 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
-import ai.langstream.pravega.PravegaClientUtils;
-import ai.langstream.pravega.PravegaClusterRuntimeConfiguration;
-import ai.langstream.pravega.PravegaTopic;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.EventStreamClientFactory;

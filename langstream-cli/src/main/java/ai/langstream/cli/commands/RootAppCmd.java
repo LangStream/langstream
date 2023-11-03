@@ -27,7 +27,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "apps",
-        header = "Manage LangStream applications",
+        header = "Manage ${ROOT-COMMAND-NAME} applications",
         subcommands = {
             AbstractDeployApplicationCmd.DeployApplicationCmd.class,
             AbstractDeployApplicationCmd.UpdateApplicationCmd.class,

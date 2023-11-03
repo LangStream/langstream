@@ -26,7 +26,7 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "configure",
         header =
-                "Configure LangStream tenant and authentication. DEPRECATED. Use 'langstream profiles' instead.")
+                "Configure tenant and authentication. DEPRECATED. Use '${ROOT-COMMAND-NAME} profiles' instead.")
 @Getter
 public class ConfigureCmd extends BaseCmd {
 

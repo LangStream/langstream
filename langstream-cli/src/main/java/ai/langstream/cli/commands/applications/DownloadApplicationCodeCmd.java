@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "download", header = "Get LangStream application code")
+@CommandLine.Command(name = "download", header = "Get the application code")
 public class DownloadApplicationCodeCmd extends BaseApplicationCmd {
 
     protected static final Pattern REGEX_PATTERN =

@@ -26,7 +26,11 @@ import picocli.CommandLine;
 
 public class VersionProvider implements CommandLine.IVersionProvider {
 
-    private static final List<String> VERSION_INFO = getVersionFromJar();
+    private static List<String> VERSION_INFO = null;
+
+    public static void initialize(String label, String forceVersion) {
+        VERSION_INFO = getVersionFromJar(label, forceVersion);
+    }
 
     public static String getMavenVersion() {
         return VERSION_INFO.get(1);
@@ -36,12 +40,19 @@ public class VersionProvider implements CommandLine.IVersionProvider {
         return new String[] {VERSION_INFO.get(0)};
     }
 
-    private static List<String> getVersionFromJar() {
+    private static List<String> getVersionFromJar(String label, String forceVersion) {
         try {
-            Manifest manifest = getManifest();
-            final String version = getVersionFromManifest(manifest);
-            final String gitRevision = getGitRevisionFromManifest(manifest);
-            return List.of(String.format("LangStream CLI %s (%s)", version, gitRevision), version);
+            final String version;
+            final String gitRevision;
+            if (forceVersion != null) {
+                version = forceVersion;
+                gitRevision = "";
+            } else {
+                final Manifest manifest = getManifest();
+                version = getVersionFromManifest(manifest);
+                gitRevision = " (" + getGitRevisionFromManifest(manifest) + ")";
+            }
+            return List.of(String.format("%s %s", label, version + gitRevision), version);
         } catch (Throwable t) {
             // never ever let this exception bubble up otherwise any command will fail
             return List.of(String.format("Error: %s", t.getMessage()), "unknown");

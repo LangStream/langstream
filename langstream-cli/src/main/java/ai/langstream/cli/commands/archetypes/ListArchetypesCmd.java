@@ -20,7 +20,7 @@ import java.util.function.BiFunction;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "list", header = "List all LangStream archetypes")
+@CommandLine.Command(name = "list", header = "List all the available archetypes")
 public class ListArchetypesCmd extends BaseArchetypeCmd {
 
     protected static final String[] COLUMNS_FOR_RAW = {"id", "labels"};

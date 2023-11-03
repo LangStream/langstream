@@ -52,7 +52,7 @@ import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.lang3.SystemUtils;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "run", header = "Run on a docker container a LangStream application")
+@CommandLine.Command(name = "run", header = "Run the application on a docker container")
 public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     protected static final String LOCAL_DOCKER_RUN_PROFILE = "local-docker-run";
@@ -91,7 +91,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--start-webservices"},
-            description = "Start LangStream webservices")
+            description = "Start webservices")
     private boolean startWebservices = true;
 
     @CommandLine.Option(
@@ -142,13 +142,13 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
 
     @CommandLine.Option(
             names = {"--langstream-runtime-version"},
-            description = "Version of the LangStream runtime to use",
+            description = "Version of the runtime to use",
             defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE_VERSION}")
     private String dockerImageVersion;
 
     @CommandLine.Option(
             names = {"--langstream-runtime-docker-image"},
-            description = "Docker image of the LangStream runtime to use",
+            description = "Docker image of the runtime to use",
             defaultValue = "${env:LANGSTREAM_RUNTIME_DOCKER_IMAGE}")
     private String dockerImageName;
 

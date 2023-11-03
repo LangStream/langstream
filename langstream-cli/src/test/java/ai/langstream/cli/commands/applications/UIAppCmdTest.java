@@ -15,8 +15,8 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,12 +25,12 @@ class UIAppCmdTest {
     @Test
     void openBrowser() {
         // ok
-	String command = "/usr/bin/echo";
-	boolean Result = UIAppCmd.checkAndLaunch( command, 80);
-        assertTrue( Result, command + "if found in filesystem should be true" );
+        String command = "/usr/bin/echo";
+        boolean Result = UIAppCmd.checkAndLaunch(command, 80);
+        assertTrue(Result, command + "if found in filesystem should be true");
         // fail
-	command = "_no_such_command_";
-	Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
-        assertFalse( Result, command + "if not found in filesystemi should be false" );
+        command = "_no_such_command_";
+        Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
+        assertFalse(Result, command + "if not found in filesystemi should be false");
     }
 }

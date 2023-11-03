@@ -33,7 +33,7 @@ import io.undertow.util.HttpString;
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
-//import java.nio.file.Paths;
+// import java.nio.file.Paths;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -61,20 +61,17 @@ public class UIAppCmd extends BaseApplicationCmd {
     private String applicationId;
 
     @CommandLine.Option(
-        names = {
-            "-p",
-            "--port"
-        },
-        description = "Port for the local webserver and UI. If 0, a random port will be used. ",
-        defaultValue = "8092")
+            names = {"-p", "--port"},
+            description = "Port for the local webserver and UI. If 0, a random port will be used. ",
+            defaultValue = "8092")
     private int port = 8092;
 
     @Override
     @SneakyThrows
     public void run() {
         final String applicationContent = getAppDescriptionOrLoad(applicationId);
-        final List < Gateways.Gateway > gateways =
-            Gateways.readFromApplicationDescription(applicationContent);
+        final List<Gateways.Gateway> gateways =
+                Gateways.readFromApplicationDescription(applicationContent);
 
         final AppModel appModel = new AppModel();
         appModel.setApplicationDefinition(applicationContent);
@@ -87,34 +84,34 @@ public class UIAppCmd extends BaseApplicationCmd {
         appModel.setRemoteBaseUrl(apiGatewayUrl);
 
         final LogSupplier logSupplier =
-            new LogSupplier() {
-                @Override
-                @SneakyThrows
-                public void run(Consumer < String > lineConsumer) {
-                    final HttpResponse < InputStream > response =
-                        getClient().applications().logs(applicationId, List.of(), "text");
-                    InputStream inputStream = response.body();
-                    InputStreamReader reader =
-                        new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-                    BufferedReader bufferedReader = new BufferedReader(reader);
+                new LogSupplier() {
+                    @Override
+                    @SneakyThrows
+                    public void run(Consumer<String> lineConsumer) {
+                        final HttpResponse<InputStream> response =
+                                getClient().applications().logs(applicationId, List.of(), "text");
+                        InputStream inputStream = response.body();
+                        InputStreamReader reader =
+                                new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+                        BufferedReader bufferedReader = new BufferedReader(reader);
 
-                    String line;
-                    while ((line = bufferedReader.readLine()) != null) {
-                        lineConsumer.accept(line);
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            lineConsumer.accept(line);
+                        }
                     }
-                }
-            };
+                };
         startServer(port, () -> appModel, apiGatewayUrl, logSupplier, getLogger());
         Thread.sleep(Long.MAX_VALUE);
     }
 
     @SneakyThrows
     public static Undertow startServer(
-        int port,
-        Supplier < AppModel > appModel,
-        String apiGatewayUrl,
-        LogSupplier logsStream,
-        CLILogger logger) {
+            int port,
+            Supplier<AppModel> appModel,
+            String apiGatewayUrl,
+            LogSupplier logsStream,
+            CLILogger logger) {
         String forwardHost;
         if (apiGatewayUrl.startsWith("wss://")) {
             forwardHost = "https://" + apiGatewayUrl.substring("wss://".length());
@@ -125,62 +122,62 @@ public class UIAppCmd extends BaseApplicationCmd {
             forwardHost = forwardHost.substring(0, forwardHost.length() - 1);
         }
         LoadBalancingProxyClient loadBalancer =
-            new LoadBalancingProxyClient()
-            .addHost(
-                new URI(forwardHost),
-                forwardHost.startsWith("https://") ?
-                new UndertowXnioSsl(
-                    Xnio.getInstance(), OptionMap.builder().getMap()) :
-                null)
-            .setConnectionsPerThread(20);
+                new LoadBalancingProxyClient()
+                        .addHost(
+                                new URI(forwardHost),
+                                forwardHost.startsWith("https://")
+                                        ? new UndertowXnioSsl(
+                                                Xnio.getInstance(), OptionMap.builder().getMap())
+                                        : null)
+                        .setConnectionsPerThread(20);
 
         final ProxyHandler proxyHandler =
-            ProxyHandler.builder()
-            .setProxyClient(loadBalancer)
-            .setMaxRequestTime(30000)
-            .build();
+                ProxyHandler.builder()
+                        .setProxyClient(loadBalancer)
+                        .setMaxRequestTime(30000)
+                        .build();
 
         final HttpHandler logsHandler = new LogsHandler(logsStream);
 
         HttpHandler blockingHandler =
-            exchange -> {
-                exchange.startBlocking();
-                if (exchange.isInIoThread()) {
-                    exchange.dispatch(logsHandler);
-                } else {
-                    logsHandler.handleRequest(exchange);
-                }
-            };
+                exchange -> {
+                    exchange.startBlocking();
+                    if (exchange.isInIoThread()) {
+                        exchange.dispatch(logsHandler);
+                    } else {
+                        logsHandler.handleRequest(exchange);
+                    }
+                };
 
         AtomicInteger actualPort = new AtomicInteger();
 
         ResourceHandler resourceHandler =
-            Handlers.resource(
-                new ClassPathResourceManager(UIAppCmd.class.getClassLoader(), "app-ui"));
+                Handlers.resource(
+                        new ClassPathResourceManager(UIAppCmd.class.getClassLoader(), "app-ui"));
         HttpHandler appConfigHandler =
-            exchange -> {
-                final AppModel result = appModel.get();
-                result.setBaseUrl("ws://localhost:" + actualPort.get());
-                final String json = jsonBodyWriter.writeValueAsString(result);
-                exchange.getResponseHeaders()
-                .put(HttpString.tryFromString("Content-Type"), "application/json");
-                exchange.getResponseSender().send(json);
-            };
+                exchange -> {
+                    final AppModel result = appModel.get();
+                    result.setBaseUrl("ws://localhost:" + actualPort.get());
+                    final String json = jsonBodyWriter.writeValueAsString(result);
+                    exchange.getResponseHeaders()
+                            .put(HttpString.tryFromString("Content-Type"), "application/json");
+                    exchange.getResponseSender().send(json);
+                };
         RoutingHandler routingHandler =
-            Handlers.routing()
-            .get("/api/application", appConfigHandler)
-            .get("/api/logs", blockingHandler)
-            .get("/v1/*", proxyHandler)
-            .setFallbackHandler(resourceHandler);
+                Handlers.routing()
+                        .get("/api/application", appConfigHandler)
+                        .get("/api/logs", blockingHandler)
+                        .get("/v1/*", proxyHandler)
+                        .setFallbackHandler(resourceHandler);
 
         Undertow server =
-            Undertow.builder()
-            .addHttpListener(port, "0.0.0.0")
-            .setHandler(routingHandler)
-            .build();
+                Undertow.builder()
+                        .addHttpListener(port, "0.0.0.0")
+                        .setHandler(routingHandler)
+                        .build();
         server.start();
         actualPort.set(
-            ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
+                ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
         logger.log("Starting UI at http://localhost:" + actualPort.get());
         String os = System.getProperty("os.name").toLowerCase();
@@ -188,7 +185,9 @@ public class UIAppCmd extends BaseApplicationCmd {
         if (openBrowserAtPort("http://localhost:", actualPort.get())) {
             logger.log("Started UI at http://localhost:" + actualPort.get());
         } else {
-            logger.log("Could not Start browser.  Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at http://localhost:" + actualPort.get());
+            logger.log(
+                    "Could not Start browser.  Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at http://localhost:"
+                            + actualPort.get());
         }
 
         return server;
@@ -240,13 +239,13 @@ public class UIAppCmd extends BaseApplicationCmd {
         private String remoteBaseUrl;
         private String tenant;
         private String applicationId;
-        private List < Gateways.Gateway > gateways;
+        private List<Gateways.Gateway> gateways;
         private String applicationDefinition;
         private String mermaidDefinition;
     }
 
     public interface LogSupplier {
-        void run(Consumer < String > line);
+        void run(Consumer<String> line);
     }
 
     @AllArgsConstructor
@@ -257,19 +256,19 @@ public class UIAppCmd extends BaseApplicationCmd {
         @Override
         public void handleRequest(HttpServerExchange exchange) throws Exception {
             exchange.getResponseHeaders()
-                .put(Headers.CONTENT_TYPE, "text/plain; charset=" + StandardCharsets.UTF_8);
+                    .put(Headers.CONTENT_TYPE, "text/plain; charset=" + StandardCharsets.UTF_8);
             final byte[] bytes = "\n".getBytes(StandardCharsets.UTF_8);
 
             logSupplier.run(
-                line -> {
-                    try {
-                        exchange.getOutputStream().write(line.getBytes(StandardCharsets.UTF_8));
-                        exchange.getOutputStream().write(bytes);
-                        exchange.getOutputStream().flush();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                    line -> {
+                        try {
+                            exchange.getOutputStream().write(line.getBytes(StandardCharsets.UTF_8));
+                            exchange.getOutputStream().write(bytes);
+                            exchange.getOutputStream().flush();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
             exchange.endExchange();
         }
     }

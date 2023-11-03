@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -84,32 +83,38 @@ public class OpenAICompletionService implements CompletionsService {
 
         this.chatNumCalls =
                 metricsReporter.counter(
-                        "openai_chat_completions_num_calls", "Total number of calls to OpenAI Chat Completions");
+                        "openai_chat_completions_num_calls",
+                        "Total number of calls to OpenAI Chat Completions");
 
         this.chatNumErrors =
                 metricsReporter.counter(
                         "openai_chat_completions_num_errors",
                         "Total number of errors while calling OpenAI Chat Completions");
 
-        this.textTotalTokens = metricsReporter.counter(
-                "openai_text_completions_total_tokens",
-                "Total number of tokens exchanged with OpenAI Text Completions");
+        this.textTotalTokens =
+                metricsReporter.counter(
+                        "openai_text_completions_total_tokens",
+                        "Total number of tokens exchanged with OpenAI Text Completions");
 
         this.textCompletionTokens =
                 metricsReporter.counter(
                         "openai_chat_completions_completions_tokens",
                         "Total number of completions tokens received from OpenAI Text Completions");
 
-        this.textPromptTokens = metricsReporter.counter(
-                "openai_text_completions_prompt_tokens",
-                "Total number of prompt tokens sent to OpenAI Text Completions");
+        this.textPromptTokens =
+                metricsReporter.counter(
+                        "openai_text_completions_prompt_tokens",
+                        "Total number of prompt tokens sent to OpenAI Text Completions");
 
-        this.textNumCalls = metricsReporter.counter(
-                "openai_text_completions_num_calls", "Total number of calls to OpenAI Text Completions");
+        this.textNumCalls =
+                metricsReporter.counter(
+                        "openai_text_completions_num_calls",
+                        "Total number of calls to OpenAI Text Completions");
 
-        this.textNumErrors = metricsReporter.counter(
-                "openai_text_completions_num_errors",
-                "Total number of errors while calling OpenAI Text Completions");
+        this.textNumErrors =
+                metricsReporter.counter(
+                        "openai_text_completions_num_errors",
+                        "Total number of errors while calling OpenAI Text Completions");
     }
 
     @Override
@@ -171,28 +176,34 @@ public class OpenAICompletionService implements CompletionsService {
                                                 chatCompletionsConsumer
                                                         .buildTotalAnswerMessage())));
                         chatTotalTokens.count(chatCompletionsConsumer.getTotalTokens().intValue());
-                        chatPromptTokens.count(chatCompletionsConsumer.getPromptTokens().intValue());
-                        chatCompletionTokens.count(chatCompletionsConsumer.getCompletionTokens().intValue());
+                        chatPromptTokens.count(
+                                chatCompletionsConsumer.getPromptTokens().intValue());
+                        chatCompletionTokens.count(
+                                chatCompletionsConsumer.getCompletionTokens().intValue());
                         return result;
                     });
         } else {
-            CompletableFuture<ChatCompletions> resultHandle = client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
-                    .toFuture().thenApply(chatCompletions -> {
-                        result.setChoices(
-                                chatCompletions.getChoices().stream()
-                                        .map(c -> new ChatChoice(convertMessage(c)))
-                                        .collect(Collectors.toList()));
-                        CompletionsUsage usage = chatCompletions.getUsage();
-                        chatTotalTokens.count(usage.getTotalTokens());
-                        chatPromptTokens.count(usage.getPromptTokens());
-                        chatCompletionTokens.count(usage.getCompletionTokens());
-                        return result;
-                    });
+            CompletableFuture<ChatCompletions> resultHandle =
+                    client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
+                            .toFuture()
+                            .thenApply(
+                                    chatCompletions -> {
+                                        result.setChoices(
+                                                chatCompletions.getChoices().stream()
+                                                        .map(c -> new ChatChoice(convertMessage(c)))
+                                                        .collect(Collectors.toList()));
+                                        CompletionsUsage usage = chatCompletions.getUsage();
+                                        chatTotalTokens.count(usage.getTotalTokens());
+                                        chatPromptTokens.count(usage.getPromptTokens());
+                                        chatCompletionTokens.count(usage.getCompletionTokens());
+                                        return result;
+                                    });
 
-            resultHandle.exceptionally(error -> {
-               chatNumErrors.count(1);
-               return null;
-            });
+            resultHandle.exceptionally(
+                    error -> {
+                        chatNumErrors.count(1);
+                        return null;
+                    });
             return resultHandle;
         }
     }
@@ -215,13 +226,10 @@ public class OpenAICompletionService implements CompletionsService {
         private final AtomicReference<String> role = new AtomicReference<>();
         private final StringWriter totalAnswer = new StringWriter();
 
-        @Getter
-        private final AtomicInteger totalTokens = new AtomicInteger();
-        @Getter
-        private final AtomicInteger promptTokens = new AtomicInteger();
+        @Getter private final AtomicInteger totalTokens = new AtomicInteger();
+        @Getter private final AtomicInteger promptTokens = new AtomicInteger();
 
-        @Getter
-        private final AtomicInteger completionTokens = new AtomicInteger();
+        @Getter private final AtomicInteger completionTokens = new AtomicInteger();
 
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
@@ -352,32 +360,43 @@ public class OpenAICompletionService implements CompletionsService {
                                         textCompletionsConsumer.logProbsTokens,
                                         textCompletionsConsumer.logProbsTokenLogProbabilities);
                         textTotalTokens.count(textCompletionsConsumer.getTotalTokens().intValue());
-                        textPromptTokens.count(textCompletionsConsumer.getPromptTokens().intValue());
-                        textCompletionTokens.count(textCompletionsConsumer.getCompletionTokens().intValue());
+                        textPromptTokens.count(
+                                textCompletionsConsumer.getPromptTokens().intValue());
+                        textCompletionTokens.count(
+                                textCompletionsConsumer.getCompletionTokens().intValue());
                         return new TextCompletionResult(
                                 textCompletionsConsumer.totalAnswer.toString(), logProbs);
                     });
         } else {
-            CompletableFuture<TextCompletionResult> resultHandle = client.getCompletions(model, completionsOptions)
-                    .toFuture()
-                    .thenApply(completions -> {
-                        CompletionsUsage usage = completions.getUsage();
-                        textTotalTokens.count(usage.getTotalTokens());
-                        textPromptTokens.count(usage.getPromptTokens());
-                        textCompletionTokens.count(usage.getCompletionTokens());
-                        final String text = completions.getChoices().get(0).getText();
-                        CompletionsLogProbabilityModel logprobs = completions.getChoices().get(0).getLogprobs();
-                        TextCompletionResult.LogProbInformation logProbs =
-                                completions.getChoices().get(0).getLogprobs() != null
-                                        ? new TextCompletionResult.LogProbInformation(
-                                        logprobs.getTokens(), logprobs.getTokenLogProbabilities())
-                                        : new TextCompletionResult.LogProbInformation(null, null);
-                        return new TextCompletionResult(text, logProbs);
+            CompletableFuture<TextCompletionResult> resultHandle =
+                    client.getCompletions(model, completionsOptions)
+                            .toFuture()
+                            .thenApply(
+                                    completions -> {
+                                        CompletionsUsage usage = completions.getUsage();
+                                        textTotalTokens.count(usage.getTotalTokens());
+                                        textPromptTokens.count(usage.getPromptTokens());
+                                        textCompletionTokens.count(usage.getCompletionTokens());
+                                        final String text =
+                                                completions.getChoices().get(0).getText();
+                                        CompletionsLogProbabilityModel logprobs =
+                                                completions.getChoices().get(0).getLogprobs();
+                                        TextCompletionResult.LogProbInformation logProbs =
+                                                completions.getChoices().get(0).getLogprobs()
+                                                                != null
+                                                        ? new TextCompletionResult
+                                                                .LogProbInformation(
+                                                                logprobs.getTokens(),
+                                                                logprobs.getTokenLogProbabilities())
+                                                        : new TextCompletionResult
+                                                                .LogProbInformation(null, null);
+                                        return new TextCompletionResult(text, logProbs);
+                                    });
+            resultHandle.exceptionally(
+                    error -> {
+                        textNumErrors.count(1);
+                        return null;
                     });
-            resultHandle.exceptionally(error -> {
-                textNumErrors.count(1);
-                return null;
-            });
             return resultHandle;
         }
     }
@@ -389,13 +408,10 @@ public class OpenAICompletionService implements CompletionsService {
 
         private final StringWriter totalAnswer = new StringWriter();
 
-        @Getter
-        private final AtomicInteger totalTokens = new AtomicInteger();
-        @Getter
-        private final AtomicInteger promptTokens = new AtomicInteger();
+        @Getter private final AtomicInteger totalTokens = new AtomicInteger();
+        @Getter private final AtomicInteger promptTokens = new AtomicInteger();
 
-        @Getter
-        private final AtomicInteger completionTokens = new AtomicInteger();
+        @Getter private final AtomicInteger completionTokens = new AtomicInteger();
 
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();

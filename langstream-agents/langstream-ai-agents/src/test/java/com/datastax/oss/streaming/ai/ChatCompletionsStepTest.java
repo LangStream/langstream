@@ -89,7 +89,8 @@ public class ChatCompletionsStepTest {
                 .thenReturn(Mono.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
         when(openAIClient.getChatCompletionsStream(eq("test-model"), any()))
                 .thenAnswer(a -> Flux.just(mapper.readValue(COMPLETION, ChatCompletions.class)));
-        this.completionService = new OpenAICompletionService(openAIClient, MetricsReporter.DISABLED);
+        this.completionService =
+                new OpenAICompletionService(openAIClient, MetricsReporter.DISABLED);
     }
 
     @Test

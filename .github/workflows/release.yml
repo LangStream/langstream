@@ -102,6 +102,9 @@ jobs:
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
 
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
       - uses: ./.github/workflows/test-cli-macos.yml
         with:
           version: ${{ steps.vars.outputs.version }}

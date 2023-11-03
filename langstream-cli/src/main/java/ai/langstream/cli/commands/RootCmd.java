@@ -16,6 +16,7 @@
 package ai.langstream.cli.commands;
 
 import ai.langstream.cli.commands.configure.ConfigureCmd;
+import ai.langstream.cli.commands.doc.GenerateDocumentation;
 import lombok.Getter;
 import picocli.AutoComplete;
 import picocli.CommandLine;
@@ -35,7 +36,8 @@ import picocli.CommandLine;
             RootProfileCmd.class,
             RootDockerCmd.class,
             RootPythonCmd.class,
-            AutoComplete.GenerateCompletion.class
+            AutoComplete.GenerateCompletion.class,
+            GenerateDocumentation.class
         })
 public class RootCmd {
 

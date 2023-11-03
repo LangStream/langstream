@@ -21,6 +21,8 @@ After this command:
 
 ## Update the HomeBrew formula
 
+> NOTE: this is now automated by GitHub Actions. Just check the brew formulae have been correctly updated in their github repositories.
+
 Update the CLI formulae with the new version tarball url:
 1. Open the file [`langstream.rb`](https://github.com/LangStream/homebrew-langstream/blob/main/langstream.rb)
 2. Insert the new version

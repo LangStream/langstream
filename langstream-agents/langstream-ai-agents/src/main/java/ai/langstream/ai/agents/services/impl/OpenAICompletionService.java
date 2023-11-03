@@ -193,9 +193,11 @@ public class OpenAICompletionService implements CompletionsService {
                                                         .map(c -> new ChatChoice(convertMessage(c)))
                                                         .collect(Collectors.toList()));
                                         CompletionsUsage usage = chatCompletions.getUsage();
-                                        chatTotalTokens.count(usage.getTotalTokens());
-                                        chatPromptTokens.count(usage.getPromptTokens());
-                                        chatCompletionTokens.count(usage.getCompletionTokens());
+                                        if (usage != null) {
+                                            chatTotalTokens.count(usage.getTotalTokens());
+                                            chatPromptTokens.count(usage.getPromptTokens());
+                                            chatCompletionTokens.count(usage.getCompletionTokens());
+                                        }
                                         return result;
                                     });
 
@@ -374,9 +376,11 @@ public class OpenAICompletionService implements CompletionsService {
                             .thenApply(
                                     completions -> {
                                         CompletionsUsage usage = completions.getUsage();
-                                        textTotalTokens.count(usage.getTotalTokens());
-                                        textPromptTokens.count(usage.getPromptTokens());
-                                        textCompletionTokens.count(usage.getCompletionTokens());
+                                        if (usage != null) {
+                                            textTotalTokens.count(usage.getTotalTokens());
+                                            textPromptTokens.count(usage.getPromptTokens());
+                                            textCompletionTokens.count(usage.getCompletionTokens());
+                                        }
                                         final String text =
                                                 completions.getChoices().get(0).getText();
                                         CompletionsLogProbabilityModel logprobs =

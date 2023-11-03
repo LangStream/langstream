@@ -33,7 +33,6 @@ import io.undertow.util.HttpString;
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
-// import java.nio.file.Paths;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,6 +48,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SystemUtils;
 import org.xnio.OptionMap;
 import org.xnio.Xnio;
 import picocli.CommandLine;
@@ -215,7 +215,7 @@ public class UIAppCmd extends BaseApplicationCmd {
     static boolean openBrowserAtPort(String URL, int port) {
         String os = System.getProperty("os.name").toLowerCase();
         String openCommand = "";
-        if (os.indexOf("win") >= 0) {
+        if (SystemUtils.IS_OS_MAC || SystemUtils.IS_OS_WINDOWS) {
             Desktop desktop = Desktop.getDesktop();
             try {
                 desktop.browse(new URI(URL + port));
@@ -223,10 +223,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                 return false;
             }
             return true;
-        } else if (os.indexOf("mac") >= 0) {
-            openCommand = "/usr/bin/open";
-            return checkAndLaunch(openCommand, port);
-        } else if (os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0) {
+        } else if (SystemUtils.IS_OS_LINUX) {
             openCommand = "/usr/bin/xdg-open";
             return checkAndLaunch(openCommand, port);
         }

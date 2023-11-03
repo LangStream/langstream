@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.data.CqlVector;
@@ -189,6 +190,127 @@ class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                         assertEquals("'vsearch' not found in keyspaces", e.getMessage());
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testCassandraCassioSchema() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+
+        Map<String, String> application =
+                Map.of(
+                        "configuration.yaml",
+                        """
+                        configuration:
+                          resources:
+                            - type: "datasource"
+                              name: "CassandraDatasource"
+                              configuration:
+                                service: "cassandra"
+                                contact-points: "%s"
+                                loadBalancing-localDc: "%s"
+                                port: %d
+                        """
+                                .formatted(
+                                        cassandra.getContactPoint().getHostString(),
+                                        cassandra.getLocalDatacenter(),
+                                        cassandra.getContactPoint().getPort()),
+                        "pipeline.yaml",
+                        """
+                                assets:
+                                  - name: "cassio-keyspace"
+                                    asset-type: "cassandra-keyspace"
+                                    creation-mode: create-if-not-exists
+                                    deletion-mode: delete
+                                    config:
+                                       keyspace: "cassio"
+                                       datasource: "CassandraDatasource"
+                                       create-statements:
+                                          - "CREATE KEYSPACE cassio WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};"
+                                       delete-statements:
+                                          - "DROP KEYSPACE IF EXISTS cassio;"
+                                  - name: "documents-table"
+                                    asset-type: "cassandra-table"
+                                    creation-mode: create-if-not-exists
+                                    config:
+                                       table-name: "documents"
+                                       keyspace: "cassio"
+                                       datasource: "CassandraDatasource"
+                                       create-statements:
+                                          - |
+                                              CREATE TABLE cassio.documents (
+                                                     row_id text PRIMARY KEY,
+                                                     attributes_blob text,
+                                                     body_blob text,
+                                                     metadata_s map <text,text>,
+                                                     vector vector <float,5>
+                                                     );
+                                topics:
+                                  - name: "input-topic-cassio"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - id: step1
+                                    type: compute
+                                    name: "Compute metadata"
+                                    input: "input-topic-cassio"
+                                    configuration:
+                                      fields:
+                                         - name: "value.metadata_s"
+                                           expression: "fn:mapOf('filename', value.filename, 'chunk_id', value.chunk_id)"
+                                  - name: "Write a new record to Cassandra"
+                                    type: "vector-db-sink"
+                                    configuration:
+                                      datasource: "CassandraDatasource"
+                                      table-name: "documents"
+                                      keyspace: "cassio"
+                                      mapping: "row_id=value.row_id,attributes_blob=value.attributes_blob,body_blob=value.body_blob,metadata_s=value.metadata_s,vector=value.vector"
+                                """);
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (KafkaProducer<String, String> producer = createProducer(); ) {
+
+                sendMessage(
+                        "input-topic-cassio",
+                        """
+                        {
+                            "row_id": "some id",
+                            "attributes_blob": "some attributes",
+                            "body_blob": "some text",
+                            "filename": "doc.pdf",
+                            "chunk_id": 1,
+                            "vector": [1.0, 2.0, 3.0, 4.0, 5.0]
+                        }
+                        """,
+                        producer);
+
+                executeAgentRunners(applicationRuntime);
+
+                CqlSessionBuilder builder = new CqlSessionBuilder();
+                builder.addContactPoint(cassandra.getContactPoint());
+                builder.withLocalDatacenter(cassandra.getLocalDatacenter());
+
+                try (CqlSession cqlSession = builder.build(); ) {
+                    ResultSet execute = cqlSession.execute("SELECT * FROM cassio.documents");
+                    List<Row> all = execute.all();
+                    all.forEach(
+                            row -> {
+                                log.info("row id {}", row.get("row_id", String.class));
+                                ColumnDefinitions columnDefinitions = row.getColumnDefinitions();
+                                for (int i = 0; i < columnDefinitions.size(); i++) {
+                                    log.info(
+                                            "column {} value {}",
+                                            columnDefinitions.get(i).getName(),
+                                            row.getObject(i));
+                                }
+                            });
+                    assertEquals(1, all.size());
+                }
+
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
             }
         }
     }

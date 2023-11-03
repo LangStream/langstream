@@ -26,6 +26,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -164,6 +165,52 @@ public class JstlFunctions {
         return Map.of();
     }
 
+    public static Map<String, Object> mapOf(Object... field) {
+        Map<String, Object> result = new HashMap<>();
+        for (int i = 0; i < field.length; i += 2) {
+            result.put(field[i].toString(), field[i + 1]);
+        }
+        return result;
+    }
+
+    public static List<Object> listOf(Object... field) {
+        List<Object> result = new ArrayList<>();
+        result.addAll(Arrays.asList(field));
+        return result;
+    }
+
+    public static Map<String, Object> mapPut(Object map, Object field, Object value) {
+        Map<String, Object> result = new HashMap<>();
+        if (map != null) {
+            if (map instanceof Map m) {
+                result.putAll(m);
+            } else {
+                throw new IllegalArgumentException("mapPut doesn't allow a non-map value");
+            }
+        }
+        if (field == null || field.toString().isEmpty()) {
+            throw new IllegalArgumentException("mapPut doesn't allow a null field");
+        }
+        result.put(field.toString(), value);
+        return result;
+    }
+
+    public static Map<String, Object> mapRemove(Object map, Object field) {
+        Map<String, Object> result = new HashMap<>();
+        if (map != null) {
+            if (map instanceof Map m) {
+                result.putAll(m);
+            } else {
+                throw new IllegalArgumentException("mapPut doesn't allow a non-map value");
+            }
+        }
+        if (field == null || field.toString().isEmpty()) {
+            throw new IllegalArgumentException("mapPut doesn't allow a null field");
+        }
+        result.remove(field.toString());
+        return result;
+    }
+
     public static List<Object> mapToListOfStructs(Object object, String fields) {
         if (object == null) {
             throw new IllegalArgumentException("listOf doesn't allow a null value");
@@ -282,12 +329,18 @@ public class JstlFunctions {
         return input == null ? null : toString(input).trim();
     }
 
-    public static String concat(Object first, Object second) {
-        return toString(first) + toString(second);
+    public static String concat(Object... elements) {
+        StringBuilder sb = new StringBuilder();
+        for (Object o : elements) {
+            if (o != null) {
+                sb.append(toString(o));
+            }
+        }
+        return sb.toString();
     }
 
     public static String concat3(Object first, Object second, Object third) {
-        return toString(first) + toString(second) + toString(third);
+        return concat(first, second, third);
     }
 
     public static Object coalesce(Object value, Object valueIfNull) {

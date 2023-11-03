@@ -319,6 +319,9 @@ public class ComputeStep implements TransformStep {
             case BYTES:
                 schemaType = Schema.Type.BYTES;
                 break;
+            case MAP:
+                schemaType = Schema.Type.MAP;
+                break;
             case ARRAY:
                 schemaType = Schema.Type.ARRAY;
                 break;
@@ -341,6 +344,10 @@ public class ComputeStep implements TransformStep {
                         // we don't know the element type of the array, so we can't create a schema
                         return Schema.createArray(
                                 Schema.createMap(Schema.create(Schema.Type.STRING)));
+                    }
+                    if (schemaType == Schema.Type.MAP) {
+                        // we don't know the element type of the array, so we can't create a schema
+                        return Schema.createMap(Schema.create(Schema.Type.STRING));
                     }
 
                     // Handle logical types:
@@ -516,6 +523,9 @@ public class ComputeStep implements TransformStep {
         }
         if (List.class.isAssignableFrom(value.getClass())) {
             return ComputeFieldType.ARRAY;
+        }
+        if (Map.class.isAssignableFrom(value.getClass())) {
+            return ComputeFieldType.MAP;
         }
         throw new UnsupportedOperationException("Got an unsupported type: " + value.getClass());
     }

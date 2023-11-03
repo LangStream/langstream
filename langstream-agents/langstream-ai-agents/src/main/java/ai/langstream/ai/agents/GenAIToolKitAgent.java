@@ -24,6 +24,7 @@ import ai.langstream.ai.agents.services.ServiceProviderRegistry;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -57,6 +58,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
     private AgentContext agentContext;
+    private Map<String, Object> configuration;
 
     private TopicProducerStreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
 
@@ -131,12 +133,17 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     @Override
     @SneakyThrows
     public void init(Map<String, Object> configuration) {
-        configuration = new HashMap<>(configuration);
+        this.configuration = new HashMap<>(configuration);
+    }
+
+    @Override
+    public void start() throws Exception {
+        MetricsReporter reporter = agentContext.getMetricsReporter().withAgentName(agentId());
 
         // remove this from the config in order to avoid passing it TransformStepConfig
         Map<String, Object> datasourceConfiguration =
                 (Map<String, Object>) configuration.remove("datasource");
-        serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration);
+        serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration, reporter);
 
         configuration.remove("vertex");
         config = MAPPER.convertValue(configuration, TransformStepConfig.class);
@@ -156,10 +163,6 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
                         dataSource,
                         streamingAnswersConsumerFactory,
                         stepsConfig.get(0));
-    }
-
-    @Override
-    public void start() throws Exception {
         streamingAnswersConsumerFactory.setAgentContext(agentContext);
         step.getTransformStep().start();
     }

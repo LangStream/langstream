@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
@@ -63,7 +64,8 @@ class HuggingAIProviderTest {
                                         "inference-url",
                                         wmRuntimeInfo.getHttpBaseUrl(),
                                         "access-key",
-                                        "xxxx")));
+                                        "xxxx")),
+                        MetricsReporter.DISABLED);
 
         CompletionsService service = implementation.getCompletionsService(Map.of());
         String message = "The cop arrested the bad [MASK].";

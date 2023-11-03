@@ -16,6 +16,7 @@
 package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
@@ -68,7 +69,8 @@ public class VertexAIProvider implements ServiceProviderProvider {
     }
 
     @Override
-    public ServiceProvider createImplementation(Map<String, Object> agentConfiguration) {
+    public ServiceProvider createImplementation(
+            Map<String, Object> agentConfiguration, MetricsReporter metricsReporter) {
 
         Map<String, Object> config = (Map<String, Object>) agentConfiguration.get("vertex");
         String token = (String) config.get("token");

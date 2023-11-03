@@ -393,9 +393,9 @@ class AgentServer(object):
         self.port = self.grpc_server.add_insecure_port(target)
 
         configuration = json.loads(config)
-        logging.info("Configuration: " + json.dumps(configuration))
+        logging.debug("Configuration: " + json.dumps(configuration))
         environment = configuration.get("environment", [])
-        logging.info("Environment: " + json.dumps(environment))
+        logging.debug("Environment: " + json.dumps(environment))
 
         for env in environment:
             key = env["key"]

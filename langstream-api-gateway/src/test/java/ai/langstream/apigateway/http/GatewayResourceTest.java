@@ -584,24 +584,27 @@ abstract class GatewayResourceTest {
                                     topicConnectionsRuntimeProvider
                                             .getTopicConnectionsRuntimeRegistry();
                             final StreamingCluster streamingCluster = getStreamingCluster();
-                            final TopicConnectionsRuntime runtime = topicConnectionsRuntimeRegistry
-                                    .getTopicConnectionsRuntime(streamingCluster)
-                                    .asTopicConnectionsRuntime();
+                            final TopicConnectionsRuntime runtime =
+                                    topicConnectionsRuntimeRegistry
+                                            .getTopicConnectionsRuntime(streamingCluster)
+                                            .asTopicConnectionsRuntime();
                             runtime.init(streamingCluster);
                             try (final TopicConsumer consumer =
-                                    runtime
-                                            .createConsumer(
-                                                    null,
-                                                    streamingCluster,
-                                                    Map.of("topic", fromTopic, "subscriptionName", "s")); ) {
+                                    runtime.createConsumer(
+                                            null,
+                                            streamingCluster,
+                                            Map.of(
+                                                    "topic",
+                                                    fromTopic,
+                                                    "subscriptionName",
+                                                    "s")); ) {
                                 consumer.start();
 
                                 try (final TopicProducer producer =
-                                             runtime
-                                                .createProducer(
-                                                        null,
-                                                        streamingCluster,
-                                                        Map.of("topic", toTopic)); ) {
+                                        runtime.createProducer(
+                                                null,
+                                                streamingCluster,
+                                                Map.of("topic", toTopic)); ) {
 
                                     producer.start();
                                     while (true) {
@@ -609,12 +612,20 @@ abstract class GatewayResourceTest {
                                         if (records.isEmpty()) {
                                             continue;
                                         }
-                                        log.info("read {} records from {}: {}", records.size(), fromTopic, records);
+                                        log.info(
+                                                "read {} records from {}: {}",
+                                                records.size(),
+                                                fromTopic,
+                                                records);
                                         for (Record record : records) {
                                             producer.write(record).get();
                                         }
                                         consumer.commit(records);
-                                        log.info("written {} records to {}: {}", records.size(), toTopic, records);
+                                        log.info(
+                                                "written {} records to {}: {}",
+                                                records.size(),
+                                                toTopic,
+                                                records);
                                     }
                                 }
                             } catch (Throwable e) {

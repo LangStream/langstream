@@ -255,22 +255,23 @@ public class GatewayResource {
         final String langstreamServiceRequestId = UUID.randomUUID().toString();
 
         final CompletableFuture<ResponseEntity> completableFuture = new CompletableFuture<>();
-        try (
-                final ProduceGateway produceGateway =
-                        new ProduceGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry(),
-                                topicProducerCache); ) {
+        try (final ProduceGateway produceGateway =
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistryProvider
+                                .getTopicConnectionsRuntimeRegistry(),
+                        topicProducerCache); ) {
 
             final ConsumeGateway consumeGateway =
                     new ConsumeGateway(
                             topicConnectionsRuntimeRegistryProvider
                                     .getTopicConnectionsRuntimeRegistry());
-            completableFuture.thenRunAsync(() -> {
-                if (consumeGateway != null) {
-                    consumeGateway.close();
-                }
-            }, consumeThreadPool);
+            completableFuture.thenRunAsync(
+                    () -> {
+                        if (consumeGateway != null) {
+                            consumeGateway.close();
+                        }
+                    },
+                    consumeThreadPool);
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {

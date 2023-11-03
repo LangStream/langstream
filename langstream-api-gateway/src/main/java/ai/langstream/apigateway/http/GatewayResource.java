@@ -90,9 +90,7 @@ public class GatewayResource {
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("http-consume-%d").build());
 
-    @PostMapping(
-            value = "/produce/{tenant}/{application}/{gateway}",
-            consumes = "*/*")
+    @PostMapping(value = "/produce/{tenant}/{application}/{gateway}", consumes = "*/*")
     ProduceResponse produce(
             WebRequest request,
             @NotBlank @PathVariable("tenant") String tenant,
@@ -243,7 +241,9 @@ public class GatewayResource {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Only POST method is supported");
             }
-            final String payload = new String(servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            final String payload =
+                    new String(
+                            servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             final ProduceRequest produceRequest = parseProduceRequest(request, payload);
             return handleServiceWithTopics(produceRequest, authContext);
         }

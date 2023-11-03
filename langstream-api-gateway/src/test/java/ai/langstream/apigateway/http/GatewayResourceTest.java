@@ -233,7 +233,6 @@ abstract class GatewayResourceTest {
                 {"status":"OK","reason":null}""", response.body());
     }
 
-
     @SneakyThrows
     String produceTextAndGetBody(String url, String content) {
         final HttpRequest request =
@@ -317,8 +316,7 @@ abstract class GatewayResourceTest {
                 HttpRequest.newBuilder(URI.create(url))
                         .POST(HttpRequest.BodyPublishers.ofString("my-string"))
                         .build();
-        HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
@@ -328,12 +326,10 @@ abstract class GatewayResourceTest {
                         .header("Content-Type", "plain/text")
                         .POST(HttpRequest.BodyPublishers.ofString("my-string"))
                         .build();
-        response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
-
     }
 
     @Test
@@ -482,7 +478,8 @@ abstract class GatewayResourceTest {
 
         produceJsonAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}");
         produceJsonAndExpectUnauthorized(baseUrl + "?credentials=", "{\"value\": \"my-value\"}");
-        produceJsonAndExpectUnauthorized(baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
+        produceJsonAndExpectUnauthorized(
+                baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
         produceJsonAndExpectOk(
                 baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
     }
@@ -569,8 +566,7 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
 
         assertMessageContent(
-                new MsgRecord(null, "my-text", Map.of()),
-                produceTextAndGetBody(url, "my-text"));
+                new MsgRecord(null, "my-text", Map.of()), produceTextAndGetBody(url, "my-text"));
         assertMessageContent(
                 new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
                 produceJsonAndGetBody(

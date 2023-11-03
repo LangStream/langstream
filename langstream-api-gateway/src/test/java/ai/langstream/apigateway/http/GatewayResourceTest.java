@@ -30,6 +30,7 @@ import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -583,20 +584,20 @@ abstract class GatewayResourceTest {
                                     topicConnectionsRuntimeProvider
                                             .getTopicConnectionsRuntimeRegistry();
                             final StreamingCluster streamingCluster = getStreamingCluster();
+                            final TopicConnectionsRuntime runtime = topicConnectionsRuntimeRegistry
+                                    .getTopicConnectionsRuntime(streamingCluster)
+                                    .asTopicConnectionsRuntime();
+                            runtime.init(streamingCluster);
                             try (final TopicConsumer consumer =
-                                    topicConnectionsRuntimeRegistry
-                                            .getTopicConnectionsRuntime(streamingCluster)
-                                            .asTopicConnectionsRuntime()
+                                    runtime
                                             .createConsumer(
                                                     null,
                                                     streamingCluster,
-                                                    Map.of("topic", fromTopic)); ) {
+                                                    Map.of("topic", fromTopic, "subscriptionName", "s")); ) {
                                 consumer.start();
 
                                 try (final TopicProducer producer =
-                                        topicConnectionsRuntimeRegistry
-                                                .getTopicConnectionsRuntime(streamingCluster)
-                                                .asTopicConnectionsRuntime()
+                                             runtime
                                                 .createProducer(
                                                         null,
                                                         streamingCluster,
@@ -604,15 +605,21 @@ abstract class GatewayResourceTest {
 
                                     producer.start();
                                     while (true) {
-
                                         final List<Record> records = consumer.read();
-                                        for (Record record : records) {
-                                            producer.write(record);
+                                        if (records.isEmpty()) {
+                                            continue;
                                         }
+                                        log.info("read {} records from {}: {}", records.size(), fromTopic, records);
+                                        for (Record record : records) {
+                                            producer.write(record).get();
+                                        }
+                                        consumer.commit(records);
+                                        log.info("written {} records to {}: {}", records.size(), toTopic, records);
                                     }
                                 }
-                            } catch (Exception e) {
+                            } catch (Throwable e) {
                                 e.printStackTrace();
+                                throw new RuntimeException(e);
                             }
                         });
         futures.add(future);

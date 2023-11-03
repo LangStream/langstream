@@ -58,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -359,6 +360,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             }
         }
 
+        @ToString
         private static class PulsarConsumerRecord implements Record {
             private final Object finalKey;
             private final Object finalValue;
@@ -584,6 +586,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             private final Map<String, Object> configuration;
             private final AtomicLong totalIn = new AtomicLong();
+            String topic;
             Producer<K> producer;
             Schema<K> schema;
 
@@ -614,6 +617,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
+                topic = (String) configuration.remove("topic");
                 if (configuration.containsKey("valueSchema")) {
                     SchemaDefinition valueSchemaDefinition =
                             mapper.convertValue(
@@ -633,9 +637,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     } else {
                         schema = (Schema<K>) valueSchema;
                     }
+
                     producer =
                             client.newProducer(schema)
-                                    .topic((String) configuration.remove("topic"))
+                                    .topic(topic)
                                     .loadConf(configuration)
                                     .create();
                 }
@@ -664,6 +669,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             @Override
             public CompletableFuture<?> write(Record r) {
+                if (topic == null) {
+                    throw new RuntimeException("PulsarTopicProducer not started");
+                }
                 totalIn.addAndGet(1);
                 if (schema == null) {
                     try {
@@ -686,7 +694,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         }
                         producer =
                                 client.newProducer(schema)
-                                        .topic((String) configuration.remove("topic"))
+                                        .topic(topic)
                                         .loadConf(configuration)
                                         .create();
                     } catch (Exception e) {

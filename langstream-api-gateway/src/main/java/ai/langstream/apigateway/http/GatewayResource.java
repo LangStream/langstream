@@ -255,15 +255,22 @@ public class GatewayResource {
         final String langstreamServiceRequestId = UUID.randomUUID().toString();
 
         final CompletableFuture<ResponseEntity> completableFuture = new CompletableFuture<>();
-        try (final ConsumeGateway consumeGateway =
-                        new ConsumeGateway(
-                                topicConnectionsRuntimeRegistryProvider
-                                        .getTopicConnectionsRuntimeRegistry());
+        try (
                 final ProduceGateway produceGateway =
                         new ProduceGateway(
                                 topicConnectionsRuntimeRegistryProvider
                                         .getTopicConnectionsRuntimeRegistry(),
                                 topicProducerCache); ) {
+
+            final ConsumeGateway consumeGateway =
+                    new ConsumeGateway(
+                            topicConnectionsRuntimeRegistryProvider
+                                    .getTopicConnectionsRuntimeRegistry());
+            completableFuture.thenRunAsync(() -> {
+                if (consumeGateway != null) {
+                    consumeGateway.close();
+                }
+            }, consumeThreadPool);
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
@@ -306,6 +313,7 @@ public class GatewayResource {
                     new ProduceRequest(
                             produceRequest.key(), produceRequest.value(), passedHeaders));
         } catch (Throwable t) {
+            log.error("Error on service gateway", t);
             completableFuture.completeExceptionally(t);
         }
         return completableFuture;

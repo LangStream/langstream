@@ -145,6 +145,7 @@ public class ConsumeGateway implements AutoCloseable {
                                 log.debug("[{}] Started reader", logRef);
                                 readMessages(stop, onMessage);
                             } catch (Throwable ex) {
+                                log.error("[{}] Error reading messages", logRef, ex);
                                 throw new RuntimeException(ex);
                             } finally {
                                 closeReader();

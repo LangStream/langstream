@@ -30,7 +30,6 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
 
     private final OpenAIAsyncClient openAIClient;
     private final String model;
-    private final MetricsReporter metricsReporter;
 
     private final MetricsReporter.Counter totalTokens;
     private final MetricsReporter.Counter promptTokens;
@@ -42,7 +41,6 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
             OpenAIAsyncClient openAIClient, String model, MetricsReporter metricsReporter) {
         this.openAIClient = openAIClient;
         this.model = model;
-        this.metricsReporter = metricsReporter;
         this.totalTokens =
                 metricsReporter.counter(
                         "openai_embeddings_total_tokens",

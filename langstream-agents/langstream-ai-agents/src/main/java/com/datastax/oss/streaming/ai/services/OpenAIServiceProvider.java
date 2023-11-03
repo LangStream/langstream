@@ -42,7 +42,7 @@ public class OpenAIServiceProvider implements ServiceProvider {
 
     @Override
     public CompletionsService getCompletionsService(Map<String, Object> additionalConfiguration) {
-        return new OpenAICompletionService(client);
+        return new OpenAICompletionService(client, metricsReporter);
     }
 
     @Override

@@ -19,12 +19,14 @@ import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
 import static ai.langstream.api.util.ConfigurationUtils.getDouble;
 import static ai.langstream.api.util.ConfigurationUtils.getInteger;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatRole;
 import com.azure.ai.openai.models.CompletionsFinishReason;
 import com.azure.ai.openai.models.CompletionsLogProbabilityModel;
 import com.azure.ai.openai.models.CompletionsOptions;
+import com.azure.ai.openai.models.CompletionsUsage;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -41,6 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -50,8 +54,62 @@ public class OpenAICompletionService implements CompletionsService {
 
     private final OpenAIAsyncClient client;
 
-    public OpenAICompletionService(OpenAIAsyncClient client) {
+    private final MetricsReporter.Counter textTotalTokens;
+    private final MetricsReporter.Counter textPromptTokens;
+    private final MetricsReporter.Counter textCompletionTokens;
+    private final MetricsReporter.Counter textNumCalls;
+    private final MetricsReporter.Counter textNumErrors;
+
+    private final MetricsReporter.Counter chatTotalTokens;
+    private final MetricsReporter.Counter chatPromptTokens;
+    private final MetricsReporter.Counter chatCompletionTokens;
+    private final MetricsReporter.Counter chatNumCalls;
+    private final MetricsReporter.Counter chatNumErrors;
+
+    public OpenAICompletionService(OpenAIAsyncClient client, MetricsReporter metricsReporter) {
         this.client = client;
+
+        this.chatTotalTokens =
+                metricsReporter.counter(
+                        "openai_chat_completions_total_tokens",
+                        "Total number of tokens exchanged with OpenAI Chat Completions");
+        this.chatPromptTokens =
+                metricsReporter.counter(
+                        "openai_chat_completions_prompt_tokens",
+                        "Total number of prompt tokens sent to OpenAI Chat Completions");
+        this.chatCompletionTokens =
+                metricsReporter.counter(
+                        "openai_chat_completions_completions_tokens",
+                        "Total number of completions tokens received from OpenAI Chat Completions");
+
+        this.chatNumCalls =
+                metricsReporter.counter(
+                        "openai_chat_completions_num_calls", "Total number of calls to OpenAI Chat Completions");
+
+        this.chatNumErrors =
+                metricsReporter.counter(
+                        "openai_chat_completions_num_errors",
+                        "Total number of errors while calling OpenAI Chat Completions");
+
+        this.textTotalTokens = metricsReporter.counter(
+                "openai_text_completions_total_tokens",
+                "Total number of tokens exchanged with OpenAI Text Completions");
+
+        this.textCompletionTokens =
+                metricsReporter.counter(
+                        "openai_chat_completions_completions_tokens",
+                        "Total number of completions tokens received from OpenAI Text Completions");
+
+        this.textPromptTokens = metricsReporter.counter(
+                "openai_text_completions_prompt_tokens",
+                "Total number of prompt tokens sent to OpenAI Text Completions");
+
+        this.textNumCalls = metricsReporter.counter(
+                "openai_text_completions_num_calls", "Total number of calls to OpenAI Text Completions");
+
+        this.textNumErrors = metricsReporter.counter(
+                "openai_text_completions_num_errors",
+                "Total number of errors while calling OpenAI Text Completions");
     }
 
     @Override
@@ -81,6 +139,7 @@ public class OpenAICompletionService implements CompletionsService {
                         .setPresencePenalty(getDouble("presence-penalty", null, options))
                         .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
         ChatCompletions result = new ChatCompletions();
+        chatNumCalls.count(1);
         // this is the default behavior, as it is async
         // it works even if the streamingChunksConsumer is null
         if (chatCompletionsOptions.isStream()) {
@@ -98,6 +157,7 @@ public class OpenAICompletionService implements CompletionsService {
                                 log.error(
                                         "Internal error while processing the streaming response",
                                         error);
+                                chatNumErrors.count(1);
                                 finished.completeExceptionally(error);
                             })
                     .doOnNext(chatCompletionsConsumer)
@@ -110,17 +170,30 @@ public class OpenAICompletionService implements CompletionsService {
                                         new ChatChoice(
                                                 chatCompletionsConsumer
                                                         .buildTotalAnswerMessage())));
+                        chatTotalTokens.count(chatCompletionsConsumer.getTotalTokens().intValue());
+                        chatPromptTokens.count(chatCompletionsConsumer.getPromptTokens().intValue());
+                        chatCompletionTokens.count(chatCompletionsConsumer.getCompletionTokens().intValue());
                         return result;
                     });
         } else {
-            com.azure.ai.openai.models.ChatCompletions chatCompletions =
-                    client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
-                            .block();
-            result.setChoices(
-                    chatCompletions.getChoices().stream()
-                            .map(c -> new ChatChoice(convertMessage(c)))
-                            .collect(Collectors.toList()));
-            return CompletableFuture.completedFuture(result);
+            CompletableFuture<ChatCompletions> resultHandle = client.getChatCompletions((String) options.get("model"), chatCompletionsOptions)
+                    .toFuture().thenApply(chatCompletions -> {
+                        result.setChoices(
+                                chatCompletions.getChoices().stream()
+                                        .map(c -> new ChatChoice(convertMessage(c)))
+                                        .collect(Collectors.toList()));
+                        CompletionsUsage usage = chatCompletions.getUsage();
+                        chatTotalTokens.count(usage.getTotalTokens());
+                        chatPromptTokens.count(usage.getPromptTokens());
+                        chatCompletionTokens.count(usage.getCompletionTokens());
+                        return result;
+                    });
+
+            resultHandle.exceptionally(error -> {
+               chatNumErrors.count(1);
+               return null;
+            });
+            return resultHandle;
         }
     }
 
@@ -142,12 +215,20 @@ public class OpenAICompletionService implements CompletionsService {
         private final AtomicReference<String> role = new AtomicReference<>();
         private final StringWriter totalAnswer = new StringWriter();
 
+        @Getter
+        private final AtomicInteger totalTokens = new AtomicInteger();
+        @Getter
+        private final AtomicInteger promptTokens = new AtomicInteger();
+
+        @Getter
+        private final AtomicInteger completionTokens = new AtomicInteger();
+
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
         private final int minChunksPerMessage;
 
-        private AtomicInteger currentChunkSize = new AtomicInteger(1);
-        private AtomicInteger index = new AtomicInteger();
+        private final AtomicInteger currentChunkSize = new AtomicInteger(1);
+        private final AtomicInteger index = new AtomicInteger();
 
         public ChatCompletionsConsumer(
                 StreamingChunksConsumer streamingChunksConsumer,
@@ -166,6 +247,14 @@ public class OpenAICompletionService implements CompletionsService {
                 com.azure.ai.openai.models.ChatCompletions chatCompletions) {
             List<com.azure.ai.openai.models.ChatChoice> choices = chatCompletions.getChoices();
             String answerId = chatCompletions.getId();
+            log.info("Chat completions chunk: {}", chatCompletions);
+            log.info("Chat completions chunk:usage: {}", chatCompletions.getUsage());
+            if (chatCompletions.getUsage() != null) {
+                totalTokens.addAndGet(chatCompletions.getUsage().getTotalTokens());
+                completionTokens.addAndGet(chatCompletions.getUsage().getCompletionTokens());
+                promptTokens.addAndGet(chatCompletions.getUsage().getPromptTokens());
+            }
+
             if (!choices.isEmpty()) {
                 com.azure.ai.openai.models.ChatChoice first = choices.get(0);
                 CompletionsFinishReason finishReason = first.getFinishReason();
@@ -235,6 +324,7 @@ public class OpenAICompletionService implements CompletionsService {
         // this is the default behavior, as it is async
         // it works even if the streamingChunksConsumer is null
         final String model = (String) options.get("model");
+        textNumCalls.count(1);
         if (completionsOptions.isStream()) {
             CompletableFuture<?> finished = new CompletableFuture<>();
             Flux<com.azure.ai.openai.models.Completions> flux =
@@ -249,6 +339,7 @@ public class OpenAICompletionService implements CompletionsService {
                                 log.error(
                                         "Internal error while processing the streaming response",
                                         error);
+                                textNumErrors.count(1);
                                 finished.completeExceptionally(error);
                             })
                     .doOnNext(textCompletionsConsumer)
@@ -260,20 +351,34 @@ public class OpenAICompletionService implements CompletionsService {
                                 new TextCompletionResult.LogProbInformation(
                                         textCompletionsConsumer.logProbsTokens,
                                         textCompletionsConsumer.logProbsTokenLogProbabilities);
+                        textTotalTokens.count(textCompletionsConsumer.getTotalTokens().intValue());
+                        textPromptTokens.count(textCompletionsConsumer.getPromptTokens().intValue());
+                        textCompletionTokens.count(textCompletionsConsumer.getCompletionTokens().intValue());
                         return new TextCompletionResult(
                                 textCompletionsConsumer.totalAnswer.toString(), logProbs);
                     });
         } else {
-            com.azure.ai.openai.models.Completions completions =
-                    client.getCompletions(model, completionsOptions).block();
-            final String text = completions.getChoices().get(0).getText();
-            CompletionsLogProbabilityModel logprobs = completions.getChoices().get(0).getLogprobs();
-            TextCompletionResult.LogProbInformation logProbs =
-                    completions.getChoices().get(0).getLogprobs() != null
-                            ? new TextCompletionResult.LogProbInformation(
-                                    logprobs.getTokens(), logprobs.getTokenLogProbabilities())
-                            : new TextCompletionResult.LogProbInformation(null, null);
-            return CompletableFuture.completedFuture(new TextCompletionResult(text, logProbs));
+            CompletableFuture<TextCompletionResult> resultHandle = client.getCompletions(model, completionsOptions)
+                    .toFuture()
+                    .thenApply(completions -> {
+                        CompletionsUsage usage = completions.getUsage();
+                        textTotalTokens.count(usage.getTotalTokens());
+                        textPromptTokens.count(usage.getPromptTokens());
+                        textCompletionTokens.count(usage.getCompletionTokens());
+                        final String text = completions.getChoices().get(0).getText();
+                        CompletionsLogProbabilityModel logprobs = completions.getChoices().get(0).getLogprobs();
+                        TextCompletionResult.LogProbInformation logProbs =
+                                completions.getChoices().get(0).getLogprobs() != null
+                                        ? new TextCompletionResult.LogProbInformation(
+                                        logprobs.getTokens(), logprobs.getTokenLogProbabilities())
+                                        : new TextCompletionResult.LogProbInformation(null, null);
+                        return new TextCompletionResult(text, logProbs);
+                    });
+            resultHandle.exceptionally(error -> {
+                textNumErrors.count(1);
+                return null;
+            });
+            return resultHandle;
         }
     }
 
@@ -282,8 +387,15 @@ public class OpenAICompletionService implements CompletionsService {
         private final StreamingChunksConsumer streamingChunksConsumer;
         private final CompletableFuture<?> finished;
 
-        private final AtomicReference<String> role = new AtomicReference<>();
         private final StringWriter totalAnswer = new StringWriter();
+
+        @Getter
+        private final AtomicInteger totalTokens = new AtomicInteger();
+        @Getter
+        private final AtomicInteger promptTokens = new AtomicInteger();
+
+        @Getter
+        private final AtomicInteger completionTokens = new AtomicInteger();
 
         private final StringWriter writer = new StringWriter();
         private final AtomicInteger numberOfChunks = new AtomicInteger();
@@ -291,8 +403,8 @@ public class OpenAICompletionService implements CompletionsService {
         public List<String> logProbsTokens = new ArrayList<>();
         public List<Double> logProbsTokenLogProbabilities = new ArrayList<>();
 
-        private AtomicInteger currentChunkSize = new AtomicInteger(1);
-        private AtomicInteger index = new AtomicInteger();
+        private final AtomicInteger currentChunkSize = new AtomicInteger(1);
+        private final AtomicInteger index = new AtomicInteger();
 
         private final AtomicBoolean firstChunk = new AtomicBoolean(true);
 
@@ -313,6 +425,11 @@ public class OpenAICompletionService implements CompletionsService {
         public synchronized void accept(com.azure.ai.openai.models.Completions completions) {
             List<com.azure.ai.openai.models.Choice> choices = completions.getChoices();
             String answerId = completions.getId();
+            if (completions.getUsage() != null) {
+                totalTokens.addAndGet(completions.getUsage().getTotalTokens());
+                completionTokens.addAndGet(completions.getUsage().getCompletionTokens());
+                promptTokens.addAndGet(completions.getUsage().getPromptTokens());
+            }
             if (!choices.isEmpty()) {
                 com.azure.ai.openai.models.Choice first = choices.get(0);
 

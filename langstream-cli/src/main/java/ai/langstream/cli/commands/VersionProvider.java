@@ -29,9 +29,6 @@ public class VersionProvider implements CommandLine.IVersionProvider {
     private static List<String> VERSION_INFO = null;
 
     public static void initialize(String label, String forceVersion) {
-        if (VERSION_INFO != null) {
-            throw new RuntimeException("VersionProvider already initialized");
-        }
         VERSION_INFO = getVersionFromJar(label, forceVersion);
     }
 

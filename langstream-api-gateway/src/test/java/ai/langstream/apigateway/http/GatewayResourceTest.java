@@ -56,7 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -542,34 +541,45 @@ abstract class GatewayResourceTest {
     }
 
     private void startTopicExchange(String fromTopic, String toTopic) throws Exception {
-        final CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
-                    topicConnectionsRuntimeProvider.getTopicConnectionsRuntimeRegistry();
-            final StreamingCluster streamingCluster = getStreamingCluster();
-            try (final TopicConsumer consumer = topicConnectionsRuntimeRegistry
-                    .getTopicConnectionsRuntime(streamingCluster)
-                    .asTopicConnectionsRuntime()
-                    .createConsumer(null, streamingCluster, Map.of("topic", fromTopic));) {
-                consumer.start();
+        final CompletableFuture<Void> future =
+                CompletableFuture.runAsync(
+                        () -> {
+                            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+                                    topicConnectionsRuntimeProvider
+                                            .getTopicConnectionsRuntimeRegistry();
+                            final StreamingCluster streamingCluster = getStreamingCluster();
+                            try (final TopicConsumer consumer =
+                                    topicConnectionsRuntimeRegistry
+                                            .getTopicConnectionsRuntime(streamingCluster)
+                                            .asTopicConnectionsRuntime()
+                                            .createConsumer(
+                                                    null,
+                                                    streamingCluster,
+                                                    Map.of("topic", fromTopic)); ) {
+                                consumer.start();
 
-                try (final TopicProducer producer = topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime()
-                        .createProducer(null, streamingCluster, Map.of("topic", toTopic));) {
+                                try (final TopicProducer producer =
+                                        topicConnectionsRuntimeRegistry
+                                                .getTopicConnectionsRuntime(streamingCluster)
+                                                .asTopicConnectionsRuntime()
+                                                .createProducer(
+                                                        null,
+                                                        streamingCluster,
+                                                        Map.of("topic", toTopic)); ) {
 
-                    producer.start();
-                    while (true) {
+                                    producer.start();
+                                    while (true) {
 
-                        final List<Record> records = consumer.read();
-                        for (Record record : records) {
-                            producer.write(record);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+                                        final List<Record> records = consumer.read();
+                                        for (Record record : records) {
+                                            producer.write(record);
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });
         futures.add(future);
     }
 
@@ -581,10 +591,7 @@ abstract class GatewayResourceTest {
         final Map<String, String> headers = consume.record().headers();
         assertNotNull(headers.remove("langstream-service-request-id"));
         final MsgRecord actualMsgRecord =
-                new MsgRecord(
-                        consume.record().key(),
-                        consume.record().value(),
-                        headers);
+                new MsgRecord(consume.record().key(), consume.record().value(), headers);
 
         assertEquals(expected, actualMsgRecord);
     }

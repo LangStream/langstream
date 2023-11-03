@@ -286,7 +286,9 @@ public class GatewayResource {
                 passedHeaders = new HashMap<>();
             }
             passedHeaders.put(SERVICE_REQUEST_ID_HEADER, langstreamServiceRequestId);
-            produceGateway.produceMessage(new ProduceRequest(produceRequest.key(), produceRequest.value(), passedHeaders));
+            produceGateway.produceMessage(
+                    new ProduceRequest(
+                            produceRequest.key(), produceRequest.value(), passedHeaders));
         } catch (Throwable t) {
             completableFuture.completeExceptionally(t);
         }

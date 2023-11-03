@@ -41,7 +41,8 @@ public class ResourceErrorsHandler {
         }
         if (exception instanceof AsyncRequestTimeoutException) {
             log.error("Request timed out", exception);
-            return ProblemDetail.forStatusAndDetail(HttpStatus.REQUEST_TIMEOUT, "Request timed out");
+            return ProblemDetail.forStatusAndDetail(
+                    HttpStatus.REQUEST_TIMEOUT, "Request timed out");
         }
         log.error("Internal error", exception);
         return ProblemDetail.forStatusAndDetail(

@@ -296,7 +296,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                                          - name: "value.metadata_s"
                                            expression: "fn:mapOf('filename', properties.filename, 'chunk_id', properties.chunk_id)"
                                          - name: "value.row_id"
-                                           expression: "fn:concat(properties.filename, '-', properties.chunk_id)"
+                                           expression: "fn:uuid()"
                                          - name: "value.vector"
                                            expression: "fn:listOf(0,1,2,3,4)"
                                          - name: "value.attributes_blob"

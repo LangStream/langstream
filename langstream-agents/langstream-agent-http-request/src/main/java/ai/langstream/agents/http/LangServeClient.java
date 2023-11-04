@@ -146,7 +146,12 @@ public class LangServeClient {
                 Map<String, Object> map =
                         mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
                 if (!streaming) {
-                    map = (Map<String, Object>) map.get("output");
+                    Object output = map.get("output");
+                    if (output == null || output instanceof String) {
+                        return output;
+                    } else if (output instanceof Map) {
+                        map = (Map<String, Object>) output;
+                    }
                 }
                 if (options.contentField.isEmpty()) {
                     return map;

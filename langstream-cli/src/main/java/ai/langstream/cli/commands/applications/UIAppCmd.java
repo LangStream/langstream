@@ -30,7 +30,9 @@ import io.undertow.server.handlers.resource.ClassPathResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+import java.awt.Desktop;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -46,6 +48,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SystemUtils;
 import org.xnio.OptionMap;
 import org.xnio.Xnio;
 import picocli.CommandLine;
@@ -176,19 +179,54 @@ public class UIAppCmd extends BaseApplicationCmd {
         actualPort.set(
                 ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
-        logger.log("Started UI at http://localhost:" + actualPort.get());
-        openBrowserAtPort("open", actualPort.get());
+        logger.log("Starting UI at http://localhost:" + actualPort.get());
+        String os = System.getProperty("os.name").toLowerCase();
+        logger.log("Operating system identified as: " + os);
+        if (openBrowserAtPort("http://localhost:", actualPort.get())) {
+            logger.log("Started UI at http://localhost:" + actualPort.get());
+        } else {
+            logger.log(
+                    "Could not Start browser.  Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at http://localhost:"
+                            + actualPort.get());
+        }
 
         return server;
     }
 
-    static void openBrowserAtPort(String openCommand, int port) {
-        try {
-            new ProcessBuilder(openCommand, "http://localhost:" + port).start().waitFor();
-        } catch (InterruptedException interruptedException) {
-            Thread.currentThread().interrupt();
-        } catch (IOException ioException) {
+    static boolean checkAndLaunch(String openCommand, int port) {
+        File f = new File(openCommand);
+        boolean existsInFilesystem = f.exists();
+        if (existsInFilesystem) {
+            try {
+                new ProcessBuilder(openCommand, "http://localhost:" + port).start();
+                Thread.sleep(1000);
+                return true;
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                return false;
+            } catch (IOException ioException) {
+                return false;
+            }
+        } else {
+            return false;
         }
+    }
+
+    static boolean openBrowserAtPort(String URL, int port) {
+        String openCommand = "";
+        if (SystemUtils.IS_OS_MAC || SystemUtils.IS_OS_WINDOWS) {
+            Desktop desktop = Desktop.getDesktop();
+            try {
+                desktop.browse(new URI(URL + port));
+            } catch (Exception e) {
+                return false;
+            }
+            return true;
+        } else if (SystemUtils.IS_OS_LINUX) {
+            openCommand = "/usr/bin/xdg-open";
+            return checkAndLaunch(openCommand, port);
+        }
+        return false;
     }
 
     @Data

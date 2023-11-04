@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -176,15 +176,15 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
             processor.start(configuration);
         }
 
-        private final AtomicReference<CompletableFuture<?>> currentRecordStatus =
-                new AtomicReference<>();
+        private final Map<Record, CompletableFuture<?>> currentRecordStatus =
+                new ConcurrentHashMap<>();
 
         @Override
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             // we must handle one record at a time
             // so we block until the record is processed
             CompletableFuture<?> handle = new CompletableFuture();
-            currentRecordStatus.set(handle);
+            currentRecordStatus.put(record, handle);
             processor.put(List.of(new LangStreamSinkRecordAdapter(record)));
             return handle;
         }
@@ -208,7 +208,8 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
             @Override
             protected void handleSuccess(AbstractSinkRecord abstractRecord) {
                 Record record = ((LangStreamSinkRecordAdapter) abstractRecord).getRecord();
-                currentRecordStatus.get().complete(null);
+                CompletableFuture<?> remove = currentRecordStatus.remove(record);
+                remove.complete(null);
             }
 
             @Override
@@ -242,12 +243,14 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                     log.warn("Error decoding/mapping Kafka record {}: {}", record, e.getMessage());
                 }
 
+                CompletableFuture<?> remove = currentRecordStatus.remove(record);
+
                 if (ignoreErrors == CassandraSinkConfig.IgnoreErrorsPolicy.NONE
                         || (ignoreErrors == CassandraSinkConfig.IgnoreErrorsPolicy.DRIVER
                                 && !driverFailure)) {
-                    currentRecordStatus.get().completeExceptionally(e);
+                    remove.completeExceptionally(e);
                 } else {
-                    currentRecordStatus.get().complete(null);
+                    remove.complete(null);
                 }
 
                 failCounter.run();

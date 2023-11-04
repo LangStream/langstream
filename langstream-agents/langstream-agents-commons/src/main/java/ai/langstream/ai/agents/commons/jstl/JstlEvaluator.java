@@ -88,9 +88,7 @@ public class JstlEvaluator<T> {
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(
-                        "fn",
-                        "concat",
-                        JstlFunctions.class.getMethod("concat", Object.class, Object.class));
+                        "fn", "concat", JstlFunctions.class.getMethod("concat", Object[].class));
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction(
@@ -129,6 +127,10 @@ public class JstlEvaluator<T> {
                         JstlFunctions.class.getMethod("addAll", Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction(
+                        "fn", "listOf", JstlFunctions.class.getMethod("listOf", Object[].class));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction("fn", "emptyList", JstlFunctions.class.getMethod("emptyList"));
         this.expressionContext
                 .getFunctionMapper()
@@ -153,6 +155,24 @@ public class JstlEvaluator<T> {
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "emptyMap", JstlFunctions.class.getMethod("emptyMap"));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "mapPut",
+                        JstlFunctions.class.getMethod(
+                                "mapPut", Object.class, Object.class, Object.class));
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction("fn", "mapOf", JstlFunctions.class.getMethod("mapOf", Object[].class));
+
+        this.expressionContext
+                .getFunctionMapper()
+                .mapFunction(
+                        "fn",
+                        "mapRemove",
+                        JstlFunctions.class.getMethod("mapRemove", Object.class, Object.class));
+
         this.expressionContext
                 .getFunctionMapper()
                 .mapFunction("fn", "toInt", JstlFunctions.class.getMethod("toInt", Object.class));

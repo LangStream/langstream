@@ -39,5 +39,6 @@ public enum ComputeFieldType {
     DATETIME,
     BYTES,
     DECIMAL,
-    ARRAY
+    ARRAY,
+    MAP
 }

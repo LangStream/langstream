@@ -1,0 +1,22 @@
+{
+   "website-url": ["https://docs.langstream.ai"],
+   "website-crawler-depth": 2,
+   "embeddings-model": "some-model",
+   "access-key": "sdfsf",
+   "chat-completion-model":"chat-completion-model",
+   "llm-prompt": [
+      { "role": "system",
+         "content": "bla bla bla"},
+      { "role": "user",
+         "content": "{{ value.question }}"}
+   ],
+   "astra-database": "some database",
+   "astra-client-id": "dsfdf",
+   "astra-client-secret": "fsfsdsfs",
+   "astra-token": "sdfsdfs",
+   "s3-bucket": "busdfsdfsf",
+   "s3-access-key": "sdfsdf",
+   "kafka-bootstrap-servers": "localhost:9092",
+   "kafka-username": "sdfsdf",
+   "kafka-password": "kafsdfffdf"
+}

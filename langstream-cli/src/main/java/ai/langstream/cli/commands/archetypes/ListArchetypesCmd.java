@@ -42,9 +42,9 @@ public class ListArchetypesCmd extends BaseArchetypeCmd {
         return (jsonNode, s) -> {
             switch (s) {
                 case "id":
-                    return searchValueInJson(jsonNode, "archetype.id");
+                    return searchValueInJson(jsonNode, "id");
                 case "labels":
-                    return searchValueInJson(jsonNode, "archetype.labels");
+                    return searchValueInJson(jsonNode, "labels");
                 default:
                     return jsonNode.get(s);
             }

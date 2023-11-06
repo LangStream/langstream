@@ -15,11 +15,8 @@
  */
 package ai.langstream.cli.commands.archetypes;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
-
-import java.util.function.BiFunction;
 
 @CommandLine.Command(name = "get", header = "Get the metadata about an archetype")
 public class GetArchetypeCmd extends BaseArchetypeCmd {
@@ -35,5 +32,4 @@ public class GetArchetypeCmd extends BaseArchetypeCmd {
         final String body = getClient().archetypes().get(archetypeId);
         log(body);
     }
-
 }

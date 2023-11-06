@@ -51,5 +51,6 @@ public interface Applications {
 
     HttpResponse<InputStream> logs(String application, List<String> filter, String format);
 
-    String deployFromArchetype(String name, String archetypeId, Map<String, Object> parameters, boolean dryRun);
+    String deployFromArchetype(
+            String name, String archetypeId, Map<String, Object> parameters, boolean dryRun);
 }

@@ -17,32 +17,38 @@ package ai.langstream.cli.commands.archetypes;
 
 import ai.langstream.admin.client.AdminClient;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-import java.util.function.BiFunction;
-
-@CommandLine.Command(name = "create-application", header = "Create an application from an archetype")
+@CommandLine.Command(
+        name = "create-application",
+        header = "Create an application from an archetype")
 public class CreateAppFromArchetypeCmd extends BaseArchetypeCmd {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @CommandLine.Parameters(description = "Name of the application")
     private String name;
+
     @CommandLine.Option(
             names = {"-a", "--archetype"},
             description = "Id of the archetype to use")
     private String archetypeId;
 
     @CommandLine.Option(
-            names = {"-p", "--parameters-file"},
+            names = {"-pf", "--parameters-file"},
             description = "File that contains the parameters to use for the application")
     private String parametersFile;
+
+    @CommandLine.Option(
+            names = {"-p", "--parameters"},
+            description = "Parameters, in JSON format")
+    private String parameters;
 
     @CommandLine.Option(
             names = {"--dry-run"},
@@ -64,12 +70,19 @@ public class CreateAppFromArchetypeCmd extends BaseArchetypeCmd {
     @Override
     @SneakyThrows
     public void run() {
-       Map<String, Object> parameters = readParameters(parametersFile);
+        Map<String, Object> parametersFromFile = readParametersFromFile(parametersFile);
+        Map<String, Object> parametersFromCommandLine = readParameters(parameters);
+        Map<String, Object> finalParameters = new HashMap<>();
+        finalParameters.putAll(parametersFromFile);
+        finalParameters.putAll(parametersFromCommandLine);
+
         AdminClient client = getClient();
         // verify archetype exists
         client.archetypes().get(archetypeId);
 
-        final String response = client.applications().deployFromArchetype(name, archetypeId, parameters, dryRun);
+        final String response =
+                client.applications()
+                        .deployFromArchetype(name, archetypeId, finalParameters, dryRun);
         if (dryRun) {
             final Formats format = format();
             print(format == Formats.raw ? Formats.yaml : format, response, null, null);
@@ -78,17 +91,35 @@ public class CreateAppFromArchetypeCmd extends BaseArchetypeCmd {
         }
     }
 
-    private Map<String, Object> readParameters(String parametersFile) {
+    private Map<String, Object> readParametersFromFile(String parametersFile) {
+        if (parametersFile == null || parametersFile.isEmpty()) {
+            return Map.of();
+        }
         final File file = new File(parametersFile);
         if (!file.exists()) {
             throw new IllegalArgumentException("File " + parametersFile + " does not exist");
         }
         try {
-            return mapper.readValue(file, new TypeReference<Map<String, Object>>() {
-            });
+            return mapper.readValue(file, new TypeReference<Map<String, Object>>() {});
         } catch (IOException err) {
-            throw new IllegalArgumentException("Cannot parse parameters file " + file.getAbsolutePath()+": " + err.getMessage(), err);
+            throw new IllegalArgumentException(
+                    "Cannot parse parameters file "
+                            + file.getAbsolutePath()
+                            + ": "
+                            + err.getMessage(),
+                    err);
         }
     }
 
+    private Map<String, Object> readParameters(String parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            return mapper.readValue(parameters, new TypeReference<Map<String, Object>>() {});
+        } catch (IOException err) {
+            throw new IllegalArgumentException(
+                    "Cannot parse parameters " + parameters + ": " + err.getMessage(), err);
+        }
+    }
 }

@@ -24,7 +24,11 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "archetypes",
         header = "Use ${ROOT-COMMAND-NAME} Archetypes",
-        subcommands = {ListArchetypesCmd.class, GetArchetypeCmd.class, CreateAppFromArchetypeCmd.class})
+        subcommands = {
+            ListArchetypesCmd.class,
+            GetArchetypeCmd.class,
+            CreateAppFromArchetypeCmd.class
+        })
 @Getter
 public class RootArchetypeCmd {
     @CommandLine.ParentCommand private RootCmd rootCmd;

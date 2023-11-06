@@ -22,6 +22,7 @@ import ai.langstream.admin.client.model.Applications;
 import ai.langstream.admin.client.model.Archetypes;
 import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import ai.langstream.admin.client.util.Slf4jLAdminClientLogger;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,8 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,7 +45,7 @@ public class AdminClient implements AutoCloseable {
     private final AdminClientLogger logger;
     private final HttpClientFacade httpClientFacade;
 
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     public AdminClient(AdminClientConfiguration adminClientConfiguration) {
         this(adminClientConfiguration, new Slf4jLAdminClientLogger(log));
@@ -198,7 +197,7 @@ public class AdminClient implements AutoCloseable {
     }
 
     public String tenantArchetypePath(String archetypeId, String uri) {
-        return tenantArchetypesPath(String.format("/%s%s",  archetypeId, uri));
+        return tenantArchetypesPath(String.format("/%s%s", archetypeId, uri));
     }
 
     static String formatQueryString(Map<String, String> params) {
@@ -227,7 +226,6 @@ public class AdminClient implements AutoCloseable {
         return new ArchetypesImpl();
     }
 
-
     private class ArchetypesImpl implements Archetypes {
         @Override
         @SneakyThrows
@@ -238,7 +236,7 @@ public class AdminClient implements AutoCloseable {
         @Override
         @SneakyThrows
         public String get(String archetype) {
-            return http(newGet(tenantArchetypesPath("/" +archetype))).body();
+            return http(newGet(tenantArchetypesPath("/" + archetype))).body();
         }
     }
 
@@ -263,12 +261,20 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public String deployFromArchetype(String applicationId, String archetypeId, Map<String, Object> parameters, boolean dryRun) {
+        public String deployFromArchetype(
+                String applicationId,
+                String archetypeId,
+                Map<String, Object> parameters,
+                boolean dryRun) {
             // /api/archetypes/my-tenant/simple/applications/app-id
-            final String path = tenantArchetypePath(archetypeId,"/applications/" + applicationId) + "?dry-run=" + dryRun;
+            final String path =
+                    tenantArchetypePath(archetypeId, "/applications/" + applicationId)
+                            + "?dry-run="
+                            + dryRun;
             final String contentType = "application/json";
             final String parametersJson = mapper.writeValueAsString(parameters);
-            final HttpRequest request = newPost(path, contentType, HttpRequest.BodyPublishers.ofString(parametersJson));
+            final HttpRequest request =
+                    newPost(path, contentType, HttpRequest.BodyPublishers.ofString(parametersJson));
             return http(request).body();
         }
 

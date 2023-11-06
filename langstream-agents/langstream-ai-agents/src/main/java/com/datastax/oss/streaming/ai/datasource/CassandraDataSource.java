@@ -276,19 +276,23 @@ public class CassandraDataSource implements QueryStepDataSource {
     }
 
     public static DatabaseClient buildAstraClient(
-            String astraToken, String astraDatabase, String astraDatabaseId, String astraEnvironment) {
+            String astraToken,
+            String astraDatabase,
+            String astraDatabaseId,
+            String astraEnvironment) {
         if (astraToken.isEmpty()) {
             throw new IllegalArgumentException("You must configure the AstraDB token");
         }
-        AstraDbClient astraDbClient = new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment));
+        AstraDbClient astraDbClient =
+                new AstraDbClient(
+                        astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment));
         if (!astraDatabase.isEmpty()) {
-            return astraDbClient
-                    .databaseByName(astraDatabase);
+            return astraDbClient.databaseByName(astraDatabase);
         } else if (!astraDatabaseId.isEmpty()) {
-            return astraDbClient
-                    .database(astraDatabaseId);
+            return astraDbClient.database(astraDatabaseId);
         } else {
-            throw new IllegalArgumentException("You must configure the database name or the database id");
+            throw new IllegalArgumentException(
+                    "You must configure the database name or the database id");
         }
     }
 

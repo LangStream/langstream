@@ -119,11 +119,16 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                         String environment =
                                                 ConfigurationUtils.getString(
                                                         "environment", "PROD", datasource);
-                                        if (!token.isEmpty() && (!database.isEmpty() || !databaseId.isEmpty())) {
+                                        if (!token.isEmpty()
+                                                && (!database.isEmpty() || !databaseId.isEmpty())) {
                                             DatabaseClient databaseClient =
                                                     CassandraDataSource.buildAstraClient(
-                                                            token, database, databaseId, environment);
-                                            log.info("Automatically downloading the secure bundle from AstraDB");
+                                                            token,
+                                                            database,
+                                                            databaseId,
+                                                            environment);
+                                            log.info(
+                                                    "Automatically downloading the secure bundle from AstraDB");
                                             byte[] secureBundle =
                                                     CassandraDataSource.downloadSecureBundle(
                                                             databaseClient);

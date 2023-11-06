@@ -21,10 +21,9 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Base64;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data

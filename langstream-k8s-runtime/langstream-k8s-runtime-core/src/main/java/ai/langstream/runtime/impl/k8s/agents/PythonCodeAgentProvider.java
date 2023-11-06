@@ -27,7 +27,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,27 +49,40 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
     }
 
     @Override
-    protected Map<String, Object> computeAgentConfiguration(AgentConfiguration agentConfiguration,
-                                                            Module module,
-                                                            Pipeline pipeline,
-                                                            ExecutionPlan executionPlan,
-                                                            ComputeClusterRuntime clusterRuntime,
-                                                            PluginsRegistry pluginsRegistry) {
-        Map<String, Object>  copy =
-                super.computeAgentConfiguration(agentConfiguration, module, pipeline, executionPlan, clusterRuntime, pluginsRegistry);
-
+    protected Map<String, Object> computeAgentConfiguration(
+            AgentConfiguration agentConfiguration,
+            Module module,
+            Pipeline pipeline,
+            ExecutionPlan executionPlan,
+            ComputeClusterRuntime clusterRuntime,
+            PluginsRegistry pluginsRegistry) {
+        Map<String, Object> copy =
+                super.computeAgentConfiguration(
+                        agentConfiguration,
+                        module,
+                        pipeline,
+                        executionPlan,
+                        clusterRuntime,
+                        pluginsRegistry);
 
         Map<String, Object> resources = new HashMap<>();
 
         // with this trick Python agents can access the resources configuration
         Map<String, Resource> resourcesDef = executionPlan.getApplication().getResources();
         if (resourcesDef != null) {
-            resourcesDef.forEach((key, r) -> {
-                String id = r.id();
-                Map<String, Object> data = r.configuration();
-                log.info("Passing resource configuration to Python agent: {} -> {}", id, data.keySet());
-                resources.put(id, data);
-            });
+            resourcesDef.forEach(
+                    (key, r) -> {
+                        String id = r.id();
+                        if (id == null) {
+                            id = r.name();
+                        }
+                        Map<String, Object> data = r.configuration();
+                        log.info(
+                                "Passing resource configuration to Python agent: {} -> {}",
+                                id,
+                                data.keySet());
+                        resources.put(id, data);
+                    });
         }
 
         copy.put("resources", resources);

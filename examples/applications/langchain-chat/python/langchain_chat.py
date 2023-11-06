@@ -36,6 +36,7 @@ from langchain.schema.runnable import (
 )
 from pydantic import BaseModel
 import cassio
+import logging
 
 RESPONSE_TEMPLATE = """\
 You are an expert programmer and problem-solver, tasked with answering any question \
@@ -201,12 +202,13 @@ def create_chain(
 class LangChainChat(Processor):
 
     def init(self, config):
-        self.openai_key = config.get("openai-key", "")
-        self.astra_db_token = config.get("astra-db-token", "")
-        self.astra_db_id = config.get("astra-db-id", "")
-        self.astra_keyspace = config.get("astra-db-keyspace", "")
-        self.astra_table_name = config.get("astra-db-table", "")
-
+        logging.info("Initializing LangChain Chat with config %s", config)
+        # the values are configured in the resources section in configuration.yaml
+        self.openai_key = config["resources"]["openai"]["access-key"]
+        self.astra_db_token = config["resources"]["database"]["token"]
+        self.astra_db_id = config["resources"]["database"]["database-id"]
+        self.astra_keyspace = config["astra-db-keyspace"]
+        self.astra_table_name = config["astra-db-table"]
 
         cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
 

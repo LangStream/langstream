@@ -99,7 +99,7 @@ pipeline:
     resources:
       size: 2
     configuration:
-      datasource: "AstraDatasource"
+      datasource: "database"
       table-name: "documents"
       keyspace: "documents"
       mapping: "row_id=value.row_id, body_blob=value.text, vector=value.embeddings_vector"

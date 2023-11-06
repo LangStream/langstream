@@ -106,23 +106,29 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                         configuration.put(
                                                 "cloud.secureConnectBundle", secureBundleString);
                                     } else {
-                                        // AstraDB, token/database
+                                        // AstraDB, token/database/databaseId
                                         String token =
                                                 ConfigurationUtils.getString(
                                                         "token", "", datasource);
                                         String database =
                                                 ConfigurationUtils.getString(
                                                         "database", "", datasource);
+                                        String databaseId =
+                                                ConfigurationUtils.getString(
+                                                        "database-id", "", datasource);
                                         String environment =
                                                 ConfigurationUtils.getString(
                                                         "environment", "PROD", datasource);
-                                        if (!token.isEmpty() && !database.isEmpty()) {
+                                        if (!token.isEmpty()
+                                                && (!database.isEmpty() || !databaseId.isEmpty())) {
                                             DatabaseClient databaseClient =
                                                     CassandraDataSource.buildAstraClient(
-                                                            token, database, environment);
+                                                            token,
+                                                            database,
+                                                            databaseId,
+                                                            environment);
                                             log.info(
-                                                    "Automatically downloading the secure bundle for database {} from AstraDB",
-                                                    database);
+                                                    "Automatically downloading the secure bundle from AstraDB");
                                             byte[] secureBundle =
                                                     CassandraDataSource.downloadSecureBundle(
                                                             databaseClient);

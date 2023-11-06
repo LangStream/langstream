@@ -101,18 +101,11 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
                         records.forEach(recordSink::emitEmptyList);
                     } else {
                         records.forEach(
-                                e -> {
-                                    recordSink.emitError(e, stopped);
-                                });
+                                e -> recordSink.emitError(e, stopped));
                     }
                 }
             }
         }
-    }
-
-    @Override
-    public synchronized void close() throws Exception {
-        stopBeforeRestart();
     }
 
     private SourceRecordAndResult fromGrpc(
@@ -202,8 +195,8 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
             if (request != null) {
                 try {
                     request.onCompleted();
-                } catch (IllegalStateException ignored) {
-                    log.info("Ignoring error while stopping {}", ignored + "");
+                } catch (IllegalStateException e) {
+                    log.info("Ignoring error while stopping {}", e + "");
                 }
             }
         }

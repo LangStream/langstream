@@ -144,8 +144,8 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
             if (request != null) {
                 try {
                     request.onCompleted();
-                } catch (IllegalStateException ignored) {
-                    log.info("Ignoring error while stopping {}", ignored + "");
+                } catch (IllegalStateException e) {
+                    log.info("Ignoring error while stopping {}", e + "");
                 }
             }
         }

@@ -128,7 +128,9 @@ public class GrpcAgentProcessorTest {
                         public void onError(Throwable throwable) {}
 
                         @Override
-                        public void onCompleted() {}
+                        public void onCompleted() {
+                            response.onCompleted();
+                        }
                     };
                 }
             };
@@ -272,11 +274,12 @@ public class GrpcAgentProcessorTest {
 
     @Test
     void testInfo() throws Exception {
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        processor.setContext(new TestAgentContext());
-        processor.start();
-        Map<String, Object> info = processor.buildAdditionalInfo();
-        assertEquals("test-info-value", info.get("test-info-key"));
+        try (GrpcAgentProcessor processor = new GrpcAgentProcessor(channel)) {
+            processor.setContext(new TestAgentContext());
+            processor.start();
+            Map<String, Object> info = processor.buildAdditionalInfo();
+            assertEquals("test-info-value", info.get("test-info-key"));
+        }
     }
 
     private static void assertProcessSuccessful(GrpcAgentProcessor processor, Record inputRecord)

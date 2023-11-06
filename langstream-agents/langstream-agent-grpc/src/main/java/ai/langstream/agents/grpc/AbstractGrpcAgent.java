@@ -95,7 +95,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     }
 
     @Override
-    public void setContext(AgentContext context) throws Exception {
+    public void setContext(AgentContext context) {
         this.agentContext = context;
     }
 
@@ -128,6 +128,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     @Override
     public synchronized void close() throws Exception {
+        stopBeforeRestart();
         stopChannel(true);
     }
 

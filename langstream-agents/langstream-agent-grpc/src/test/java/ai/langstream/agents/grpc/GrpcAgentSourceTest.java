@@ -227,7 +227,9 @@ public class GrpcAgentSourceTest {
                 public void onError(Throwable throwable) {}
 
                 @Override
-                public void onCompleted() {}
+                public void onCompleted() {
+                    responseObserver.onCompleted();
+                }
             };
         }
     }

@@ -176,7 +176,9 @@ public class GrpcAgentSinkTest {
                 public void onError(Throwable throwable) {}
 
                 @Override
-                public void onCompleted() {}
+                public void onCompleted() {
+                    responseObserver.onCompleted();
+                }
             };
         }
     }

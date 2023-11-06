@@ -72,7 +72,7 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error) throws Exception {
+    public void permanentFailure(Record record, Exception error) {
         if (record instanceof GrpcAgentRecord grpcAgentRecord) {
             request.onNext(
                     SourceRequest.newBuilder()
@@ -156,8 +156,8 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
             if (request != null) {
                 try {
                     request.onCompleted();
-                } catch (IllegalStateException ignored) {
-                    log.info("Ignoring error while stopping {}", ignored + "");
+                } catch (IllegalStateException e) {
+                    log.info("Ignoring error while stopping {}", e + "");
                 }
             }
         }

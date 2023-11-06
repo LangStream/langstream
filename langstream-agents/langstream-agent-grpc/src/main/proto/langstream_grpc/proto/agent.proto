@@ -26,6 +26,7 @@ service AgentService {
   rpc read(stream SourceRequest) returns (stream SourceResponse) {}
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
   rpc write(stream SinkRequest) returns (stream SinkResponse) {}
+  rpc get_topic_producer_records(stream TopicProducerWriteResult) returns (stream TopicProducerRecord) {}
 }
 
 message InfoResponse {
@@ -66,6 +67,16 @@ message Record {
   repeated Header headers = 4;
   string origin = 5;
   optional int64 timestamp = 6;
+}
+
+message TopicProducerWriteResult {
+  int64 record_id = 1;
+  optional string error = 2;
+}
+
+message TopicProducerRecord {
+  string topic = 1;
+  Record record = 3;
 }
 
 message PermanentFailure {

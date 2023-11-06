@@ -51,6 +51,11 @@ class AgentServiceStub(object):
             request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
             response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
         )
+        self.get_topic_producer_records = channel.stream_stream(
+            "/AgentService/get_topic_producer_records",
+            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
+            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.FromString,
+        )
 
 
 class AgentServiceServicer(object):
@@ -80,6 +85,12 @@ class AgentServiceServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def get_topic_producer_records(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -102,6 +113,11 @@ def add_AgentServiceServicer_to_server(servicer, server):
             servicer.write,
             request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.FromString,
             response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.SerializeToString,
+        ),
+        "get_topic_producer_records": grpc.stream_stream_rpc_method_handler(
+            servicer.get_topic_producer_records,
+            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.FromString,
+            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -220,6 +236,35 @@ class AgentService(object):
             "/AgentService/write",
             langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
             langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def get_topic_producer_records(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            "/AgentService/get_topic_producer_records",
+            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
+            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.FromString,
             options,
             channel_credentials,
             insecure,

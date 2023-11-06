@@ -16,7 +16,6 @@
 package ai.langstream.agents.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.SimpleRecord;
@@ -32,8 +31,8 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -95,13 +94,17 @@ public class GrpcAgentSinkTest {
     @Test
     void testSinkGrpcError() throws Exception {
         sink.write(SimpleRecord.builder().origin("failing-server").build());
-        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
+        assertEquals(
+                "gRPC server sent error: UNKNOWN",
+                context.failure.get(1, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
     void testSinkGrpcCompletedUnexpectedly() throws Exception {
         sink.write(SimpleRecord.builder().origin("completing-server").build());
-        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
+        assertEquals(
+                "gRPC server completed the stream unexpectedly",
+                context.failure.get(1, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
@@ -181,6 +184,23 @@ public class GrpcAgentSinkTest {
                 }
             };
         }
+
+        @Override
+        public StreamObserver<TopicProducerWriteResult> getTopicProducerRecords(
+                StreamObserver<TopicProducerRecord> responseObserver) {
+            return new StreamObserver<>() {
+                @Override
+                public void onNext(TopicProducerWriteResult topicProducerWriteResult) {}
+
+                @Override
+                public void onError(Throwable throwable) {}
+
+                @Override
+                public void onCompleted() {
+                    responseObserver.onCompleted();
+                }
+            };
+        }
     }
 
     private static GenericRecord deserializeGenericRecord(
@@ -193,7 +213,7 @@ public class GrpcAgentSinkTest {
 
     static class TestAgentContext implements AgentContext {
 
-        private final CountDownLatch failureCalled = new CountDownLatch(1);
+        private final CompletableFuture<Throwable> failure = new CompletableFuture<>();
 
         @Override
         public TopicConsumer getTopicConsumer() {
@@ -222,7 +242,7 @@ public class GrpcAgentSinkTest {
 
         @Override
         public void criticalFailure(Throwable error) {
-            failureCalled.countDown();
+            failure.complete(error);
         }
 
         @Override

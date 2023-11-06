@@ -18,6 +18,7 @@ package ai.langstream.agents.grpc;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
+import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +70,12 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     protected final AtomicBoolean restarting = new AtomicBoolean(false);
 
     @Getter protected volatile boolean startFailedButDevelopmentMode = false;
+    protected AgentServiceGrpc.AgentServiceStub asyncStub;
+
+    AtomicReference<StreamObserver<TopicProducerWriteResult>> topicProducerWriteResults =
+            new AtomicReference<>();
+
+    private final Map<String, TopicProducer> topicProducers = new ConcurrentHashMap<>();
 
     protected record GrpcAgentRecord(
             Long id,
@@ -92,6 +101,68 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         }
         blockingStub =
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
+        asyncStub = AgentServiceGrpc.newStub(channel).withWaitForReady();
+
+        topicProducerWriteResults.set(
+                asyncStub.getTopicProducerRecords(
+                        new StreamObserver<>() {
+                            @Override
+                            public void onNext(TopicProducerRecord topicProducerRecord) {
+                                TopicProducer topicProducer =
+                                        topicProducers.computeIfAbsent(
+                                                topicProducerRecord.getTopic(),
+                                                topic ->
+                                                        agentContext
+                                                                .getTopicConnectionProvider()
+                                                                .createProducer(
+                                                                        agentContext
+                                                                                .getGlobalAgentId(),
+                                                                        topic,
+                                                                        Map.of()));
+                                try {
+                                    topicProducer
+                                            .write(fromGrpc(topicProducerRecord.getRecord()))
+                                            .whenComplete(
+                                                    (r, e) -> {
+                                                        if (e != null) {
+                                                            log.error("Error writing record", e);
+                                                            sendTopicProducerWriteResult(
+                                                                    TopicProducerWriteResult
+                                                                            .newBuilder()
+                                                                            .setError(
+                                                                                    e
+                                                                                            .getMessage()));
+                                                        } else {
+                                                            sendTopicProducerWriteResult(
+                                                                    TopicProducerWriteResult
+                                                                            .newBuilder()
+                                                                            .setRecordId(
+                                                                                    topicProducerRecord
+                                                                                            .getRecord()
+                                                                                            .getRecordId()));
+                                                        }
+                                                    });
+                                } catch (IOException e) {
+                                    agentContext.criticalFailure(e);
+                                }
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                agentContext.criticalFailure(throwable);
+                            }
+
+                            @Override
+                            public void onCompleted() {
+                                agentContext.criticalFailure(
+                                        new RuntimeException("Unexpected completion"));
+                            }
+                        }));
+    }
+
+    private synchronized void sendTopicProducerWriteResult(
+            TopicProducerWriteResult.Builder result) {
+        topicProducerWriteResults.get().onNext(result.build());
     }
 
     @Override
@@ -128,8 +199,13 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     @Override
     public synchronized void close() throws Exception {
+        topicProducerWriteResults.get().onCompleted();
         stopBeforeRestart();
         stopChannel(true);
+        for (TopicProducer topicProducer : topicProducers.values()) {
+            topicProducer.close();
+        }
+        topicProducers.clear();
     }
 
     protected Object fromGrpc(Value value) throws IOException {

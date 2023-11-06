@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class PythonAgentsIT extends BaseEndToEndTest {
 
     @Test
-    public void testProcessor() throws Exception {
+    public void testProcessor() {
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);

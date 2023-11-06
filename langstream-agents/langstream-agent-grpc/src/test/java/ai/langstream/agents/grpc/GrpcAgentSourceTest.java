@@ -17,8 +17,6 @@ package ai.langstream.agents.grpc;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.Record;
@@ -37,8 +35,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.avro.Conversions;
 import org.apache.avro.generic.GenericData;
@@ -76,6 +74,7 @@ public class GrpcAgentSourceTest {
 
     @AfterEach
     public void tearDown() throws Exception {
+        source.close();
         channel.shutdownNow();
         server.shutdownNow();
         channel.awaitTermination(30, TimeUnit.SECONDS);
@@ -86,26 +85,26 @@ public class GrpcAgentSourceTest {
     void testCommit() throws Exception {
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(0)));
-        assertFalse(context.failureCalled.await(1, TimeUnit.SECONDS));
         assertEquals(1, testSourceService.committedRecords.size());
         assertEquals(42, testSourceService.committedRecords.get(0));
-        source.close();
     }
 
     @Test
     void testSourceGrpcError() throws Exception {
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(1)));
-        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
-        source.close();
+        assertEquals(
+                "gRPC server sent error: UNKNOWN",
+                context.failure.get(1, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
     void testSourceGrpcCompletedUnexpectedly() throws Exception {
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(2)));
-        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
-        source.close();
+        assertEquals(
+                "gRPC server completed the stream unexpectedly",
+                context.failure.get(1, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
@@ -113,7 +112,6 @@ public class GrpcAgentSourceTest {
         List<Record> read = readRecords(source, 1);
         GenericRecord record = (GenericRecord) read.get(0).value();
         assertEquals("test-string", record.get("testField").toString());
-        source.close();
     }
 
     @Test
@@ -122,7 +120,6 @@ public class GrpcAgentSourceTest {
         source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"));
         assertEquals(testSourceService.permanentFailure.getRecordId(), 42);
         assertEquals(testSourceService.permanentFailure.getErrorMessage(), "permanent-failure");
-        source.close();
     }
 
     static List<Record> readRecords(GrpcAgentSource source, int numberOfRecords) {
@@ -219,11 +216,28 @@ public class GrpcAgentSourceTest {
                 }
             };
         }
+
+        @Override
+        public StreamObserver<TopicProducerWriteResult> getTopicProducerRecords(
+                StreamObserver<TopicProducerRecord> responseObserver) {
+            return new StreamObserver<>() {
+                @Override
+                public void onNext(TopicProducerWriteResult topicProducerWriteResult) {}
+
+                @Override
+                public void onError(Throwable throwable) {}
+
+                @Override
+                public void onCompleted() {
+                    responseObserver.onCompleted();
+                }
+            };
+        }
     }
 
     static class TestAgentContext implements AgentContext {
 
-        private final CountDownLatch failureCalled = new CountDownLatch(1);
+        private final CompletableFuture<Throwable> failure = new CompletableFuture<>();
 
         @Override
         public TopicConsumer getTopicConsumer() {
@@ -252,7 +266,7 @@ public class GrpcAgentSourceTest {
 
         @Override
         public void criticalFailure(Throwable error) {
-            failureCalled.countDown();
+            failure.complete(error);
         }
 
         @Override

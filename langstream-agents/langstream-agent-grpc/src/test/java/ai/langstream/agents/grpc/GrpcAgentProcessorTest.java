@@ -16,7 +16,6 @@
 package ai.langstream.agents.grpc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -31,7 +30,6 @@ import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
@@ -41,9 +39,7 @@ import io.grpc.stub.StreamObserver;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -57,8 +53,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 public class GrpcAgentProcessorTest {
     private Server server;
@@ -69,16 +65,6 @@ public class GrpcAgentProcessorTest {
 
     private final AgentServiceGrpc.AgentServiceImplBase testProcessorService =
             new AgentServiceGrpc.AgentServiceImplBase() {
-
-                @Override
-                public void agentInfo(
-                        Empty request, StreamObserver<InfoResponse> responseObserver) {
-                    responseObserver.onNext(
-                            InfoResponse.newBuilder()
-                                    .setJsonInfo("{\"test-info-key\": \"test-info-value\"}")
-                                    .build());
-                    responseObserver.onCompleted();
-                }
 
                 @Override
                 public StreamObserver<ProcessorRequest> process(
@@ -132,6 +118,23 @@ public class GrpcAgentProcessorTest {
                         @Override
                         public void onCompleted() {
                             response.onCompleted();
+                        }
+                    };
+                }
+
+                @Override
+                public StreamObserver<TopicProducerWriteResult> getTopicProducerRecords(
+                        StreamObserver<TopicProducerRecord> responseObserver) {
+                    return new StreamObserver<>() {
+                        @Override
+                        public void onNext(TopicProducerWriteResult topicProducerWriteResult) {}
+
+                        @Override
+                        public void onError(Throwable throwable) {}
+
+                        @Override
+                        public void onCompleted() {
+                            responseObserver.onCompleted();
                         }
                     };
                 }
@@ -198,7 +201,6 @@ public class GrpcAgentProcessorTest {
     @Test
     void testEmpty() throws Exception {
         assertProcessSuccessful(processor, SimpleRecord.builder().build());
-        assertFalse(context.failureCalled.await(1, TimeUnit.SECONDS));
     }
 
     @Test
@@ -222,14 +224,18 @@ public class GrpcAgentProcessorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {"failing-server", "completing-server", "wrong-record-id", "wrong-schema-id"})
-    void testServerError(String origin) throws Exception {
+    @CsvSource({
+        "failing-server,gRPC server sent error: INTERNAL: server error",
+        "completing-server,gRPC server completed the stream unexpectedly",
+        "wrong-record-id,Received unknown record id 2",
+        "wrong-schema-id,Error while processing record 1: Unknown schema id 1"
+    })
+    void testServerError(String origin, String error) throws Exception {
         Record inputRecord = SimpleRecord.builder().origin(origin).build();
 
         processor.process(List.of(inputRecord), result -> {});
 
-        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
+        assertEquals(error, context.failure.get(1, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
@@ -254,12 +260,6 @@ public class GrpcAgentProcessorTest {
         assertProcessSuccessful(processor, inputRecord);
         assertProcessSuccessful(processor, inputRecord);
         assertEquals(1, schemaCounter.get());
-    }
-
-    @Test
-    void testInfo() throws Exception {
-        Map<String, Object> info = processor.buildAdditionalInfo();
-        assertEquals("test-info-value", info.get("test-info-key"));
     }
 
     private static void assertProcessSuccessful(GrpcAgentProcessor processor, Record inputRecord)
@@ -304,7 +304,7 @@ public class GrpcAgentProcessorTest {
 
     static class TestAgentContext implements AgentContext {
 
-        private final CountDownLatch failureCalled = new CountDownLatch(1);
+        private final CompletableFuture<Throwable> failure = new CompletableFuture<>();
 
         @Override
         public TopicConsumer getTopicConsumer() {
@@ -333,7 +333,7 @@ public class GrpcAgentProcessorTest {
 
         @Override
         public void criticalFailure(Throwable error) {
-            failureCalled.countDown();
+            failure.complete(error);
         }
 
         @Override

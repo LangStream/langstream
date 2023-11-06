@@ -82,6 +82,11 @@ class AgentService(AgentServiceServicer):
         info = call_method_if_exists(self.agent, "agent_info") or {}
         return InfoResponse(json_info=json.dumps(info))
 
+    def get_topic_producer_records(self, request_iterator, context):
+        # TODO: to be implementedbla
+        for _ in request_iterator:
+            yield None
+
     def read(self, requests: Iterable[SourceRequest], _):
         read_records = {}
         op_result = []

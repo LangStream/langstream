@@ -23,6 +23,8 @@ import ai.langstream.impl.resources.BaseDataSourceResourceProvider;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.Base64;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
@@ -92,6 +94,14 @@ public class AstraDatasourceConfig extends BaseDatasourceConfig {
                             Astra Database name to connect to. If secureBundle is provided, this field is ignored.
                             """)
     private String database;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Astra Database ID name to connect to. If secureBundle is provided, this field is ignored.
+                            """)
+    @JsonProperty("database-id")
+    private String databaseId;
 
     @ConfigProperty(
             description =

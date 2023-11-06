@@ -54,6 +54,7 @@ public class CassandraDataSource implements QueryStepDataSource {
     String astraEnvironment;
 
     String astraDatabase;
+    String astraDatabaseId;
     Map<String, PreparedStatement> statements = new ConcurrentHashMap<>();
 
     private static final DefaultCodecRegistry CODEC_REGISTRY =
@@ -81,6 +82,7 @@ public class CassandraDataSource implements QueryStepDataSource {
         this.astraEnvironment =
                 ConfigurationUtils.getString("environment", "PROD", dataSourceConfig);
         this.astraDatabase = ConfigurationUtils.getString("database", "", dataSourceConfig);
+        this.astraDatabaseId = ConfigurationUtils.getString("database-id", "", dataSourceConfig);
         this.session = buildCqlSession(dataSourceConfig);
     }
 
@@ -227,8 +229,14 @@ public class CassandraDataSource implements QueryStepDataSource {
             secureBundleDecoded = Base64.getDecoder().decode(secureBundle);
         } else if (!astraDatabase.isEmpty() && !astraToken.isEmpty()) {
             log.info(
-                    "Automatically downloading the secure bundle for database {} from AstraDB",
+                    "Automatically downloading the secure bundle for database name {} from AstraDB",
                     astraDatabase);
+            DatabaseClient databaseClient = this.buildAstraClient();
+            secureBundleDecoded = downloadSecureBundle(databaseClient);
+        } else if (!astraDatabaseId.isEmpty() && !astraToken.isEmpty()) {
+            log.info(
+                    "Automatically downloading the secure bundle for database id {} from AstraDB",
+                    astraDatabaseId);
             DatabaseClient databaseClient = this.buildAstraClient();
             secureBundleDecoded = downloadSecureBundle(databaseClient);
         } else {
@@ -264,16 +272,24 @@ public class CassandraDataSource implements QueryStepDataSource {
     }
 
     public DatabaseClient buildAstraClient() {
-        return buildAstraClient(astraToken, astraDatabase, astraEnvironment);
+        return buildAstraClient(astraToken, astraDatabase, astraDatabaseId, astraEnvironment);
     }
 
     public static DatabaseClient buildAstraClient(
-            String astraToken, String astraDatabase, String astraEnvironment) {
-        if (astraToken.isEmpty() || astraDatabase.isEmpty()) {
-            throw new IllegalArgumentException("You must configure both token and database");
+            String astraToken, String astraDatabase, String astraDatabaseId, String astraEnvironment) {
+        if (astraToken.isEmpty()) {
+            throw new IllegalArgumentException("You must configure the AstraDB token");
         }
-        return new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment))
-                .databaseByName(astraDatabase);
+        AstraDbClient astraDbClient = new AstraDbClient(astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment));
+        if (!astraDatabase.isEmpty()) {
+            return astraDbClient
+                    .databaseByName(astraDatabase);
+        } else if (!astraDatabaseId.isEmpty()) {
+            return astraDbClient
+                    .database(astraDatabaseId);
+        } else {
+            throw new IllegalArgumentException("You must configure the database name or the database id");
+        }
     }
 
     public static byte[] downloadSecureBundle(DatabaseClient databaseClient) {

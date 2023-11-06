@@ -201,12 +201,13 @@ def create_chain(
 class LangChainChat(Processor):
 
     def init(self, config):
-        self.openai_key = config.get("openai-key", "")
-        self.astra_db_token = config.get("astra-db-token", "")
-        self.astra_db_id = config.get("astra-db-id", "")
-        self.astra_keyspace = config.get("astra-db-keyspace", "")
-        self.astra_table_name = config.get("astra-db-table", "")
 
+        # the values are configured in the resources section in configuration.yaml
+        self.openai_key = config.resources.openai.get("access-key", "");
+        self.astra_db_token = config.resources.database.get("token", "")
+        self.astra_db_id = config.resources.database.get("database-id", "")
+        self.astra_keyspace = config.resources.database.get("keyspace", "")
+        self.astra_table_name = config.resources.database.get("table", "")
 
         cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
 

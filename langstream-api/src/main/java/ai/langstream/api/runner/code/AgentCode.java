@@ -66,7 +66,7 @@ public interface AgentCode extends AutoCloseable {
     /**
      * Gracefully restart the agent.
      *
-     * @throws Exception
+     * @throws Exception if an error occurs
      */
     default void restart() throws Exception {}
 }

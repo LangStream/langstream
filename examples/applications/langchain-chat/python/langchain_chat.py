@@ -210,13 +210,14 @@ class LangChainChat(Processor):
         self.astra_keyspace = config["astra-db-keyspace"]
         self.astra_table_name = config["astra-db-table"]
 
-        cassio.init(token=self.astra_db_token, database_id=self.astra_db_id, keyspace=self.astra_keyspace)
+        cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
 
         self.embedings_model = OpenAIEmbeddings(openai_api_key=self.openai_key)
 
         self.astra_vector_store = Cassandra(
             embedding=self.embedings_model,
             session=None,
+            keyspace=self.astra_keyspace,
             table_name=self.astra_table_name,
         )
 

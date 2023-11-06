@@ -13,19 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.cli.commands;
+package ai.langstream.cli.commands.archetypes;
 
-import ai.langstream.cli.commands.archetypes.CreateAppFromArchetypeCmd;
-import ai.langstream.cli.commands.archetypes.GetArchetypeCmd;
-import ai.langstream.cli.commands.archetypes.ListArchetypesCmd;
-import lombok.Getter;
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "archetypes",
-        header = "Use ${ROOT-COMMAND-NAME} Archetypes",
-        subcommands = {ListArchetypesCmd.class, GetArchetypeCmd.class, CreateAppFromArchetypeCmd.class})
-@Getter
-public class RootArchetypeCmd {
-    @CommandLine.ParentCommand private RootCmd rootCmd;
+import java.util.function.BiFunction;
+
+@CommandLine.Command(name = "get", header = "Get the metadata about an archetype")
+public class GetArchetypeCmd extends BaseArchetypeCmd {
+
+    @CommandLine.Option(
+            names = {"-a", "--archetype"},
+            description = "Id of the archetype to get")
+    private String archetypeId;
+
+    @Override
+    @SneakyThrows
+    public void run() {
+        final String body = getClient().archetypes().get(archetypeId);
+        log(body);
+    }
+
 }

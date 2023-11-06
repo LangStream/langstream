@@ -34,6 +34,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +45,8 @@ public class AdminClient implements AutoCloseable {
     private final AdminClientConfiguration configuration;
     private final AdminClientLogger logger;
     private final HttpClientFacade httpClientFacade;
+
+    private final static ObjectMapper mapper = new ObjectMapper();
 
     public AdminClient(AdminClientConfiguration adminClientConfiguration) {
         this(adminClientConfiguration, new Slf4jLAdminClientLogger(log));
@@ -183,6 +187,20 @@ public class AdminClient implements AutoCloseable {
         return String.format("/applications/%s%s", tenant, uri);
     }
 
+    public String tenantArchetypesPath(String uri) {
+        final String tenant = configuration.getTenant();
+        if (tenant == null) {
+            throw new IllegalStateException(
+                    "Tenant not set. Please set the tenant in the configuration.");
+        }
+        logger.debug(String.format("Using tenant: %s", tenant));
+        return String.format("/archetypes/%s%s", tenant, uri);
+    }
+
+    public String tenantArchetypePath(String archetypeId, String uri) {
+        return tenantArchetypesPath(String.format("/%s%s",  archetypeId, uri));
+    }
+
     static String formatQueryString(Map<String, String> params) {
         if (params == null || params.isEmpty()) {
             return "";
@@ -209,19 +227,18 @@ public class AdminClient implements AutoCloseable {
         return new ArchetypesImpl();
     }
 
+
     private class ArchetypesImpl implements Archetypes {
         @Override
         @SneakyThrows
         public String list() {
-            final String tenant = configuration.getTenant();
-            return http(newGet(String.format("/archetypes/%s", tenant))).body();
+            return http(newGet(tenantArchetypesPath(""))).body();
         }
 
         @Override
         @SneakyThrows
         public String get(String archetype) {
-            final String tenant = configuration.getTenant();
-            return http(newGet(String.format("/archetypes/%s/%s", tenant, archetype))).body();
+            return http(newGet(tenantArchetypesPath("/" +archetype))).body();
         }
     }
 
@@ -241,6 +258,17 @@ public class AdminClient implements AutoCloseable {
                             "multipart/form-data; boundary=%s",
                             multiPartBodyPublisher.getBoundary());
             final HttpRequest request = newPost(path, contentType, multiPartBodyPublisher.build());
+            return http(request).body();
+        }
+
+        @Override
+        @SneakyThrows
+        public String deployFromArchetype(String applicationId, String archetypeId, Map<String, Object> parameters, boolean dryRun) {
+            // /api/archetypes/my-tenant/simple/applications/app-id
+            final String path = tenantArchetypePath(archetypeId,"/applications/" + applicationId) + "?dry-run=" + dryRun;
+            final String contentType = "application/json";
+            final String parametersJson = mapper.writeValueAsString(parameters);
+            final HttpRequest request = newPost(path, contentType, HttpRequest.BodyPublishers.ofString(parametersJson));
             return http(request).body();
         }
 

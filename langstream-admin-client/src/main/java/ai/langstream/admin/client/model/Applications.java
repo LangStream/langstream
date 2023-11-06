@@ -19,6 +19,7 @@ import ai.langstream.admin.client.util.MultiPartBodyPublisher;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 
 public interface Applications {
     String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
@@ -49,4 +50,6 @@ public interface Applications {
     String getCodeInfo(String application, String codeArchiveId);
 
     HttpResponse<InputStream> logs(String application, List<String> filter, String format);
+
+    String deployFromArchetype(String name, String archetypeId, Map<String, Object> parameters, boolean dryRun);
 }

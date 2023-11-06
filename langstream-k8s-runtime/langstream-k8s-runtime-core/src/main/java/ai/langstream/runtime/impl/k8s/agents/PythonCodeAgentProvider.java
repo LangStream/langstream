@@ -75,6 +75,12 @@ public class PythonCodeAgentProvider extends AbstractComposableAgentProvider {
 
         copy.put("resources", resources);
 
+        Map<String, Object> globals = executionPlan.getApplication().getInstance().globals();
+        if (globals == null) {
+            globals = Map.of();
+        }
+        copy.put("globals", globals);
+
         return copy;
     }
 

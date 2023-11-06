@@ -36,6 +36,7 @@ from langchain.schema.runnable import (
 )
 from pydantic import BaseModel
 import cassio
+import logging
 
 RESPONSE_TEMPLATE = """\
 You are an expert programmer and problem-solver, tasked with answering any question \
@@ -201,22 +202,21 @@ def create_chain(
 class LangChainChat(Processor):
 
     def init(self, config):
-
+        logging.info("Initializing LangChain Chat with config %s", config)
         # the values are configured in the resources section in configuration.yaml
-        self.openai_key = config.resources.openai.get("access-key", "");
-        self.astra_db_token = config.resources.database.get("token", "")
-        self.astra_db_id = config.resources.database.get("database-id", "")
-        self.astra_keyspace = config.resources.database.get("keyspace", "")
-        self.astra_table_name = config.resources.database.get("table", "")
+        self.openai_key = config["resources"]["openai"]["access-key"]
+        self.astra_db_token = config["resources"]["database"]["token"]
+        self.astra_db_id = config["resources"]["database"]["database-id"]
+        self.astra_keyspace = config["astra-db-keyspace"]
+        self.astra_table_name = config["astra-db-table"]
 
-        cassio.init(token=self.astra_db_token, database_id=self.astra_db_id)
+        cassio.init(token=self.astra_db_token, database_id=self.astra_db_id, keyspace=self.astra_keyspace)
 
         self.embedings_model = OpenAIEmbeddings(openai_api_key=self.openai_key)
 
         self.astra_vector_store = Cassandra(
             embedding=self.embedings_model,
             session=None,
-            keyspace=self.astra_keyspace,
             table_name=self.astra_table_name,
         )
 

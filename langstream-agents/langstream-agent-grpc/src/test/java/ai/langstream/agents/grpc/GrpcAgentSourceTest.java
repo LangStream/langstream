@@ -53,7 +53,8 @@ import org.junit.jupiter.api.Test;
 public class GrpcAgentSourceTest {
     private Server server;
     private ManagedChannel channel;
-
+    private GrpcAgentSource source;
+    private TestAgentContext context;
     private final TestSourceService testSourceService = new TestSourceService();
 
     @BeforeEach
@@ -67,6 +68,10 @@ public class GrpcAgentSourceTest {
                         .start();
 
         channel = InProcessChannelBuilder.forName(serverName).directExecutor().build();
+        source = new GrpcAgentSource(channel);
+        context = new TestAgentContext();
+        source.setContext(context);
+        source.start();
     }
 
     @AfterEach
@@ -79,10 +84,6 @@ public class GrpcAgentSourceTest {
 
     @Test
     void testCommit() throws Exception {
-        GrpcAgentSource source = new GrpcAgentSource(channel);
-        TestAgentContext context = new TestAgentContext();
-        source.setContext(context);
-        source.start();
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(0)));
         assertFalse(context.failureCalled.await(1, TimeUnit.SECONDS));
@@ -93,10 +94,6 @@ public class GrpcAgentSourceTest {
 
     @Test
     void testSourceGrpcError() throws Exception {
-        GrpcAgentSource source = new GrpcAgentSource(channel);
-        TestAgentContext context = new TestAgentContext();
-        source.setContext(context);
-        source.start();
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(1)));
         assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
@@ -105,10 +102,6 @@ public class GrpcAgentSourceTest {
 
     @Test
     void testSourceGrpcCompletedUnexpectedly() throws Exception {
-        GrpcAgentSource source = new GrpcAgentSource(channel);
-        TestAgentContext context = new TestAgentContext();
-        source.setContext(context);
-        source.start();
         List<Record> read = readRecords(source, 3);
         source.commit(List.of(read.get(2)));
         assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
@@ -117,9 +110,6 @@ public class GrpcAgentSourceTest {
 
     @Test
     void testAvroAndSchema() throws Exception {
-        GrpcAgentSource source = new GrpcAgentSource(channel);
-        source.setContext(new TestAgentContext());
-        source.start();
         List<Record> read = readRecords(source, 1);
         GenericRecord record = (GenericRecord) read.get(0).value();
         assertEquals("test-string", record.get("testField").toString());
@@ -128,9 +118,6 @@ public class GrpcAgentSourceTest {
 
     @Test
     void testPermanentFailure() throws Exception {
-        GrpcAgentSource source = new GrpcAgentSource(channel);
-        source.setContext(new TestAgentContext());
-        source.start();
         List<Record> read = readRecords(source, 1);
         source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"));
         assertEquals(testSourceService.permanentFailure.getRecordId(), 42);

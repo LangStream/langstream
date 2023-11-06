@@ -63,6 +63,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class GrpcAgentProcessorTest {
     private Server server;
     private ManagedChannel channel;
+    private GrpcAgentProcessor processor;
+    private TestAgentContext context;
     private final AtomicInteger schemaCounter = new AtomicInteger(0);
 
     private final AgentServiceGrpc.AgentServiceImplBase testProcessorService =
@@ -146,6 +148,10 @@ public class GrpcAgentProcessorTest {
                         .start();
 
         channel = InProcessChannelBuilder.forName(serverName).directExecutor().build();
+        processor = new GrpcAgentProcessor(channel);
+        context = new TestAgentContext();
+        processor.setContext(context);
+        processor.start();
         schemaCounter.set(0);
     }
 
@@ -177,9 +183,6 @@ public class GrpcAgentProcessorTest {
     @ParameterizedTest
     @MethodSource("primitives")
     void testProcess(Object value, Object key, Object header) throws Exception {
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        processor.setContext(new TestAgentContext());
-        processor.start();
         Record inputRecord =
                 SimpleRecord.builder()
                         .value(value)
@@ -190,26 +193,17 @@ public class GrpcAgentProcessorTest {
                         .build();
         assertProcessSuccessful(processor, inputRecord);
         assertProcessSuccessful(processor, inputRecord);
-        processor.close();
     }
 
     @Test
     void testEmpty() throws Exception {
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        TestAgentContext context = new TestAgentContext();
-        processor.setContext(context);
-        processor.start();
         assertProcessSuccessful(processor, SimpleRecord.builder().build());
         assertFalse(context.failureCalled.await(1, TimeUnit.SECONDS));
-        processor.close();
     }
 
     @Test
     void testFailingRecord() throws Exception {
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
         Record inputRecord = SimpleRecord.builder().origin("failing-origin").build();
-        processor.setContext(new TestAgentContext());
-        processor.start();
         CompletableFuture<Void> op = new CompletableFuture<>();
         processor.process(
                 List.of(inputRecord),
@@ -225,23 +219,17 @@ public class GrpcAgentProcessorTest {
                     op.complete(null);
                 });
         op.get(5, TimeUnit.SECONDS);
-        processor.close();
     }
 
     @ParameterizedTest
     @ValueSource(
             strings = {"failing-server", "completing-server", "wrong-record-id", "wrong-schema-id"})
     void testServerError(String origin) throws Exception {
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
         Record inputRecord = SimpleRecord.builder().origin(origin).build();
 
-        TestAgentContext testAgentContext = new TestAgentContext();
-        processor.setContext(testAgentContext);
-        processor.start();
         processor.process(List.of(inputRecord), result -> {});
 
-        assertTrue(testAgentContext.failureCalled.await(1, TimeUnit.SECONDS));
-        processor.close();
+        assertTrue(context.failureCalled.await(1, TimeUnit.SECONDS));
     }
 
     @Test
@@ -256,9 +244,6 @@ public class GrpcAgentProcessorTest {
                         .endRecord();
         GenericData.Record avroRecord = new GenericData.Record(schema);
         avroRecord.put("testField", "test-string");
-        GrpcAgentProcessor processor = new GrpcAgentProcessor(channel);
-        processor.setContext(new TestAgentContext());
-        processor.start();
         Record inputRecord =
                 SimpleRecord.builder()
                         .value(avroRecord)
@@ -269,17 +254,12 @@ public class GrpcAgentProcessorTest {
         assertProcessSuccessful(processor, inputRecord);
         assertProcessSuccessful(processor, inputRecord);
         assertEquals(1, schemaCounter.get());
-        processor.close();
     }
 
     @Test
     void testInfo() throws Exception {
-        try (GrpcAgentProcessor processor = new GrpcAgentProcessor(channel)) {
-            processor.setContext(new TestAgentContext());
-            processor.start();
-            Map<String, Object> info = processor.buildAdditionalInfo();
-            assertEquals("test-info-value", info.get("test-info-key"));
-        }
+        Map<String, Object> info = processor.buildAdditionalInfo();
+        assertEquals("test-info-value", info.get("test-info-key"));
     }
 
     private static void assertProcessSuccessful(GrpcAgentProcessor processor, Record inputRecord)

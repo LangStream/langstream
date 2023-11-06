@@ -100,8 +100,7 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
                                 records.size());
                         records.forEach(recordSink::emitEmptyList);
                     } else {
-                        records.forEach(
-                                e -> recordSink.emitError(e, stopped));
+                        records.forEach(e -> recordSink.emitError(e, stopped));
                     }
                 }
             }

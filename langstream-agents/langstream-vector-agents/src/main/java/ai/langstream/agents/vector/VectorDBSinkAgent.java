@@ -51,7 +51,6 @@ public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
     public CompletableFuture<?> write(Record record) {
         // naive implementation, no batching
         Map<String, Object> context = Map.of();
-        return writer.upsert(record, context)
-                .thenRun(() -> processed(1, 0));
+        return writer.upsert(record, context).thenRun(() -> processed(1, 0));
     }
 }

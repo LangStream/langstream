@@ -447,7 +447,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
             log.warn("Agent already started {} / {}", this.getClass(), kafkaConnectorFQClassName);
             return;
         }
-        this.consumer = (Consumer<?, ?>) context.getTopicConsumer().getNativeConsumer();
+        this.consumer = (Consumer<?, ?>) agentContext.getTopicConsumer().getNativeConsumer();
         log.info("Getting consumer from context {}", consumer);
         Objects.requireNonNull(consumer);
         log.info(

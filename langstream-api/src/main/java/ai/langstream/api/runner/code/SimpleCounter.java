@@ -15,26 +15,19 @@
  */
 package ai.langstream.api.runner.code;
 
-public interface MetricsReporter {
-    static MetricsReporter DISABLED =
-            new MetricsReporter() {
-                public Counter counter(String name, String help) {
-                    return Counter.NOOP;
-                }
-            };
+import java.util.concurrent.atomic.AtomicLong;
 
-    default MetricsReporter withAgentName(String prefix) {
-        return this;
+class SimpleCounter implements MetricsReporter.Counter {
+
+    private final AtomicLong value = new AtomicLong(0);
+
+    @Override
+    public void count(long value) {
+        this.value.addAndGet(value);
     }
 
-    Counter counter(String name, String help);
-
-    interface Counter {
-
-        Counter NOOP = new SimpleCounter();
-
-        void count(long value);
-
-        long value();
+    @Override
+    public long value() {
+        return this.value.get();
     }
 }

@@ -18,7 +18,6 @@ package ai.langstream.agents.http;
 import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -55,7 +54,6 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
 
-    private AgentContext agentContext;
     private ExecutorService executor;
     private HttpClient httpClient;
     private String url;
@@ -113,11 +111,6 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
                         .cookieHandler(cookieManager)
                         .executor(executor)
                         .build();
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-        this.agentContext = context;
     }
 
     @Override

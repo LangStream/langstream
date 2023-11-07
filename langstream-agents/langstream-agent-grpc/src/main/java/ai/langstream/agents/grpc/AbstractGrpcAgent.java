@@ -16,7 +16,6 @@
 package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -61,7 +60,6 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     // Schemas received from the server
     protected final Map<Integer, Object> serverSchemas = new ConcurrentHashMap<>();
 
-    protected AgentContext agentContext;
     protected AgentServiceGrpc.AgentServiceBlockingStub blockingStub;
 
     protected final AtomicBoolean restarting = new AtomicBoolean(false);
@@ -92,11 +90,6 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         }
         blockingStub =
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
-    }
-
-    @Override
-    public void setContext(AgentContext context) {
-        this.agentContext = context;
     }
 
     @Override

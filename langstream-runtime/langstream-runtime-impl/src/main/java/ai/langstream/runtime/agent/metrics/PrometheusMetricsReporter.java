@@ -54,8 +54,13 @@ public class PrometheusMetricsReporter implements MetricsReporter {
         io.prometheus.client.Counter.Child counterWithLabel = counter.labels(agentName);
         return new Counter() {
             @Override
-            public void count(int value) {
+            public void count(long value) {
                 counterWithLabel.inc(value);
+            }
+
+            @Override
+            public long value() {
+                return (long) counterWithLabel.get();
             }
         };
     }

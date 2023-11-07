@@ -126,6 +126,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
 
     @Override
     public void setContext(AgentContext context) throws Exception {
+        super.setContext(context);
         for (AgentProcessor agent : processors) {
             agent.setContext(context);
         }

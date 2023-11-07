@@ -152,7 +152,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void setContext(AgentContext context) {
+    public void setContext(AgentContext context) throws Exception {
+        super.setContext(context);
         String globalAgentId = context.getGlobalAgentId();
         statusFileName = globalAgentId + ".webcrawler.status.json";
         log.info("Status file is {}", statusFileName);

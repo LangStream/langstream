@@ -19,7 +19,6 @@ import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -61,7 +60,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
 
-    private AgentContext agentContext;
     private ExecutorService executor;
     private LangServeClient langServeClient;
     private String url;
@@ -131,11 +129,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
                                 .executorService(executor)
                                 .cookieManager(cookieManager)
                                 .build());
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-        this.agentContext = context;
     }
 
     @Override

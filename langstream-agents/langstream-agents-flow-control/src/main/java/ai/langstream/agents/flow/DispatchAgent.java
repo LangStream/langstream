@@ -18,7 +18,6 @@ package ai.langstream.agents.flow;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -38,7 +37,6 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     private final List<Route> routes = new ArrayList<>();
     private final Map<String, TopicProducer> producers = new HashMap<>();
-    private AgentContext agentContext;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -75,11 +73,6 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                     }
                     this.routes.add(new Route(destination, drop, new JstlPredicate(when)));
                 });
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-        this.agentContext = context;
     }
 
     @Override

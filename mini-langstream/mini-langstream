@@ -223,10 +223,15 @@ start_port_forward() {
   local service=$1
   local file=$(mktemp)
 
-  minikube_cmd service $1 --url -n $k8s_namespace &> $file &
-  grep -q 'http' <(tail -f $file)
-  url=$(grep -e http $file)
-  echo "$url"
+  minikube_cmd service $1 --url -n $k8s_namespace &> $file
+  if grep -q 'http' $file; then
+    url=$(grep -e http $file)
+    echo "$url"
+  else
+    echo "${service}: ❌ - Port forwarding failed to start" >&2
+    cat $file >&2
+    exit 1
+  fi
 }
 
 kafka_hostname=langstream-kafka

@@ -81,6 +81,7 @@ public class CassandraWriterTest {
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agent.init(configuration);
+        agent.setContext(agentContext);
         agent.start();
         List<Record> committed = new CopyOnWriteArrayList<>();
 
@@ -123,6 +124,7 @@ public class CassandraWriterTest {
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agent.init(configuration);
+        agent.setContext(agentContext);
         agent.start();
         List<Record> committed = new CopyOnWriteArrayList<>();
 

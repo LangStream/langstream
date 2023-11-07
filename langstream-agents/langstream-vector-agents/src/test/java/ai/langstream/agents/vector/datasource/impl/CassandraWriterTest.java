@@ -16,9 +16,13 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -74,6 +78,8 @@ public class CassandraWriterTest {
         configuration.put("table", "vsearch.products");
         configuration.put("mapping", "id=value.id,description=value.description,name=value.name");
 
+        AgentContext agentContext = mock(AgentContext.class);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agent.init(configuration);
         agent.start();
         List<Record> committed = new CopyOnWriteArrayList<>();
@@ -114,6 +120,8 @@ public class CassandraWriterTest {
         configuration.put("table", "vsearch.products");
         configuration.put("mapping", "id=value.id,description=value.description,name=value.name");
 
+        AgentContext agentContext = mock(AgentContext.class);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agent.init(configuration);
         agent.start();
         List<Record> committed = new CopyOnWriteArrayList<>();

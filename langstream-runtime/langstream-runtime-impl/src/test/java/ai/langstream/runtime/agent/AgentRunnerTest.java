@@ -18,11 +18,13 @@ package ai.langstream.runtime.agent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
@@ -44,11 +46,18 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
+
         AgentRunner.runMainLoop(
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(1);
         source.expectUncommitted(0);
+    }
+
+    private static AgentContext createMockAgentContext() {
+        AgentContext context = mock(AgentContext.class);
+        when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
+        return context;
     }
 
     @Test
@@ -58,7 +67,8 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 3, "onFailure", "fail"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
+        when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
                 () ->
@@ -80,7 +90,7 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "fail"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
                 () ->
@@ -106,7 +116,7 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
         AgentRunner.runMainLoop(
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
@@ -124,7 +134,7 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
         AgentRunner.runMainLoop(
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
@@ -143,7 +153,7 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
         AgentRunner.runMainLoop(
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         processor.expectExecutions(2);
@@ -162,7 +172,7 @@ class AgentRunnerTest {
         SimpleAgentProcessor processor = new SimpleAgentProcessor(Set.of("fail-me"));
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
-        AgentContext context = mock(AgentContext.class);
+        AgentContext context = createMockAgentContext();
         AgentRunner.runMainLoop(
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         // all the records are processed in one batch

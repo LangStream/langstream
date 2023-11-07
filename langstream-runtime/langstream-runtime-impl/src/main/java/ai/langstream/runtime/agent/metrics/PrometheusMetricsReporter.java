@@ -23,19 +23,32 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PrometheusMetricsReporter implements MetricsReporter {
 
     private final String agentName;
-    private static Map<String, io.prometheus.client.Counter> counters = new ConcurrentHashMap<>();
 
-    public PrometheusMetricsReporter(String agentName) {
+    // podName is used as a label for the metrics for docker mode, in order to simulate multiple
+    // pods
+    // in the same JVM
+    private final String podName;
+
+    private static final Map<String, io.prometheus.client.Counter> counters =
+            new ConcurrentHashMap<>();
+
+    public PrometheusMetricsReporter(String agentName, String podName) {
         this.agentName = agentName;
+        this.podName = podName;
     }
 
     public PrometheusMetricsReporter() {
-        this("");
+        this("", "");
     }
 
     @Override
     public MetricsReporter withAgentName(String agentName) {
-        return new PrometheusMetricsReporter(agentName);
+        return new PrometheusMetricsReporter(agentName, podName);
+    }
+
+    @Override
+    public MetricsReporter withPodName(String podName) {
+        return new PrometheusMetricsReporter(agentName, podName);
     }
 
     @Override
@@ -44,14 +57,27 @@ public class PrometheusMetricsReporter implements MetricsReporter {
                 counters.computeIfAbsent(
                         name,
                         k -> {
-                            return io.prometheus.client.Counter.build()
-                                    .name(sanitizeMetricName(name))
-                                    .labelNames("agent_id")
-                                    .help(help)
-                                    .register();
+                            if (podName.isEmpty()) {
+                                return io.prometheus.client.Counter.build()
+                                        .name(sanitizeMetricName(name))
+                                        .labelNames("agent_id")
+                                        .help(help)
+                                        .register();
+                            } else {
+                                return io.prometheus.client.Counter.build()
+                                        .name(sanitizeMetricName(name))
+                                        .labelNames("agent_id", "pod")
+                                        .help(help)
+                                        .register();
+                            }
                         });
 
-        io.prometheus.client.Counter.Child counterWithLabel = counter.labels(agentName);
+        io.prometheus.client.Counter.Child counterWithLabel;
+        if (podName.isEmpty()) {
+            counterWithLabel = counter.labels(agentName);
+        } else {
+            counterWithLabel = counter.labels(agentName, podName);
+        }
         return new Counter() {
             @Override
             public void count(long value) {

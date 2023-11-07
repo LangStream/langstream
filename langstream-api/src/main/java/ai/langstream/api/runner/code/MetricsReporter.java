@@ -23,11 +23,15 @@ public interface MetricsReporter {
                 }
             };
 
-    default MetricsReporter withAgentName(String prefix) {
+    default MetricsReporter withAgentName(String agentName) {
         return this;
     }
 
     Counter counter(String name, String help);
+
+    default MetricsReporter withPodName(String podName) {
+        return this;
+    }
 
     interface Counter {
 

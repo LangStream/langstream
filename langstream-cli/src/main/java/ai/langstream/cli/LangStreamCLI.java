@@ -27,12 +27,22 @@ import picocli.CommandLine;
 
 public class LangStreamCLI {
 
+    /**
+     * @return ${LANGSTREAM_HOME} if set, otherwise ${user.home}/.langstream
+     */
     @SneakyThrows
     public static Path getLangstreamCLIHomeDirectory() {
+        final String langStreamHome = System.getProperty("LANGSTREAM_HOME");
+        if (langStreamHome != null && !langStreamHome.isBlank()) {
+            return Path.of(langStreamHome);
+        }
+
         final String userHome = System.getProperty("user.home");
         if (!userHome.isBlank() && !"?".equals(userHome)) {
             final Path langstreamDir = Path.of(userHome, ".langstream");
-            Files.createDirectories(langstreamDir);
+            if (!Files.exists(langstreamDir)) {
+                Files.createDirectories(langstreamDir);
+            }
             return langstreamDir;
         }
         return null;

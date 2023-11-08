@@ -47,6 +47,7 @@ pipeline:
       max-depth: 50
       handle-robots-file: true
       scan-html-documents: true
+      state-storage: disk
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"

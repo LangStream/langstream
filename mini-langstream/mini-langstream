@@ -219,7 +219,7 @@ install_langstream() {
 
 }
 
-start_port_forward() {
+query_port_forward() {
   local service=$1
   local file=$(mktemp)
 
@@ -227,9 +227,31 @@ start_port_forward() {
   if grep -q 'http' $file; then
     url=$(grep -e http $file)
     echo "$url"
+    return
+  fi
+  return 1
+}
+start_port_forward() {
+  local service=$1
+  local url
+
+  # See if there is already an external port setup
+  url=$(query_port_forward $service)
+  if [ $? -eq 0 ]; then
+    echo "$url"
+    return
+  fi
+
+  # Change the service to a NodePort one so it has one
+  kubectl_cmd -n $k8s_namespace patch svc ${service} -p '{"spec": {"type": "NodePort"}}'
+
+  # Fetch the auto-generated port details, or error out
+  url=$(query_port_forward $service)
+  if [ $? -eq 0 ]; then
+    echo "$url"
+    return
   else
-    echo "${service}: ❌ - Port forwarding failed to start" >&2
-    cat $file >&2
+    echo "${service}: ❌ - Port forwarding could not be enabled" >&2
     exit 1
   fi
 }

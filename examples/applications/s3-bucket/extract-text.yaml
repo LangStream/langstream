@@ -15,9 +15,23 @@
 #
 
 name: "Extract and manipulate text"
-topics:
-  - name: "chunks-topic"
+assets:
+  - name: "documents-table"
+    asset-type: "jdbc-table"
     creation-mode: create-if-not-exists
+    config:
+      table-name: "documents"
+      datasource: "JdbcDatasource"
+      create-statements:
+        - |
+          CREATE TABLE documents (
+          filename TEXT,
+          chunk_id int,
+          num_tokens int,
+          lang TEXT,
+          text TEXT,
+          embeddings_vector FLOATA,
+          PRIMARY KEY (filename, chunk_id));
 pipeline:
   - name: "Read from S3"
     type: "s3-source"
@@ -27,7 +41,6 @@ pipeline:
       access-key: "${secrets.s3.access-key}"
       secret-key: "${secrets.s3.secret}"
       region: "${secrets.s3.region}"
-      idle-time: 5
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -73,10 +86,40 @@ pipeline:
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    output: "chunks-topic"
     configuration:
       model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10
       flush-interval: 500
+  - name: "Delete stale chunks"
+    type: "query"
+    configuration:
+      datasource: "JdbcDatasource"
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      mode: "execute"
+      query: "DELETE FROM documents WHERE filename = ? AND chunk_id > ?"
+      output-field: "value.delete-results"
+      fields:
+        - "value.filename"
+        - "fn:toInt(value.chunk_id)"
+  - name: "Write"
+    type: "vector-db-sink"
+    configuration:
+      datasource: "JdbcDatasource"
+      table-name: "documents"
+      fields:
+        - name: "filename"
+          expression: "value.filename"
+          primary-key: true
+        - name: "chunk_id"
+          expression: "value.chunk_id"
+          primary-key: true
+        - name: "embeddings_vector"
+          expression: "fn:toListOfFloat(value.embeddings_vector)"
+        - name: "lang"
+          expression: "value.language"
+        - name: "text"
+          expression: "value.text"
+        - name: "num_tokens"
+          expression: "value.chunk_num_tokens"

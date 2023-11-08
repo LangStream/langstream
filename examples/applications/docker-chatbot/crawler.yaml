@@ -42,21 +42,11 @@ pipeline:
       allowed-domains: ["https://docs.langstream.ai"]
       forbidden-paths: []
       min-time-between-requests: 500
-      reindex-interval-seconds: 3600
       max-error-count: 5
       max-urls: 1000
       max-depth: 50
       handle-robots-file: true
-      user-agent: "" # this is computed automatically, but you can override it
       scan-html-documents: true
-      http-timeout: 10000
-      handle-cookies: true
-      max-unflushed-pages: 100
-      bucketName: "${secrets.s3.bucket-name}"
-      endpoint: "${secrets.s3.endpoint}"
-      access-key: "${secrets.s3.access-key}"
-      secret-key: "${secrets.s3.secret}"
-      region: "${secrets.s3.region}"
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"

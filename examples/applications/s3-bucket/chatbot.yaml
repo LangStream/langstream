@@ -1,0 +1,101 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+topics:
+  - name: "questions-topic"
+    creation-mode: create-if-not-exists
+  - name: "answers-topic"
+    creation-mode: create-if-not-exists
+  - name: "log-topic"
+    creation-mode: create-if-not-exists
+errors:
+    on-failure: "skip"
+pipeline:
+  - name: "convert-to-structure"
+    type: "document-to-json"
+    input: "questions-topic"
+    configuration:
+      text-field: "question"
+  - name: "compute-embeddings"
+    type: "compute-ai-embeddings"
+    configuration:
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.question_embeddings"
+      text: "{{ value.question }}"
+      flush-interval: 0
+  - name: "lookup-related-documents"
+    type: "query-vector-db"
+    configuration:
+      datasource: "JdbcDatasource"
+      query: "SELECT text,embeddings_vector FROM documents ORDER BY cosine_similarity(embeddings_vector, CAST(? as FLOAT ARRAY)) DESC LIMIT 20"
+      fields:
+        - "value.question_embeddings"
+      output-field: "value.related_documents"
+  - name: "re-rank documents with MMR"
+    type: "re-rank"
+    configuration:
+      max: 5 # keep only the top 5 documents, because we have an hard limit on the prompt size
+      field: "value.related_documents"
+      query-text: "value.question"
+      query-embeddings: "value.question_embeddings"
+      output-field: "value.related_documents"
+      text-field: "record.text"
+      embeddings-field: "record.embeddings_vector"
+      algorithm: "MMR"
+      lambda: 0.5
+      k1: 1.2
+      b: 0.75
+  - name: "ai-chat-completions"
+    type: "ai-chat-completions"
+
+    configuration:
+      model: "${secrets.open-ai.chat-completions-model}" # This needs to be set to the model deployment name, not the base name
+      # on the log-topic we add a field with the answer
+      completion-field: "value.answer"
+      # we are also logging the prompt we sent to the LLM
+      log-field: "value.prompt"
+      # here we configure the streaming behavior
+      # as soon as the LLM answers with a chunk we send it to the answers-topic
+      stream-to-topic: "answers-topic"
+      # on the streaming answer we send the answer as whole message
+      # the 'value' syntax is used to refer to the whole value of the message
+      stream-response-completion-field: "value"
+      # we want to stream the answer as soon as we have 20 chunks
+      # in order to reduce latency for the first message the agent sends the first message
+      # with 1 chunk, then with 2 chunks....up to the min-chunks-per-message value
+      # eventually we want to send bigger messages to reduce the overhead of each message on the topic
+      min-chunks-per-message: 20
+      messages:
+        - role: system
+          content: |
+              An user is going to perform a questions, The documents below may help you in answering to their questions.
+              Please try to leverage them in your answer as much as possible.              
+              If you provide code or YAML snippets, please explicitly state that they are examples.
+              Do not provide information that is not related to the documents provided below.
+            
+              Documents:
+              {{# value.related_documents}}
+              {{ text}}
+              {{/ value.related_documents}}
+        - role: user
+          content: "{{ value.question}}"
+  - name: "cleanup-response"
+    type: "drop-fields"
+    output: "log-topic"
+    configuration:
+      fields:
+        - "question_embeddings"
+        - "related_documents"

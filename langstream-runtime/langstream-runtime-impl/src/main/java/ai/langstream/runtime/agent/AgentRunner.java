@@ -44,7 +44,6 @@ import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.api.AgentInfoServlet;
 import ai.langstream.runtime.agent.api.MetricsHttpServlet;
-import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.agent.simple.IdentityAgentProvider;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import io.prometheus.client.hotspot.DefaultExports;
@@ -90,8 +89,6 @@ public class AgentRunner {
                 System.exit(-1);
             };
 
-    private static PrometheusMetricsReporter metricsReporter = new PrometheusMetricsReporter();
-
     public interface MainErrorHandler {
         void handleError(Throwable error);
     }
@@ -121,7 +118,8 @@ public class AgentRunner {
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer,
-            NarFileHandler narFileHandler)
+            NarFileHandler narFileHandler,
+            MetricsReporter metricsReporter)
             throws Exception {
         new AgentRunner()
                 .run(
@@ -133,7 +131,8 @@ public class AgentRunner {
                         continueLoop,
                         beforeStopSource,
                         startHttpServer,
-                        narFileHandler);
+                        narFileHandler,
+                        metricsReporter);
     }
 
     public void run(
@@ -145,7 +144,8 @@ public class AgentRunner {
             Supplier<Boolean> continueLoop,
             Runnable beforeStopSource,
             boolean startHttpServer,
-            NarFileHandler sharedNarFileHandler)
+            NarFileHandler sharedNarFileHandler,
+            MetricsReporter metricsReporter)
             throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("Pod Configuration {}", configuration);
@@ -197,7 +197,8 @@ public class AgentRunner {
                             agentAPIController,
                             beforeStopSource,
                             codeDirectory,
-                            basePersistentStateDirectory);
+                            basePersistentStateDirectory,
+                            metricsReporter);
                 } finally {
                     if (server != null) {
                         server.stop();
@@ -252,7 +253,8 @@ public class AgentRunner {
             AgentAPIController agentAPIController,
             Runnable beforeStopSource,
             Path codeDirectory,
-            Path basePersistentStateDirectory)
+            Path basePersistentStateDirectory,
+            MetricsReporter metricsReporter)
             throws Exception {
 
         Set<String> agentsWithPersistentState = configuration.agent().agentsWithDisk();
@@ -401,7 +403,8 @@ public class AgentRunner {
                                     },
                                     codeDirectory,
                                     basePersistentStateDirectory,
-                                    agentsWithPersistentState);
+                                    agentsWithPersistentState,
+                                    metricsReporter);
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
@@ -1026,6 +1029,7 @@ public class AgentRunner {
 
         private final Path codeDirectory;
         private final Path basePersistentStateDirectory;
+        private final MetricsReporter metricsReporter;
 
         private final Set<String> agentsWithPersistentState;
 
@@ -1038,7 +1042,8 @@ public class AgentRunner {
                 TopicConnectionProvider topicConnectionProvider,
                 Path codeDirectory,
                 Path basePersistentStateDirectory,
-                Set<String> agentsWithPersistentState) {
+                Set<String> agentsWithPersistentState,
+                MetricsReporter metricsReporter) {
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
@@ -1048,6 +1053,7 @@ public class AgentRunner {
             this.codeDirectory = codeDirectory;
             this.basePersistentStateDirectory = basePersistentStateDirectory;
             this.agentsWithPersistentState = agentsWithPersistentState;
+            this.metricsReporter = metricsReporter;
             ensurePersistentStateDirectoriesExist();
         }
 

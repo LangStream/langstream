@@ -16,7 +16,6 @@
 package ai.langstream.kafka.runner.kafkaconnect;
 
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSink;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.kafka.runner.KafkaRecord;
@@ -150,21 +149,12 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
 
     private Consumer<?, ?> consumer;
 
-    private AgentContext context;
-
     private final AtomicReference<AvroData> lazyAvroData = new AtomicReference<>();
 
     private final ConcurrentLinkedDeque<ConsumerCommand> consumerCqrsQueue =
             new ConcurrentLinkedDeque<>();
 
     private int errorsToInject = 0;
-
-    // has to be the same consumer as used to read records to process,
-    // otherwise pause/resume won't work
-    @Override
-    public void setContext(AgentContext context) {
-        this.context = context;
-    }
 
     protected void submitCommand(ConsumerCommand cmd) {
         consumerCqrsQueue.add(cmd);
@@ -197,7 +187,8 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
             op = (KafkaRecord.KafkaConsumerOffsetProvider) kr;
         } catch (Throwable t) {
             // can throw RuntimeException, let it bubble up
-            context.getBadRecordHandler()
+            agentContext
+                    .getBadRecordHandler()
                     .handle(
                             rec,
                             t,
@@ -456,7 +447,7 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
             log.warn("Agent already started {} / {}", this.getClass(), kafkaConnectorFQClassName);
             return;
         }
-        this.consumer = (Consumer<?, ?>) context.getTopicConsumer().getNativeConsumer();
+        this.consumer = (Consumer<?, ?>) agentContext.getTopicConsumer().getNativeConsumer();
         log.info("Getting consumer from context {}", consumer);
         Objects.requireNonNull(consumer);
         log.info(

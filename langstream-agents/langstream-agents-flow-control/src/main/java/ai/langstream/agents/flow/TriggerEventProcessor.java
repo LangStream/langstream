@@ -19,7 +19,6 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
@@ -41,7 +40,6 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
     private TopicProducer topicProducer;
     private String destination;
     private JstlPredicate predicate;
-    private AgentContext agentContext;
 
     private boolean continueProcessing;
 
@@ -69,11 +67,6 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
     @Override
     public ComponentType componentType() {
         return ComponentType.PROCESSOR;
-    }
-
-    @Override
-    public void setContext(AgentContext context) throws Exception {
-        this.agentContext = context;
     }
 
     private Record emitRecord(Record originalRecord) {

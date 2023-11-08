@@ -19,10 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
@@ -175,6 +179,9 @@ public class S3SourceTest {
         configs.put("endpoint", endpoint);
         configs.put("bucketName", bucket);
         agentSource.init(configs);
+        AgentContext context = mock(AgentContext.class);
+        when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
+        agentSource.setContext(context);
         agentSource.start();
         return agentSource;
     }

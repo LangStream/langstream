@@ -101,6 +101,7 @@ class AgentRunnerStarterTest {
                         Mockito.any(Supplier.class),
                         Mockito.any(),
                         eq(true),
+                        Mockito.any(),
                         Mockito.any());
     }
 

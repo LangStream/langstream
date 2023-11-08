@@ -17,6 +17,7 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import java.nio.charset.StandardCharsets;
@@ -150,8 +151,8 @@ class GenIAgentsRunnerIT extends AbstractKafkaApplicationRunner {
                     default:
                         throw new IllegalStateException("Unexpected value: " + p.getAgentId());
                 }
-                assertEquals(0L, p.getMetrics().getTotalIn());
-                assertEquals(0L, p.getMetrics().getTotalOut());
+                assertTrue(p.getMetrics().getTotalIn() > 0);
+                assertTrue(p.getMetrics().getTotalOut() > 0);
                 if (!mayHaveProcessed) {
                     assertEquals(0L, p.getMetrics().getLastProcessedAt());
                 }

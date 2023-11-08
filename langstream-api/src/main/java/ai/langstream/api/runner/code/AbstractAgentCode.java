@@ -17,19 +17,20 @@ package ai.langstream.api.runner.code;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Base class for AgentCode implementations. It provides default implementations for the Agent
  * identity and AgentInfo methods.
  */
 public abstract class AbstractAgentCode implements AgentCode {
-    private final AtomicLong totalIn = new AtomicLong();
-    private final AtomicLong totalOut = new AtomicLong();
+    private MetricsReporter.Counter totalIn;
+    private MetricsReporter.Counter totalOut;
     private String agentId;
     private String agentType;
     private long startedAt;
     private long lastProcessedAt;
+
+    protected AgentContext agentContext;
 
     @Override
     public final String agentId() {
@@ -52,10 +53,31 @@ public abstract class AbstractAgentCode implements AgentCode {
         this.startedAt = startedAt;
     }
 
+    @Override
+    public void setContext(AgentContext context) throws Exception {
+        this.agentContext = context;
+
+        totalIn = MetricsReporter.Counter.NOOP;
+        totalOut = MetricsReporter.Counter.NOOP;
+
+        // this is the main reported for the executor, we can use it to report metrics
+        // about the whole execution in the pipeline
+        MetricsReporter reporter = context.getMetricsReporter();
+        switch (componentType()) {
+            case SOURCE -> totalOut =
+                    reporter.counter("source_out", "Total number of records emitted by the source");
+            case SINK -> totalIn =
+                    reporter.counter("sink_in", "Total number of records received by the sink");
+        }
+    }
+
     public void processed(long countIn, long countOut) {
+        if (totalIn == null) {
+            throw new IllegalStateException("setContext has not been called");
+        }
         lastProcessedAt = System.currentTimeMillis();
-        totalIn.addAndGet(countIn);
-        totalOut.addAndGet(countOut);
+        totalIn.count(countIn);
+        totalOut.count(countOut);
     }
 
     /**
@@ -76,6 +98,6 @@ public abstract class AbstractAgentCode implements AgentCode {
                         componentType().name(),
                         buildAdditionalInfo(),
                         new AgentStatusResponse.Metrics(
-                                totalIn.get(), totalOut.get(), startedAt(), lastProcessedAt)));
+                                totalIn.value(), totalOut.value(), startedAt(), lastProcessedAt)));
     }
 }

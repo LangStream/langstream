@@ -16,6 +16,23 @@
 #
 
 gateways:
-  - id: "consume-chunks"
+  - id: "user-input"
+    type: produce
+    topic: "questions-topic"
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: langstream-client-session-id
+          valueFromParameters: sessionId
+
+  - id: "bot-output"
     type: consume
-    topic: "chunks-topic"
+    topic: "answers-topic"
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            valueFromParameters: sessionId

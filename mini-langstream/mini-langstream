@@ -243,7 +243,7 @@ start_port_forward() {
   fi
 
   # Change the service to a NodePort one so it has one
-  kubectl_cmd -n $k8s_namespace patch svc ${service} -p '{"spec": {"type": "NodePort"}}'
+  kubectl_cmd -n $k8s_namespace patch svc ${service} -p '{"spec": {"type": "NodePort"}}' &> /dev/null
 
   # Fetch the auto-generated port details, or error out
   url=$(query_port_forward $service)

@@ -18,11 +18,11 @@
 
 # Usage: ./minio-upload my-bucket my-file.zip
 
-bucket=$1
-file=$2
+host=$1
+url=$2
+bucket=$3
+file=$4
 
-host=localhost
-url=http://localhost:9000
 s3_key=minioadmin
 s3_secret=minioadmin
 

@@ -225,7 +225,7 @@ query_port_forward() {
 
   minikube_cmd service $1 --url -n $k8s_namespace &> $file
   if grep -q 'http' $file; then
-    url=$(grep -e http $file)
+    url=$(grep -e http $file | head -1)
     echo "$url"
     return
   fi

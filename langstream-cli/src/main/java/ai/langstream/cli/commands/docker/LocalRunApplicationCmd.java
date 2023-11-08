@@ -377,11 +377,6 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-p");
         commandLine.add("8000:8000");
 
-        if (startS3) {
-            commandLine.add("-p");
-            commandLine.add("9800:9000");
-        }
-
         if (memory != null && !memory.isEmpty()) {
             commandLine.add("--memory");
             commandLine.add(memory);

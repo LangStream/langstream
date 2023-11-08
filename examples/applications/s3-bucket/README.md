@@ -10,14 +10,7 @@ The extract-text.yaml file defines a pipeline that will:
 - Detect the language and filter out non-English documents
 - Normalize the text
 - Split the text into chunks
-
-The write-to-db.yaml file defines a pipeline that will:
 - Write the chunks to a Vector Database, in this case DataStax Astra DB
-
-You could write a single pipeline file, but in this example we are keeping them as separate files
-for demonstration purposes.
-
-When you deploy the application all the files are deployed to the cluster as a single unit. 
 
 ## Prerequisites
 

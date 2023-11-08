@@ -257,8 +257,6 @@ public class OpenAICompletionService implements CompletionsService {
                 com.azure.ai.openai.models.ChatCompletions chatCompletions) {
             List<com.azure.ai.openai.models.ChatChoice> choices = chatCompletions.getChoices();
             String answerId = chatCompletions.getId();
-            log.info("Chat completions chunk: {}", chatCompletions);
-            log.info("Chat completions chunk:usage: {}", chatCompletions.getUsage());
             if (chatCompletions.getUsage() != null) {
                 totalTokens.addAndGet(chatCompletions.getUsage().getTotalTokens());
                 completionTokens.addAndGet(chatCompletions.getUsage().getCompletionTokens());

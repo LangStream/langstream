@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -241,7 +242,8 @@ public abstract class AbstractApplicationRunner {
                                         },
                                         () -> validateAgentInfoBeforeStop(agentAPIController),
                                         false,
-                                        narFileHandler);
+                                        narFileHandler,
+                                        MetricsReporter.DISABLED);
                                 List<?> infos = agentAPIController.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",

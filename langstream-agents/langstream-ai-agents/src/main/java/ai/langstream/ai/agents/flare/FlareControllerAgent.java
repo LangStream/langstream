@@ -88,6 +88,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
 
     @Override
     public void setContext(AgentContext context) throws Exception {
+        super.setContext(context);
         this.loopTopicProducer =
                 context.getTopicConnectionProvider()
                         .createProducer(context.getGlobalAgentId(), loopTopic, Map.of());

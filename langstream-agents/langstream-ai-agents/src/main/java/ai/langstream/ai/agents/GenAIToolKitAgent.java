@@ -57,7 +57,6 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
     private ServiceProvider serviceProvider;
-    private AgentContext agentContext;
     private Map<String, Object> configuration;
 
     private TopicProducerStreamingAnswersConsumerFactory streamingAnswersConsumerFactory;
@@ -65,11 +64,6 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     @Override
     public ComponentType componentType() {
         return ComponentType.PROCESSOR;
-    }
-
-    @Override
-    public void setContext(AgentContext context) {
-        this.agentContext = context;
     }
 
     @Override

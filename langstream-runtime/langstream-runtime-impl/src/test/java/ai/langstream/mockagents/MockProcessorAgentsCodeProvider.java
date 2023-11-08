@@ -78,6 +78,7 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
 
         @Override
         public void setContext(AgentContext context) throws Exception {
+            super.setContext(context);
             this.statusFile =
                     context.getPersistentStateDirectoryForAgent(agentId())
                             .orElseThrow()

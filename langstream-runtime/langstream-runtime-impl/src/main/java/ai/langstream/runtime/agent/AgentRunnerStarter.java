@@ -24,8 +24,10 @@ import static ai.langstream.runtime.api.agent.AgentRunnerConstants.PERSISTENT_VO
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV;
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.agent.api.AgentAPIController;
+import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -38,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AgentRunnerStarter extends RuntimeStarter {
     private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    private static final MetricsReporter metricsReporter = new PrometheusMetricsReporter();
 
     private static final MainErrorHandler mainErrorHandler =
             error -> {
@@ -126,6 +129,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
                 continueLoop::get,
                 null,
                 true,
-                null);
+                null,
+                metricsReporter);
     }
 }

@@ -18,10 +18,14 @@ package ai.langstream.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +39,7 @@ class LoadAgentCodeTest {
     public void testLoadNoop() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentProcessor noop = (AgentProcessor) registry.getAgentCode("noop").agentCode();
+        setContext(noop);
         MyRecord myRecord = new MyRecord();
         List<AgentProcessor.SourceRecordAndResult> res = new ArrayList<>();
         noop.process(List.of(myRecord), res::add);
@@ -46,6 +51,7 @@ class LoadAgentCodeTest {
     public void testLoadIdentity() throws Exception {
         AgentCodeRegistry registry = new AgentCodeRegistry();
         AgentProcessor noop = (AgentProcessor) registry.getAgentCode("identity").agentCode();
+        setContext(noop);
         MyRecord myRecord = new MyRecord();
         List<AgentProcessor.SourceRecordAndResult> res = new ArrayList<>();
         noop.process(List.of(myRecord), res::add);
@@ -56,6 +62,12 @@ class LoadAgentCodeTest {
         res.clear();
         noop.process(List.of(myRecord), res::add);
         assertSame(myRecord, res.get(0).sourceRecord());
+    }
+
+    private static void setContext(AgentProcessor noop) throws Exception {
+        AgentContext agentContext = mock(AgentContext.class);
+        noop.setContext(agentContext);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
     }
 
     private static class MyRecord implements Record {

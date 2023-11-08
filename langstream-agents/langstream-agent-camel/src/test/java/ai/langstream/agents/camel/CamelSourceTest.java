@@ -16,9 +16,13 @@
 package ai.langstream.agents.camel;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +60,10 @@ public class CamelSourceTest {
         configs.put("component-uri", uri);
         configs.put("component-options", componentOptions);
         configs.put("max-buffered-records", 10);
+        AgentContext agentContext = mock(AgentContext.class);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agentSource.init(configs);
+        agentSource.setContext(agentContext);
         agentSource.start();
         return agentSource;
     }

@@ -17,6 +17,7 @@ package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
@@ -28,6 +29,7 @@ import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
+import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -202,6 +204,8 @@ public class LocalApplicationRunner
                                 }
                             });
 
+            MetricsReporter globalMetricsReporter = new PrometheusMetricsReporter();
+
             // execute all the pods
             ExecutorService executorService = Executors.newCachedThreadPool();
             List<CompletableFuture<?>> futures = new ArrayList<>();
@@ -211,6 +215,9 @@ public class LocalApplicationRunner
                 futures.add(handle);
                 executorService.submit(
                         () -> {
+                            MetricsReporter metricsReporter =
+                                    globalMetricsReporter.withPodName(
+                                            podConfiguration.agent().agentId());
                             String originalName = Thread.currentThread().getName();
                             Thread.currentThread()
                                     .setName(
@@ -234,7 +241,8 @@ public class LocalApplicationRunner
                                         continueLoop::get,
                                         () -> {},
                                         false,
-                                        narFileHandler);
+                                        narFileHandler,
+                                        metricsReporter);
                                 List<?> infos = agentAPIController.serveWorkerStatus();
                                 log.info(
                                         "{} AgentPod {} AgentInfo {}",

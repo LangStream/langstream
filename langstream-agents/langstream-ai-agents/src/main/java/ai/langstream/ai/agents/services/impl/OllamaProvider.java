@@ -21,7 +21,6 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
-import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
@@ -49,8 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OllamaProvider implements ServiceProviderProvider {
 
     static ObjectMapper mapper =
-            new ObjectMapper()
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static final ObjectMapper MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -113,12 +111,12 @@ public class OllamaProvider implements ServiceProviderProvider {
                 for (String text : list) {
                     futures.add(computeEmbeddings(text));
                 }
-                return CompletableFuture
-                        .allOf(futures.toArray(new CompletableFuture[0]))
-                        .thenApply(___ ->
-                           futures.stream()
-                                   .map(CompletableFuture::join)
-                                   .collect(Collectors.toList()));
+                return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                        .thenApply(
+                                ___ ->
+                                        futures.stream()
+                                                .map(CompletableFuture::join)
+                                                .collect(Collectors.toList()));
             }
 
             record EmbeddingResponse(List<Double> embedding, String error) {}
@@ -137,23 +135,26 @@ public class OllamaProvider implements ServiceProviderProvider {
                                     .method("POST", bodyPublisher);
                     final HttpRequest httpRequest = requestBuilder.build();
 
-                    return httpClient.sendAsync(
-                            httpRequest,
-                            HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-                                if (response.statusCode() != 200) {
-                                    throw new RuntimeException("HTTP Error: " + response.statusCode());
-                                }
-                                try {
-                                    String body = response.body();
-                                    EmbeddingResponse embeddings = mapper.readValue(body, EmbeddingResponse.class);
-                                    if (embeddings.error != null) {
-                                        throw new RuntimeException(embeddings.error);
-                                    }
-                                    return embeddings.embedding();
-                                } catch (JsonProcessingException error) {
-                                    throw new CompletionException(error);
-                                }
-                    });
+                    return httpClient
+                            .sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                            .thenApply(
+                                    response -> {
+                                        if (response.statusCode() != 200) {
+                                            throw new RuntimeException(
+                                                    "HTTP Error: " + response.statusCode());
+                                        }
+                                        try {
+                                            String body = response.body();
+                                            EmbeddingResponse embeddings =
+                                                    mapper.readValue(body, EmbeddingResponse.class);
+                                            if (embeddings.error != null) {
+                                                throw new RuntimeException(embeddings.error);
+                                            }
+                                            return embeddings.embedding();
+                                        } catch (JsonProcessingException error) {
+                                            throw new CompletionException(error);
+                                        }
+                                    });
                 } catch (Throwable error) {
                     log.error("IO Error while calling Ollama", error);
                     return CompletableFuture.failedFuture(error);
@@ -194,7 +195,6 @@ public class OllamaProvider implements ServiceProviderProvider {
 
             record ResponseLine(
                     String model, String create_at, String response, boolean done, String error) {}
-
 
             @Override
             @SneakyThrows

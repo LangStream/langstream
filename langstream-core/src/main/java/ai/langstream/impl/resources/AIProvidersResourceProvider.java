@@ -36,12 +36,15 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
     protected static final String HUGGING_FACE_CONFIGURATION = "hugging-face-configuration";
     protected static final String VERTEX_CONFIGURATION = "vertex-configuration";
     protected static final String BEDROCK_CONFIGURATION = "bedrock-configuration";
+
+    protected static final String OLLAMA_CONFIGURATION = "ollama-configuration";
     private static final Set<String> SUPPORTED_TYPES =
             Set.of(
                     OPEN_AI_CONFIGURATION,
                     HUGGING_FACE_CONFIGURATION,
                     VERTEX_CONFIGURATION,
-                    BEDROCK_CONFIGURATION);
+                    BEDROCK_CONFIGURATION,
+                    OLLAMA_CONFIGURATION);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public AIProvidersResourceProvider() {
@@ -106,6 +109,9 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             }
             case BEDROCK_CONFIGURATION -> {
                 return BedrockConfig.class;
+            }
+            case OLLAMA_CONFIGURATION -> {
+                return OllamaConfig.class;
             }
             default -> throw new IllegalStateException();
         }
@@ -230,6 +236,20 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                         """)
         @JsonProperty("access-key")
         private String accessKey;
+    }
+
+    @Data
+    @ResourceConfig(name = "Ollama", description = "Connect to Ollama API.")
+    public static class OllamaConfig {
+
+        @ConfigProperty(
+                description =
+                        """
+                            URL for the Ollama service.
+                            """,
+                required = true)
+        @JsonProperty("url")
+        private String url;
     }
 
     @Data

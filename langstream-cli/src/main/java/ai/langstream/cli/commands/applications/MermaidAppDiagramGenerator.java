@@ -348,8 +348,9 @@ public class MermaidAppDiagramGenerator {
                                                                     .equals(
                                                                             "hugging-face-configuration")
                                                             || r.getOriginalType()
-                                                                    .equals(
-                                                                            "bedrock-configuration"))
+                                                                    .equals("bedrock-configuration")
+                                                            || r.getOriginalType()
+                                                                    .equals("ollama-configuration"))
                                     .findFirst()
                                     .orElse(null);
                     if (resource != null) {

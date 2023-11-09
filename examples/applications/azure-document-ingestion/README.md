@@ -1,6 +1,6 @@
-## Azure Blob Storage Ingestion + RAG
+# Real time RAG with LangChain, LangStream, AstraDB, and Azure Blob Storage Ingestion
 
-This sample application demonstrates how to create a continuous PDF document ingestion pipeline using an Azure blob storage container and then use Retrieval Augmented Generation (RAG) to inquire about the contents of the PDFs.
+This sample application demonstrates how to create a continuous PDF document ingestion pipeline using an Azure blob storage container and then use Retrieval Augmented Generation (RAG) to inquire about the contents of the PDFs. It uses our full stack (LangStream, AstraDB, and LangChain) with Azure Blob Storage for PDF ingestion. (Although it uses Azure, you could easily swap out Azure for AWS S3 or GCP Cloud Storage.)
 
 Here is what you will build:
 ![Langstream UI in action](images/langstream_ui_intro.png)

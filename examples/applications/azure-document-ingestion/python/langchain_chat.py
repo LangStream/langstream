@@ -65,8 +65,4 @@ class LangChainChat(Processor):
     def process(self, record):
         question = record.value()
         response = self.answer_chain.run(question)
-        # response = self.answer_chain.invoke({
-        #     "question": question,
-        #     "chat_history": []
-        # })
         return [SimpleRecord(response, headers=record.headers())]

@@ -4,7 +4,6 @@ This sample application demonstrates how to create a continuous PDF document ing
 
 Here is what you will build:
 ![Langstream UI in action](images/langstream_ui_intro.png)
-
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
 - Detect new PDF files uploaded to the specified Azure blob storage container.

@@ -1,6 +1,6 @@
-## Azure Blob Storage Ingestion
+## Azure Blob Storage Ingestion + RAG
 
-This sample application demonstrates how to create a continuous PDF document ingestion pipeline using an Azure blob storage container.
+This sample application demonstrates how to create a continuous PDF document ingestion pipeline using an Azure blob storage container and then use Retrieval Augmented Generation (RAG) to inquire about the contents of the PDFs.
 
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
@@ -10,6 +10,7 @@ This sample application demonstrates how to create a continuous PDF document ing
 - Extract information from the filename.
 - Generate a vector embedding for the text contents.
 - Write the results to the AstraDB table.
+- Perform RAG queries in the UI
 
 ## Setting Up AstraDB
 

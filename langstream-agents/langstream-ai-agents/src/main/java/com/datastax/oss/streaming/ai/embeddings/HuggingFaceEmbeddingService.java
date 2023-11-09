@@ -17,8 +17,6 @@ package com.datastax.oss.streaming.ai.embeddings;
 
 import ai.djl.MalformedModelException;
 import ai.djl.repository.zoo.ModelNotFoundException;
-import jnr.ffi.annotations.In;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +39,7 @@ public class HuggingFaceEmbeddingService
             throws IOException,
                     ModelNotFoundException,
                     MalformedModelException,
-                    IllegalAccessException,
-                    InterruptedException {
+                    IllegalAccessException {
         super(conf);
     }
 

@@ -2,6 +2,9 @@
 
 This sample application demonstrates how to create a continuous PDF document ingestion pipeline using an Azure blob storage container and then use Retrieval Augmented Generation (RAG) to inquire about the contents of the PDFs.
 
+Here is what you will build:
+![Langstream UI in action](images/langstream_ui_intro.png)
+
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
 - Detect new PDF files uploaded to the specified Azure blob storage container.

@@ -29,10 +29,6 @@ configuration:
       name: "ollama"
       configuration:
         url: "${secrets.ollama.url}"
-    - type: "hugging-face-configuration"
-      name: "huggingface"
-      configuration:
-        provider: "local"
   dependencies:
     - name: "HerdDB.org JDBC Driver"
       url: "https://repo1.maven.org/maven2/org/herddb/herddb-jdbc/0.28.0/herddb-jdbc-0.28.0-thin.jar"

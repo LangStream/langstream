@@ -19,6 +19,7 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.completions.Chunk;
 import com.datastax.oss.streaming.ai.completions.CompletionsService;
+import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -54,7 +55,7 @@ class OllamaProviderTest {
         OllamaProvider provider = new OllamaProvider();
         ServiceProvider implementation =
                 provider.createImplementation(
-                        Map.of("ollama", Map.of("url", wmRuntimeInfo.getHttpBaseUrl() + "/api/generate")),
+                        Map.of("ollama", Map.of("url", wmRuntimeInfo.getHttpBaseUrl())),
                         MetricsReporter.DISABLED);
 
         List<String> chunks = new CopyOnWriteArrayList<>();
@@ -87,5 +88,31 @@ class OllamaProviderTest {
         log.info("result: {}", result);
         assertEquals("one two three", result);
         assertEquals(List.of("one", " two", " three"), chunks);
+    }
+
+    @Test
+    void testEmbeddings(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+        stubFor(
+                post("/api/embeddings")
+                        .willReturn(
+                                ok(
+                                        """
+                        {"embedding":[-0.9004754424095154,1.2847540378570557,1.1102418899536133,-0.18884147703647614]}
+                
+                      """)));
+
+        OllamaProvider provider = new OllamaProvider();
+        ServiceProvider implementation =
+                provider.createImplementation(
+                        Map.of("ollama", Map.of("url", wmRuntimeInfo.getHttpBaseUrl())),
+                        MetricsReporter.DISABLED);
+
+        EmbeddingsService service =
+                implementation.getEmbeddingsService(Map.of("model", "llama2"));
+
+        List<List<Double>> result = service.computeEmbeddings(
+                List.of("test")).get();
+        log.info("result: {}", result);
+        assertEquals(List.of(List.of(-0.9004754424095154, 1.2847540378570557, 1.1102418899536133, -0.18884147703647614)), result);
     }
 }

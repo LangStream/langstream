@@ -26,6 +26,7 @@ import com.datastax.oss.streaming.ai.completions.CompletionsService;
 import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringWriter;
@@ -33,9 +34,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -44,6 +47,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OllamaProvider implements ServiceProviderProvider {
+
+    static ObjectMapper mapper =
+            new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static final ObjectMapper MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -85,7 +92,73 @@ public class OllamaProvider implements ServiceProviderProvider {
 
         @Override
         public EmbeddingsService getEmbeddingsService(Map<String, Object> map) throws Exception {
-            throw new UnsupportedOperationException("Ollama doesn't support embeddings");
+            String model = (String) map.get("model");
+            if (model == null) {
+                throw new IllegalArgumentException("'model' is required for embedding service");
+            }
+            return new OllamaEmbeddingsService(model);
+        }
+
+        private class OllamaEmbeddingsService implements EmbeddingsService {
+            private final String model;
+
+            public OllamaEmbeddingsService(String model) {
+                this.model = model;
+            }
+
+            @Override
+            @SneakyThrows
+            public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> list) {
+                List<CompletableFuture<List<Double>>> futures = new ArrayList<>();
+                for (String text : list) {
+                    futures.add(computeEmbeddings(text));
+                }
+                return CompletableFuture
+                        .allOf(futures.toArray(new CompletableFuture[0]))
+                        .thenApply(___ ->
+                           futures.stream()
+                                   .map(CompletableFuture::join)
+                                   .collect(Collectors.toList()));
+            }
+
+            record EmbeddingResponse(List<Double> embedding, String error) {}
+
+            private CompletableFuture<List<Double>> computeEmbeddings(String prompt) {
+                String request;
+                try {
+                    request = MAPPER.writeValueAsString(new Request(model, prompt));
+                    final HttpRequest.BodyPublisher bodyPublisher =
+                            HttpRequest.BodyPublishers.ofString(request);
+
+                    final HttpRequest.Builder requestBuilder =
+                            HttpRequest.newBuilder()
+                                    .uri(new URI(url + "/api/embeddings"))
+                                    .version(HttpClient.Version.HTTP_1_1)
+                                    .method("POST", bodyPublisher);
+                    final HttpRequest httpRequest = requestBuilder.build();
+
+                    return httpClient.sendAsync(
+                            httpRequest,
+                            HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
+                                if (response.statusCode() != 200) {
+                                    throw new RuntimeException("HTTP Error: " + response.statusCode());
+                                }
+                                try {
+                                    String body = response.body();
+                                    EmbeddingResponse embeddings = mapper.readValue(body, EmbeddingResponse.class);
+                                    if (embeddings.error != null) {
+                                        throw new RuntimeException(embeddings.error);
+                                    }
+                                    return embeddings.embedding();
+                                } catch (JsonProcessingException error) {
+                                    throw new CompletionException(error);
+                                }
+                    });
+                } catch (Throwable error) {
+                    log.error("IO Error while calling Ollama", error);
+                    return CompletableFuture.failedFuture(error);
+                }
+            }
         }
 
         private class StreamResponseProcessor extends CompletableFuture<String>
@@ -122,14 +195,10 @@ public class OllamaProvider implements ServiceProviderProvider {
             record ResponseLine(
                     String model, String create_at, String response, boolean done, String error) {}
 
-            static ObjectMapper mapper =
-                    new ObjectMapper()
-                            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
             @Override
             @SneakyThrows
             public synchronized void onNext(String body) {
-                log.info("body: {}", body);
 
                 ResponseLine responseLine = mapper.readValue(body, ResponseLine.class);
                 String content = responseLine.response();
@@ -154,7 +223,6 @@ public class OllamaProvider implements ServiceProviderProvider {
                 if (numberOfChunks.get() >= currentMinChunksPerMessage || last) {
                     currentChunkSize.set(
                             Math.min(currentMinChunksPerMessage * 2, minChunksPerMessage));
-                    String chunk = writer.toString();
                     streamingChunksConsumer.consumeChunk(
                             answerId,
                             index.incrementAndGet(),
@@ -183,7 +251,6 @@ public class OllamaProvider implements ServiceProviderProvider {
 
             @Override
             public void onComplete() {
-                log.info("Done");
                 if (!this.isDone()) {
                     this.complete(buildTotalAnswerMessage());
                 }
@@ -220,16 +287,12 @@ public class OllamaProvider implements ServiceProviderProvider {
                 String request;
                 try {
                     request = MAPPER.writeValueAsString(new Request(model, prompt));
-
-                    log.info("URL: {}", url);
-                    log.info("Request: {}", request);
-
                     final HttpRequest.BodyPublisher bodyPublisher =
                             HttpRequest.BodyPublishers.ofString(request);
 
                     final HttpRequest.Builder requestBuilder =
                             HttpRequest.newBuilder()
-                                    .uri(new URI(url))
+                                    .uri(new URI(url + "/api/generate"))
                                     .version(HttpClient.Version.HTTP_1_1)
                                     .method("POST", bodyPublisher);
                     final HttpRequest httpRequest = requestBuilder.build();
@@ -243,7 +306,6 @@ public class OllamaProvider implements ServiceProviderProvider {
 
                     return streamResponseProcessor.thenApply(
                             s -> {
-                                log.info("Response: {}", s);
                                 ChatCompletions result = new ChatCompletions();
                                 result.setChoices(
                                         List.of(new ChatChoice(new ChatMessage("system", s))));

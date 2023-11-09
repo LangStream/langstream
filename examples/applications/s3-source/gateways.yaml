@@ -15,20 +15,24 @@
 # limitations under the License.
 #
 
-configuration:
-  resources:
-  - type: "open-ai-configuration"
-    name: "OpenAI Azure configuration"
-    configuration:
-      url: "${secrets.open-ai.url}"
-      access-key: "${secrets.open-ai.access-key}"
-      provider: "${secrets.open-ai.provider}"
-  - type: "datasource"
-    name: "AstraDatasource"
-    configuration:
-      service: "astra"
-      clientId: "${secrets.astra.clientId}"
-      secret: "${secrets.astra.secret}"
-      secureBundle: "${secrets.astra.secureBundle}"
-      database: "${secrets.astra.database}"
-      token: "${secrets.astra.token}"
+gateways:
+  - id: "user-input"
+    type: produce
+    topic: "questions-topic"
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: langstream-client-session-id
+          valueFromParameters: sessionId
+
+  - id: "bot-output"
+    type: consume
+    topic: "answers-topic"
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            valueFromParameters: sessionId

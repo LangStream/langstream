@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 assets:
   - name: "documents-table"
     asset-type: "jdbc-table"

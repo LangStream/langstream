@@ -24,6 +24,7 @@ pipeline:
   - name: "Implemented a chat-bot using OpenAI and LangChain"
     id: "chatbot"
     type: "python-processor"
+    input: "questions-topic"
     output: "answers-topic"
     errors:
       on-failure: "skip"

@@ -199,7 +199,7 @@ public class OllamaProvider implements ServiceProviderProvider {
             @Override
             @SneakyThrows
             public synchronized void onNext(String body) {
-
+                log.info("body: {}", body);
                 ResponseLine responseLine = mapper.readValue(body, ResponseLine.class);
                 String content = responseLine.response();
                 boolean last = responseLine.done();
@@ -226,12 +226,7 @@ public class OllamaProvider implements ServiceProviderProvider {
                     streamingChunksConsumer.consumeChunk(
                             answerId,
                             index.incrementAndGet(),
-                            new Chunk() {
-                                @Override
-                                public String content() {
-                                    return content;
-                                }
-                            },
+                            new ChatChoice(new ChatMessage("system", writer.toString())),
                             last);
                     writer.getBuffer().setLength(0);
                     numberOfChunks.set(0);

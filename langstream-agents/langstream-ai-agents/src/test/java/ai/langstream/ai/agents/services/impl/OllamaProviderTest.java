@@ -87,7 +87,7 @@ class OllamaProviderTest {
                         .content();
         log.info("result: {}", result);
         assertEquals("one two three", result);
-        assertEquals(List.of("one", " two", " three"), chunks);
+        assertEquals(List.of("one", " two three"), chunks);
     }
 
     @Test

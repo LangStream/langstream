@@ -89,7 +89,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                          - role: system
                            content: "Hello"
                 """,
-                "Found error on agent configuration (agent: 'chat', type: 'ai-chat-completions'). No ai service resource found in application configuration. One of vertex-configuration, hugging-face-configuration, open-ai-configuration, bedrock-configuration must be defined.");
+                "Found error on agent configuration (agent: 'chat', type: 'ai-chat-completions'). No ai service resource found in application configuration. One of vertex-configuration, hugging-face-configuration, open-ai-configuration, bedrock-configuration, ollama-configuration must be defined.");
 
         AgentValidationTestUtil.validate(
                 """

@@ -24,8 +24,16 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
 @WireMockTest
@@ -34,12 +42,22 @@ class OllamaProviderTest {
     @Test
     void testCompletions(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
+        stubFor(
+                post("/api/generate")
+                        .willReturn(
+                                ok(
+                                        """
+                        {"model":"llama2","created_at":"2023-11-09T13:48:51.788062Z","response":"one","done":false}
+                        {"model":"llama2","created_at":"2023-11-09T13:48:51.788062Z","response":" two","done":false}
+                        {"model":"llama2","created_at":"2023-11-09T13:48:51.788062Z","response":" three","done":true}
+                      """)));
         OllamaProvider provider = new OllamaProvider();
         ServiceProvider implementation =
                 provider.createImplementation(
-                        Map.of("ollama", Map.of("url", "http://localhost:11434/api/generate")),
+                        Map.of("ollama", Map.of("url", wmRuntimeInfo.getHttpBaseUrl() + "/api/generate")),
                         MetricsReporter.DISABLED);
 
+        List<String> chunks = new CopyOnWriteArrayList<>();
         CompletionsService service =
                 implementation.getCompletionsService(Map.of("model", "llama2"));
         String result =
@@ -47,7 +65,7 @@ class OllamaProviderTest {
                                 List.of(
                                         new ChatMessage("user")
                                                 .setContent(
-                                                        "Here is a story about llamas eating grass")),
+                                                        "Tell me three numberss")),
                                 new CompletionsService.StreamingChunksConsumer() {
                                     @Override
                                     public void consumeChunk(
@@ -58,6 +76,7 @@ class OllamaProviderTest {
                                                 index,
                                                 chunk,
                                                 last);
+                                        chunks.add(chunk.content());
                                     }
                                 },
                                 Map.of())
@@ -66,5 +85,7 @@ class OllamaProviderTest {
                         .get(0)
                         .content();
         log.info("result: {}", result);
+        assertEquals("one two three", result);
+        assertEquals(List.of("one", " two", " three"), chunks);
     }
 }

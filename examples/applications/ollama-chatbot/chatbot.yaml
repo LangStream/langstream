@@ -32,7 +32,8 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      model: "${secrets.ollama.model}"
+      ai-service: "openai"
+      model: "${secrets.open-ai.embeddings-model}"
       embeddings-field: "value.question_embeddings"
       text: "{{ value.question }}"
       flush-interval: 0
@@ -58,10 +59,13 @@ pipeline:
       lambda: 0.5
       k1: 1.2
       b: 0.75
+  - name: "log documents"
+    type: "log-event"
   - name: "ai-chat-completions"
     type: "ai-chat-completions"
 
     configuration:
+      ai-service: "ollama"
       model: "${secrets.ollama.model}"
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"

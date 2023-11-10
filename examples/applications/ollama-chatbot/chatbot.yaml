@@ -47,7 +47,7 @@ pipeline:
   - name: "re-rank documents with MMR"
     type: "re-rank"
     configuration:
-      max: 5 # keep only the top 5 documents, because we have an hard limit on the prompt size
+      max: 10 # keep only the top 5 documents, because we have and hard limit on the prompt size
       field: "value.related_documents"
       query-text: "value.question"
       query-embeddings: "value.question_embeddings"
@@ -79,20 +79,21 @@ pipeline:
       # eventually we want to send bigger messages to reduce the overhead of each message on the topic
       min-chunks-per-message: 20
       messages:
-        - role: system
-          content: |
-              An user is going to perform a questions, The documents below may help you in answering to their questions.
-              Please try to leverage them in your answer as much as possible.
-              Take into consideration that the user is always asking questions about the LangStream project.
-              If you provide code or YAML snippets, please explicitly state that they are examples.
-              Do not provide information that is not related to the LangStream project.
+        - content: |            
+              I have this list of documents that may help you in answering to my question below.
             
               Documents:
               {{# value.related_documents}}
               {{ text}}
               {{/ value.related_documents}}
-        - role: user
-          content: "{{ value.question}}"
+            
+              Please try to leverage the content above in your answer as much as possible.
+              Take into consideration that I am always asking questions about the LangStream project.              
+              Do not provide information that is not related to the LangStream project.
+            
+              This is my question:
+              {{ value.question}}
+
   - name: "cleanup-response"
     type: "drop-fields"
     output: "log-topic"

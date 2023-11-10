@@ -15,10 +15,16 @@ We are using OpenAI to compute the embeddings of the texts.
 
 Follow the instructions on the Ollama.ai website to install Ollama.
 
-Then start Ollama with the llama2 model
+Then start Ollama with the llama2:13b model
 
 ```
-ollama run llama2
+ollama run llama2:13b
+```
+
+If you want to use another model export this variable before starting the application.
+
+```bash
+export OLLAMA_MODEL=llama2:13b
 ```
 
 ## Configure you OpenAI API Key

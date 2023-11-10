@@ -219,7 +219,7 @@ class ApplicationServiceResourceLimitTest {
         }
 
         @Override
-        public void delete(String tenant, String applicationId) {
+        public void delete(String tenant, String applicationId, boolean force) {
             throw new UnsupportedOperationException();
         }
 

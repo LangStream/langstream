@@ -120,7 +120,7 @@ public class TenantResource {
                 .forEach(
                         app -> {
                             try {
-                                applicationService.deleteApplication(tenant, app);
+                                applicationService.deleteApplication(tenant, app, true);
                             } catch (Exception e) {
                                 log.error(
                                         "Error deleting application {} for tenant {}",

@@ -49,7 +49,7 @@ public interface ApplicationStore extends GenericStore {
 
     Secrets getSecrets(String tenant, String applicationId);
 
-    void delete(String tenant, String applicationId);
+    void delete(String tenant, String applicationId, boolean force);
 
     Map<String, StoredApplication> list(String tenant);
 

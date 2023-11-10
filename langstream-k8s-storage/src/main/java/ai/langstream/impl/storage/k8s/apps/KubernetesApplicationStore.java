@@ -26,6 +26,7 @@ import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
 import ai.langstream.deployer.k8s.api.crds.apps.SerializedApplicationInstance;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.limits.ApplicationResourceLimitsChecker;
@@ -147,6 +148,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 throw new IllegalArgumentException(
                         "Application " + applicationId + " is marked for deletion.");
             }
+            final ApplicationSpecOptions options =
+                    ApplicationSpec.deserializeOptions(existing.getSpec().getOptions());
+            if (options.isMarkedForDeletion()) {
+                throw new IllegalArgumentException(
+                        "Application " + applicationId + " is marked for deletion.");
+            }
         }
 
         final String namespace = tenantToNamespace(tenant);
@@ -156,12 +163,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
                 new ObjectMetaBuilder().withName(applicationId).withNamespace(namespace).build());
         final SerializedApplicationInstance serializedApp =
                 new SerializedApplicationInstance(applicationInstance, executionPlan);
-        final ApplicationSpec spec =
-                ApplicationSpec.builder()
-                        .tenant(tenant)
-                        .application(ApplicationSpec.serializeApplication(serializedApp))
-                        .codeArchiveId(codeArchiveId)
-                        .build();
+
+        final ApplicationSpec spec = new ApplicationSpec();
+        spec.setTenant(tenant);
+        spec.setApplication(ApplicationSpec.serializeApplication(serializedApp));
+        spec.setCodeArchiveId(codeArchiveId);
+
         log.info(
                 "Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);
         crd.setSpec(spec);
@@ -246,13 +253,29 @@ public class KubernetesApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public void delete(String tenant, String applicationId) {
-        final String namespace = tenantToNamespace(tenant);
+    public void delete(String tenant, String applicationId, boolean force) {
+        final ApplicationCustomResource existing = getApplicationCustomResource(tenant, applicationId);
+        if (existing == null || existing.isMarkedForDeletion()) {
+            return;
+        }
+        final ApplicationSpecOptions options =
+                ApplicationSpec.deserializeOptions(existing.getSpec().getOptions());
 
-        client.resources(ApplicationCustomResource.class)
-                .inNamespace(namespace)
-                .withName(applicationId)
-                .delete();
+        boolean apply = false;
+        if (!options.isMarkedForDeletion()) {
+            options.setMarkedForDeletion(true);
+            apply = true;
+        }
+
+        if (options.getDeleteMode() == ApplicationSpecOptions.DeleteMode.CLEANUP_REQUIRED
+                && force) {
+            options.setDeleteMode(ApplicationSpecOptions.DeleteMode.CLEANUP_BEST_EFFORT);
+            apply = true;
+        }
+        if (apply) {
+            existing.getSpec().setOptions(ApplicationSpec.serializeOptions(options));
+            client.resource(existing).serverSideApply();
+        }
         // the secret deletion will happen automatically once the app custom resource has been
         // deleted completely
     }

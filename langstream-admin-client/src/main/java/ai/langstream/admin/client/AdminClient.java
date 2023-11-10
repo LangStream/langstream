@@ -292,8 +292,8 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public void delete(String application) {
-            http(newDelete(tenantAppPath("/" + application)));
+        public void delete(String application, boolean force) {
+            http(newDelete(tenantAppPath("/" + application + "?force=" + force)));
         }
 
         @Override

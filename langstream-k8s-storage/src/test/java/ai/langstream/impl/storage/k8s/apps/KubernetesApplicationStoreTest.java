@@ -85,7 +85,7 @@ class KubernetesApplicationStoreTest {
         assertEquals(1, store.list(tenant).size());
 
         assertNotNull(store.get(tenant, "myapp", false));
-        store.delete(tenant, "myapp");
+        store.delete(tenant, "myapp", false);
 
         assertNull(
                 k3s.getClient()
@@ -140,7 +140,7 @@ class KubernetesApplicationStoreTest {
                         .get();
         createdCr.getMetadata().setFinalizers(List.of("test-finalizer"));
         k3s.getClient().resource(createdCr).update();
-        store.delete(tenant, "myapp");
+        store.delete(tenant, "myapp", false);
         assertTrue(k3s.getClient().resource(createdCr).get().isMarkedForDeletion());
 
         try {

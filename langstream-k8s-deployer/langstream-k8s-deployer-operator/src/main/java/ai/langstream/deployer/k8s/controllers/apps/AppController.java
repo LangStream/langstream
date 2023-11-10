@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
-import io.fabric8.openshift.api.model.config.v1.Update;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -91,6 +90,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
     }
 
     public record HandleJobResult(boolean proceed, Duration reschedule) {}
+
     public class ApplicationDeletedException extends Exception {}
 
     @Override
@@ -154,7 +154,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
     }
 
     private Duration cleanupApplication(
-            ApplicationCustomResource resource, AppLastApplied appLastApplied) throws ApplicationDeletedException{
+            ApplicationCustomResource resource, AppLastApplied appLastApplied)
+            throws ApplicationDeletedException {
         final HandleJobResult deployerJobResult = handleJob(resource, appLastApplied, false, true);
         Duration rescheduleDuration;
         if (deployerJobResult.proceed()) {
@@ -204,8 +205,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 appLastApplied = new AppLastApplied();
             }
             if (isSetupJob) {
-                appLastApplied.setSetup(
-                        SerializationUtil.writeAsJson(application.getSpec()));
+                appLastApplied.setSetup(SerializationUtil.writeAsJson(application.getSpec()));
             } else {
                 appLastApplied.setRuntimeDeployer(
                         SerializationUtil.writeAsJson(application.getSpec()));
@@ -253,7 +253,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 String errorMessage = "?";
                 final Pod pod = KubeUtil.getJobPod(currentJob, client);
                 if (pod != null) {
-                    final KubeUtil.PodStatus status = KubeUtil.getPodsStatuses(List.of(pod)).values().iterator().next();
+                    final KubeUtil.PodStatus status =
+                            KubeUtil.getPodsStatuses(List.of(pod)).values().iterator().next();
                     if (status.getState() == KubeUtil.PodStatus.State.ERROR) {
                         errorMessage = status.getMessage();
                     }
@@ -266,15 +267,19 @@ public class AppController extends BaseController<ApplicationCustomResource>
                             .setStatus(
                                     ApplicationLifecycleStatus.errorDeleting(
                                             "Failed to cleanup the %s, to delete the application, please cleanup the assets/topics manually and force-delete the application again. Error was:\n%s"
-                                                    .formatted(errMessageJobDescription, errorMessage)));
+                                                    .formatted(
+                                                            errMessageJobDescription,
+                                                            errorMessage)));
                 } else {
                     final String errMessageJobDescription = isSetupJob ? "setup" : "deployer";
                     application
-
                             .getStatus()
                             .setStatus(
                                     ApplicationLifecycleStatus.errorDeploying(
-                                            "Failed to deploy the application, error during job: %s. Error was:\n%s".formatted(errMessageJobDescription, errorMessage)));
+                                            "Failed to deploy the application, error during job: %s. Error was:\n%s"
+                                                    .formatted(
+                                                            errMessageJobDescription,
+                                                            errorMessage)));
                 }
                 return new HandleJobResult(false, null);
             } else if (KubeUtil.isJobCompleted(currentJob)) {

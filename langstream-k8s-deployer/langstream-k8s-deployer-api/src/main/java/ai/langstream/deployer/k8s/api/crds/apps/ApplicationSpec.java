@@ -18,7 +18,6 @@ package ai.langstream.deployer.k8s.api.crds.apps;
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;

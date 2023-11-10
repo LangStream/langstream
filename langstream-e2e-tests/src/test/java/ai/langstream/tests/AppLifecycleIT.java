@@ -19,10 +19,8 @@ import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.TestSuites;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,21 +50,13 @@ public class AppLifecycleIT extends BaseEndToEndTest {
         YAML_MAPPER.writeValue(BaseEndToEndTest.instanceFile, instanceContent);
 
         deployLocalApplication(
-                tenant,
-                false,
-                applicationId,
-                "python-processor",
-                instanceFile,
-                Map.of());
+                tenant, false, applicationId, "python-processor", instanceFile, Map.of());
         awaitApplicationInStatus(applicationId, "ERROR_DEPLOYING");
-        executeCommandOnClient("bin/langstream apps delete %s "
-                        .formatted(applicationId)
-                        .split(" "));
+        executeCommandOnClient(
+                "bin/langstream apps delete %s ".formatted(applicationId).split(" "));
         awaitApplicationInStatus(applicationId, "ERROR_DELETING");
-        executeCommandOnClient("bin/langstream apps delete -f %s"
-                .formatted(applicationId)
-                .split(" "));
+        executeCommandOnClient(
+                "bin/langstream apps delete -f %s".formatted(applicationId).split(" "));
         awaitApplicationCleanup(tenant, applicationId);
     }
-
 }

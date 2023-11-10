@@ -254,7 +254,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     @Override
     public void delete(String tenant, String applicationId, boolean force) {
-        final ApplicationCustomResource existing = getApplicationCustomResource(tenant, applicationId);
+        final ApplicationCustomResource existing =
+                getApplicationCustomResource(tenant, applicationId);
         if (existing == null || existing.isMarkedForDeletion()) {
             return;
         }

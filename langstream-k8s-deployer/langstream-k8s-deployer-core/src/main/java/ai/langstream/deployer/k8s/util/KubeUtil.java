@@ -77,10 +77,12 @@ public class KubeUtil {
             return null;
         }
         final String uid = job.getMetadata().getUid();
-        final List<Pod> pods = client.pods().inNamespace(job.getMetadata().getNamespace())
-                .withLabel("controller-uid", uid)
-                .list()
-                .getItems();
+        final List<Pod> pods =
+                client.pods()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withLabel("controller-uid", uid)
+                        .list()
+                        .getItems();
         if (pods.isEmpty()) {
             return null;
         }

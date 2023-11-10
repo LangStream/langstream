@@ -41,7 +41,6 @@ pipeline:
   - name: "Detect language"
     type: "language-detector"
     configuration:
-      allowedLanguages: ["en", "fr"]
       property: "language"
   - name: "Split into chunks"
     type: "text-splitter"
@@ -77,7 +76,8 @@ pipeline:
     id: "step1"
     type: "compute-ai-embeddings"
     configuration:
-      model: "${secrets.ollama.model}"
+      ai-service: "openai"
+      model: "${secrets.open-ai.embeddings-model}"
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10

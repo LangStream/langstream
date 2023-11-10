@@ -25,6 +25,7 @@ errors:
     on-failure: "skip"
 pipeline:
   - name: "convert-to-structure"
+    id: "chatbot"
     type: "document-to-json"
     input: "questions-topic"
     configuration:

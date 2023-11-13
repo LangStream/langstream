@@ -180,6 +180,19 @@ Requirements for building the project:
 * Java 17
 * Git
 * Python 3.11+ and PIP
+* Maven 3.8+
+
+Additionally, you will need to install into your Python env:
+* Black
+* Ruff
+* Build
+
+You can verify your requirements and run your first build like this:
+
+```bash
+mvn clean install -DskipTests
+mvn generate-sources
+```
 
 If you want to test local code changes, you can use `mini-langstream`.
 
@@ -199,3 +212,9 @@ or for all the services
 ```bash
 mini-langstream dev build
 ```
+If you run into issues with the build passing locally but failing the style checks in the CI, you can run:
+```bash
+mvn license:format 
+mvn spotless:apply
+```
+and commit the changes. 

@@ -14,35 +14,6 @@
 # limitations under the License.
 #
 
-assets:
-  - name: "langstream-keyspace"
-    asset-type: "astra-keyspace"
-    creation-mode: create-if-not-exists
-    config:
-      keyspace: "{{secrets.astra.keyspace}}"
-      datasource: "AstraDatasource"
-  - name: "langstream-docs-table"
-    asset-type: "cassandra-table"
-    creation-mode: create-if-not-exists
-    config:
-      table-name: "{{secrets.astra.table}}"
-      keyspace: "{{secrets.astra.keyspace}}"
-      datasource: "AstraDatasource"
-      create-statements:
-        - |
-          CREATE TABLE IF NOT EXISTS "{{secrets.astra.keyspace}}"."{{secrets.astra.table}}" (
-          filename TEXT,
-          chunk_text_length TEXT,
-          chunk_num_tokens TEXT,
-          chunk_id TEXT,
-          contents TEXT,
-          name TEXT,
-          product_name TEXT,
-          product_version TEXT,
-          embeddings_vector VECTOR<FLOAT, 1536>,
-          PRIMARY KEY (filename, chunk_id));
-        - |
-          CREATE CUSTOM INDEX IF NOT EXISTS {{secrets.astra.table}}_ann_index ON {{secrets.astra.keyspace}}.{{secrets.astra.table}}(embeddings_vector) USING 'StorageAttachedIndex';
 name: "Embeddings processor"
 pipeline:
   - name: "Azure blob source"
@@ -83,6 +54,9 @@ pipeline:
         - name: "value.product_version"
           expression: "fn:split(value.name, ' ')[1]"
           type: STRING
+        - name: "value.row_id"
+          expression: "fn:concat3(value.filename, '_', value.chunk_id)"
+          type: STRING
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
@@ -101,4 +75,4 @@ pipeline:
       datasource: "AstraDatasource"
       table-name: "{{secrets.astra.table}}"
       keyspace: "{{secrets.astra.keyspace}}"
-      mapping: "filename=value.name,chunk_text_length=value.chunk_text_length, chunk_num_tokens=value.chunk_num_tokens, chunk_id=value.chunk_id, contents=value.text, name=value.name, product_name=value.product_name, product_version=value.product_version, embeddings_vector=value.embeddings"
+      mapping: "row_id=value.row_id, filename=value.name,chunk_text_length=value.chunk_text_length, chunk_num_tokens=value.chunk_num_tokens, chunk_id=value.chunk_id, body_blob=value.text, name=value.name, product_name=value.product_name, product_version=value.product_version, vector=value.embeddings"

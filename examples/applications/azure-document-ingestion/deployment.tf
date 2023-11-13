@@ -9,8 +9,13 @@ terraform {
 
 locals {
   secret_content = file("${path.module}/../../secrets/secrets.yaml")
-  pipeline_content = file("${path.module}/pipeline.yaml")
+  ignore_content = file("${path.module}/.langstreamignore")
+  assets_content = file("${path.module}/assets.yaml")
+  chatbot_content = file("${path.module}/chatbot.yaml")
   config_content = file("${path.module}/configuration.yaml")
+  gateway_content = file("${path.module}/gateways.yaml")
+  pipeline_content = file("${path.module}/pipeline.yaml")
+  python_content = file("${path.module}/python/langchain_chat.py")
 }
 # Note: Replace "${path.module}/pipeline.yaml" with the actual relative path to your pipeline.yaml file.
 provider "azurerm" {
@@ -134,13 +139,35 @@ resource "azurerm_linux_virtual_machine" "example" {
     ${local.secret_content}
     SECRETS
 
+    cat > /root/.langstreamignore <<IGNORE
+    ${local.ignore_content}
+    IGNORE
+    
+    cat > /root/assets.yaml <<ASSETS
+    ${local.assets_content}
+    ASSETS
+
+    cat > /root/chatbot.yaml <<CHATBOT
+    ${local.chatbot_content}
+    CHATBOT
+
     cat > /root/configuration.yaml <<CONFIGURATION
     ${local.config_content}
     CONFIGURATION
 
+    cat > /root/gateways.yaml <<GATEWAYS
+    ${local.gateway_content}
+    GATEWAYS
+
     cat > /root/pipeline.yaml <<PIPELINE
     ${local.pipeline_content}
     PIPELINE
+
+    mkdir /root/python
+
+    cat > /root/python/langchain_chat.py <<PYTHON
+    ${local.python_content}
+    PYTHON
 
     apt-get update -y
     apt-get install -y apt-transport-https ca-certificates curl software-properties-common git jq lsb-release unzip openjdk-17-jre openjdk-17-jdk

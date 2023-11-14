@@ -91,7 +91,11 @@ public class AppControllerIT {
         deployment
                 .getClient()
                 .resource(
-                        new SecretBuilder().withNewMetadata().withName(applicationId).endMetadata().build())
+                        new SecretBuilder()
+                                .withNewMetadata()
+                                .withName(applicationId)
+                                .endMetadata()
+                                .build())
                 .inNamespace(namespace)
                 .serverSideApply();
         final ApplicationCustomResource createdCr =
@@ -126,7 +130,6 @@ public class AppControllerIT {
         createMockJob(namespace, client, job.getMetadata().getName());
         patchCustomResourceWithStatusDone(createdCr);
         awaitJobCompleted(namespace, job.getMetadata().getName());
-
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30))

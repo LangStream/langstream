@@ -145,19 +145,24 @@ class KubernetesApplicationStoreTest {
         store.delete(tenant, "myapp", false);
         applicationCustomResource = k3s.getClient().resource(applicationCustomResource).get();
         assertFalse(applicationCustomResource.isMarkedForDeletion());
-        assertTrue(ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
-                .isMarkedForDeletion());
-        assertEquals(ApplicationSpecOptions.DeleteMode.CLEANUP_REQUIRED, ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
-                .getDeleteMode());
+        assertTrue(
+                ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                        .isMarkedForDeletion());
+        assertEquals(
+                ApplicationSpecOptions.DeleteMode.CLEANUP_REQUIRED,
+                ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                        .getDeleteMode());
 
         store.delete(tenant, "myapp", true);
         applicationCustomResource = k3s.getClient().resource(applicationCustomResource).get();
         assertFalse(applicationCustomResource.isMarkedForDeletion());
-        assertTrue(ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
-                .isMarkedForDeletion());
-        assertEquals(ApplicationSpecOptions.DeleteMode.CLEANUP_BEST_EFFORT, ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
-                .getDeleteMode());
-
+        assertTrue(
+                ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                        .isMarkedForDeletion());
+        assertEquals(
+                ApplicationSpecOptions.DeleteMode.CLEANUP_BEST_EFFORT,
+                ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                        .getDeleteMode());
 
         try {
             store.put(tenant, "myapp", app, "code-1", null);

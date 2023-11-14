@@ -893,7 +893,8 @@ public class BaseEndToEndTest implements TestWatcher {
                     final File outputFile =
                             new File(
                                     TEST_LOGS_DIR,
-                                    "%s.%s.%s.%s.log".formatted(filePrefix, namespace, podName, container));
+                                    "%s.%s.%s.%s.log"
+                                            .formatted(filePrefix, namespace, podName, container));
                     try (FileWriter writer = new FileWriter(outputFile)) {
                         writer.write(logs);
                     } catch (IOException e) {

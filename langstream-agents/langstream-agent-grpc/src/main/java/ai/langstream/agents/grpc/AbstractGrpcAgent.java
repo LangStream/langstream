@@ -33,11 +33,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -72,8 +73,8 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     @Getter protected volatile boolean startFailedButDevelopmentMode = false;
     protected AgentServiceGrpc.AgentServiceStub asyncStub;
 
-    AtomicReference<StreamObserver<TopicProducerWriteResult>> topicProducerWriteResults =
-            new AtomicReference<>();
+    protected CompletableFuture<StreamObserver<TopicProducerWriteResult>>
+            topicProducerWriteResults = CompletableFuture.completedFuture(null);
 
     private final Map<String, TopicProducer> topicProducers = new ConcurrentHashMap<>();
 
@@ -103,7 +104,8 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
         asyncStub = AgentServiceGrpc.newStub(channel).withWaitForReady();
 
-        topicProducerWriteResults.set(
+        topicProducerWriteResults = new CompletableFuture<>();
+        topicProducerWriteResults.complete(
                 asyncStub.getTopicProducerRecords(
                         new StreamObserver<>() {
                             @Override
@@ -111,14 +113,18 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
                                 TopicProducer topicProducer =
                                         topicProducers.computeIfAbsent(
                                                 topicProducerRecord.getTopic(),
-                                                topic ->
-                                                        agentContext
-                                                                .getTopicConnectionProvider()
-                                                                .createProducer(
-                                                                        agentContext
-                                                                                .getGlobalAgentId(),
-                                                                        topic,
-                                                                        Map.of()));
+                                                topic -> {
+                                                    TopicProducer tp =
+                                                            agentContext
+                                                                    .getTopicConnectionProvider()
+                                                                    .createProducer(
+                                                                            agentContext
+                                                                                    .getGlobalAgentId(),
+                                                                            topic,
+                                                                            Map.of());
+                                                    tp.start();
+                                                    return tp;
+                                                });
                                 try {
                                     topicProducer
                                             .write(fromGrpc(topicProducerRecord.getRecord()))
@@ -149,20 +155,40 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
                             @Override
                             public void onError(Throwable throwable) {
-                                agentContext.criticalFailure(throwable);
+                                if (!restarting.get()) {
+                                    agentContext.criticalFailure(
+                                            new RuntimeException(
+                                                    "getTopicProducerRecords: gRPC server sent error: %s"
+                                                            .formatted(throwable.getMessage()),
+                                                    throwable));
+                                } else {
+                                    log.info(
+                                            "getTopicProducerRecords: ignoring error during restart {}",
+                                            throwable + "");
+                                }
                             }
 
                             @Override
                             public void onCompleted() {
-                                agentContext.criticalFailure(
-                                        new RuntimeException("Unexpected completion"));
+                                if (!restarting.get()) {
+                                    agentContext.criticalFailure(
+                                            new RuntimeException(
+                                                    "getTopicProducerRecords: gRPC server completed the stream unexpectedly"));
+                                } else {
+                                    log.info(
+                                            "getTopicProducerRecords: ignoring error server stop during restart");
+                                }
                             }
                         }));
     }
 
     private synchronized void sendTopicProducerWriteResult(
             TopicProducerWriteResult.Builder result) {
-        topicProducerWriteResults.get().onNext(result.build());
+        try {
+            topicProducerWriteResults.get().onNext(result.build());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -181,6 +207,16 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     }
 
     protected synchronized void stopBeforeRestart() throws Exception {
+        restarting.set(true);
+        StreamObserver<TopicProducerWriteResult> topicProducerWriteResultStreamObserver =
+                topicProducerWriteResults.get();
+        if (topicProducerWriteResultStreamObserver != null) {
+            try {
+                topicProducerWriteResultStreamObserver.onCompleted();
+            } catch (IllegalStateException e) {
+                log.info("Ignoring error while stopping {}", e + "");
+            }
+        }
         stopChannel(false);
     }
 
@@ -199,7 +235,6 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     @Override
     public synchronized void close() throws Exception {
-        topicProducerWriteResults.get().onCompleted();
         stopBeforeRestart();
         stopChannel(true);
         for (TopicProducer topicProducer : topicProducers.values()) {

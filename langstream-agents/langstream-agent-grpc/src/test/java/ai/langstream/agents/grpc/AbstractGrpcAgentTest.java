@@ -35,10 +35,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 public class AbstractGrpcAgentTest {
 
     private Server server;
@@ -171,7 +173,8 @@ public class AbstractGrpcAgentTest {
         TestAgentContext context = new TestAgentContextFailure();
         startProcessor(context);
         assertEquals(
-                "INTERNAL: test-error", context.failure.get(15, TimeUnit.SECONDS).getMessage());
+                "getTopicProducerRecords: gRPC server sent error: INTERNAL: test-error",
+                context.failure.get(15, TimeUnit.SECONDS).getMessage());
     }
 
     @Test
@@ -179,7 +182,8 @@ public class AbstractGrpcAgentTest {
         TestAgentContextCompleting context = new TestAgentContextCompleting();
         startProcessor(context);
         assertEquals(
-                "Unexpected completion", context.failure.get(5, TimeUnit.SECONDS).getMessage());
+                "getTopicProducerRecords: gRPC server completed the stream unexpectedly",
+                context.failure.get(5, TimeUnit.SECONDS).getMessage());
     }
 
     private void startProcessor(AgentContext context) throws Exception {
@@ -240,6 +244,7 @@ public class AbstractGrpcAgentTest {
 
         @Override
         public void criticalFailure(Throwable error) {
+            log.info("TestAgentContext critical failure", error);
             failure.complete(error);
         }
 

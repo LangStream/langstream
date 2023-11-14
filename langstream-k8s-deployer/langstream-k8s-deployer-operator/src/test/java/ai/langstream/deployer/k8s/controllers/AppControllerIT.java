@@ -17,17 +17,22 @@ package ai.langstream.deployer.k8s.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
+import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
+import ai.langstream.deployer.k8s.controllers.apps.AppController;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
@@ -35,6 +40,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -50,7 +56,7 @@ public class AppControllerIT {
                     Map.of(
                             "DEPLOYER_AGENT_RESOURCES",
                                     "{defaultMaxTotalResourceUnitsPerTenant: 3}",
-                            "DEPLOYER_RUNTIME_IMAGE", "busybox",
+                            "DEPLOYER_RUNTIME_IMAGE", "bash",
                             "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
 
     static AtomicInteger counter = new AtomicInteger(0);
@@ -74,7 +80,7 @@ public class AppControllerIT {
                   name: %s
                   namespace: %s
                 spec:
-                    image: busybox
+                    image: bash
                     imagePullPolicy: IfNotPresent
                     application: '{"modules": {}}'
                     tenant: %s
@@ -116,27 +122,7 @@ public class AppControllerIT {
         // simulate job finished
         client.resource(job).inNamespace(namespace).delete();
 
-        final Job mockJob =
-                new JobBuilder()
-                        .withNewMetadata()
-                        .withName(job.getMetadata().getName())
-                        .endMetadata()
-                        .withNewSpec()
-                        .withNewTemplate()
-                        .withNewSpec()
-                        .withContainers(
-                                List.of(
-                                        new ContainerBuilder()
-                                                .withName("test")
-                                                .withImage("busybox")
-                                                .withCommand(List.of("sleep", "1"))
-                                                .build()))
-                        .withRestartPolicy("Never")
-                        .endSpec()
-                        .endTemplate()
-                        .endSpec()
-                        .build();
-        client.resource(mockJob).inNamespace(namespace).create();
+        createMockJob(namespace, client, job.getMetadata().getName());
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30))
@@ -199,6 +185,30 @@ public class AppControllerIT {
         assertNotNull(client.resource(resource).inNamespace(namespace).get());
     }
 
+    private void createMockJob(String namespace, KubernetesClient client, String name) {
+        final Job mockJob =
+                new JobBuilder()
+                        .withNewMetadata()
+                        .withName(name)
+                        .endMetadata()
+                        .withNewSpec()
+                        .withNewTemplate()
+                        .withNewSpec()
+                        .withContainers(
+                                List.of(
+                                        new ContainerBuilder()
+                                                .withName("test")
+                                                .withImage("bash")
+                                                .withCommand(List.of("sleep", "1"))
+                                                .build()))
+                        .withRestartPolicy("Never")
+                        .endSpec()
+                        .endTemplate()
+                        .endSpec()
+                        .build();
+        client.resource(mockJob).inNamespace(namespace).create();
+    }
+
     @Test
     void testAppResources() {
 
@@ -213,15 +223,71 @@ public class AppControllerIT {
         final ApplicationCustomResource app3 = createAppWithResources(tenant, 2, 1);
         awaitApplicationErrorForResources(app3);
 
-        deployment.getClient().resource(app2).delete();
+        simulateAppDeletion(app2);
         awaitApplicationDeployingStatus(app3);
 
         final ApplicationCustomResource app4 = createAppWithResources(tenant, 2, 1);
         awaitApplicationErrorForResources(app4);
 
         deployment.restartDeployerOperator();
-        deployment.getClient().resource(app3).delete();
+        simulateAppDeletion(app3);
         awaitApplicationDeployingStatus(app4);
+    }
+
+    private void simulateAppDeletion(ApplicationCustomResource app) {
+        final String namespace = app.getMetadata().getNamespace();
+        final String deployerJobName =
+                AppResourcesFactory.getDeployerJobName(app.getMetadata().getName(), true);
+        final String setupJobName =
+                AppResourcesFactory.getSetupJobName(app.getMetadata().getName(), true);
+        createMockJob(namespace, deployment.getClient(), setupJobName);
+
+        createMockJob(namespace, deployment.getClient(), deployerJobName);
+
+        awaitJobCompleted(namespace, deployerJobName);
+        awaitJobCompleted(namespace, setupJobName);
+        final ApplicationStatus status = new ApplicationStatus();
+        final AppController.AppLastApplied appLastApplied = new AppController.AppLastApplied();
+        appLastApplied.setSetup(SerializationUtil.writeAsJson(app.getSpec()));
+        appLastApplied.setRuntimeDeployer(SerializationUtil.writeAsJson(app.getSpec()));
+        status.setLastApplied(SerializationUtil.writeAsJson(appLastApplied));
+        final ApplicationCustomResource resource =
+                deployment
+                        .getClient()
+                        .resources(ApplicationCustomResource.class)
+                        .inNamespace(app.getMetadata().getNamespace())
+                        .withName(app.getMetadata().getName())
+                        .get();
+        resource.setStatus(status);
+        deployment.getClient().resource(resource).patchStatus();
+
+        deployment
+                .getClient()
+                .resources(ApplicationCustomResource.class)
+                .inNamespace(app.getMetadata().getNamespace())
+                .withName(app.getMetadata().getName())
+                .delete();
+    }
+
+    private void awaitJobCompleted(String namespace, String deployerJobName) {
+        Awaitility.await()
+                .atMost(2, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            final Integer succeeded =
+                                    deployment
+                                            .getClient()
+                                            .batch()
+                                            .v1()
+                                            .jobs()
+                                            .inNamespace(namespace)
+                                            .withName(deployerJobName)
+                                            .get()
+                                            .getStatus()
+                                            .getSucceeded();
+                            assertTrue(succeeded != null && succeeded > 0);
+                        });
     }
 
     private void awaitApplicationErrorForResources(ApplicationCustomResource original) {
@@ -267,7 +333,7 @@ public class AppControllerIT {
         final JobSpec spec = job.getSpec();
         final PodSpec templateSpec = spec.getTemplate().getSpec();
         final Container container = templateSpec.getContainers().get(0);
-        assertEquals("busybox", container.getImage());
+        assertEquals("bash", container.getImage());
         assertEquals("IfNotPresent", container.getImagePullPolicy());
         assertEquals("setup", container.getName());
         assertEquals(Quantity.parse("100m"), container.getResources().getRequests().get("cpu"));
@@ -282,7 +348,7 @@ public class AppControllerIT {
         assertEquals("deploy", container.getArgs().get(args++));
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
-        assertEquals("busybox", initContainer.getImage());
+        assertEquals("bash", initContainer.getImage());
         assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
         assertEquals("setup-init-config", initContainer.getName());
         assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
@@ -302,7 +368,7 @@ public class AppControllerIT {
         final JobSpec spec = job.getSpec();
         final PodSpec templateSpec = spec.getTemplate().getSpec();
         final Container container = templateSpec.getContainers().get(0);
-        assertEquals("busybox", container.getImage());
+        assertEquals("bash", container.getImage());
         assertEquals("IfNotPresent", container.getImagePullPolicy());
         assertEquals("deployer", container.getName());
         assertEquals(Quantity.parse("100m"), container.getResources().getRequests().get("cpu"));
@@ -356,7 +422,7 @@ public class AppControllerIT {
                         .getValue());
 
         final Container initContainer = templateSpec.getInitContainers().get(0);
-        assertEquals("busybox", initContainer.getImage());
+        assertEquals("bash", initContainer.getImage());
         assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
         assertEquals("deployer-init-config", initContainer.getName());
         assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
@@ -378,15 +444,51 @@ public class AppControllerIT {
     }
 
     private void setupTenant(String tenant) {
+        final String namespace = "langstream-" + tenant;
         deployment
                 .getClient()
                 .resource(
                         new NamespaceBuilder()
                                 .withNewMetadata()
-                                .withName("langstream-" + tenant)
+                                .withName(namespace)
                                 .endMetadata()
                                 .build())
                 .create();
+        deployment
+                .getClient()
+                .resource(
+                        new ServiceAccountBuilder()
+                                .withNewMetadata()
+                                .withName(
+                                        CRDConstants.computeRuntimeServiceAccountForTenant(tenant))
+                                .endMetadata()
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
+
+        deployment
+                .getClient()
+                .resource(
+                        new ServiceAccountBuilder()
+                                .withNewMetadata()
+                                .withName(
+                                        CRDConstants.computeDeployerServiceAccountForTenant(tenant))
+                                .endMetadata()
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
+
+        deployment
+                .getClient()
+                .resource(
+                        new SecretBuilder()
+                                .withNewMetadata()
+                                .withName(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET)
+                                .endMetadata()
+                                .withData(Map.of(CRDConstants.TENANT_CLUSTER_CONFIG_SECRET_KEY, ""))
+                                .build())
+                .inNamespace(namespace)
+                .serverSideApply();
     }
 
     private ApplicationCustomResource createAppWithResources(
@@ -404,11 +506,14 @@ public class AppControllerIT {
                                     tenant: %s
                                 """
                                 .formatted(appId, size, parallelism, tenant));
-        return deployment
+        final String namespace = "langstream-" + tenant;
+        deployment
                 .getClient()
-                .resource(resource)
-                .inNamespace("langstream-" + tenant)
-                .create();
+                .resource(
+                        new SecretBuilder().withNewMetadata().withName(appId).endMetadata().build())
+                .inNamespace(namespace)
+                .serverSideApply();
+        return deployment.getClient().resource(resource).inNamespace(namespace).create();
     }
 
     private String genAppId() {

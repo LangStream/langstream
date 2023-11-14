@@ -37,15 +37,9 @@ public class DeleteApplicationCmd extends BaseApplicationCmd {
     public void run() {
         getClient().applications().delete(applicationId, force);
         if (force) {
-            log(
-                    String.format(
-                            "Application deletion request accepted (forced) for application %s",
-                            applicationId));
+            log(String.format("Application '%s' marked for deletion (forced)", applicationId));
         } else {
-            log(
-                    String.format(
-                            "Application deletion request accepted for application %s",
-                            applicationId));
+            log(String.format("Application '%s' marked for deletion", applicationId));
         }
     }
 }

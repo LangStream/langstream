@@ -115,6 +115,7 @@ public class OperatorExtension implements BeforeAllCallback, AfterAllCallback, B
         container.withEnv(
                 "QUARKUS_LOG_CATEGORY__IO_JAVAOPERATORSDK_OPERATOR_PROCESSING_EVENT_SOURCE_CONTROLLER",
                 "debug");
+        container.withEnv("QUARKUS_LOG_CATEGORY__AI_LANGSTREAM_DEPLOYER_K8S_APPS", "debug");
         env.forEach(container::withEnv);
         container.withExposedPorts(8080);
         container.withAccessToHost(true);

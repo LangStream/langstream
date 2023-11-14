@@ -110,12 +110,12 @@ public class AppController extends BaseController<ApplicationCustomResource>
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, false);
             if (setupJobResult.proceed()) {
                 log.infof(
-                        "setup job for %s is completed, checking deployer",
+                        "[deploy] setup job for %s is completed, checking deployer",
                         resource.getMetadata().getName());
                 final HandleJobResult deployerJobResult =
                         handleJob(resource, appLastApplied, false, false);
                 log.infof(
-                        "setup job for %s is %s",
+                        "[deploy] setup job for %s is %s",
                         resource.getMetadata().getName(),
                         deployerJobResult.proceed() ? "completed" : "not completed");
 
@@ -123,7 +123,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
             } else {
 
                 log.infof(
-                        "setup job for %s is not completed yet", resource.getMetadata().getName());
+                        "[deploy] setup job for %s is not completed yet",
+                        resource.getMetadata().getName());
                 rescheduleDuration = setupJobResult.reschedule();
             }
         }
@@ -146,6 +147,9 @@ public class AppController extends BaseController<ApplicationCustomResource>
         }
 
         if (rescheduleDuration == null) {
+            log.infof(
+                    "cleanup complete for app %s is completed, removing from limiter",
+                    resource.getMetadata().getName());
             appResourcesLimiter.onAppBeingDeleted(resource);
             return DeleteControl.defaultDelete();
         } else {
@@ -160,12 +164,12 @@ public class AppController extends BaseController<ApplicationCustomResource>
         Duration rescheduleDuration;
         if (deployerJobResult.proceed()) {
             log.infof(
-                    "deployer cleanup job for %s is completed, checking setup cleanup",
+                    "[cleanup] deployer cleanup job for %s is completed, checking setup cleanup",
                     resource.getMetadata().getName());
 
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, true);
             log.infof(
-                    "setup cleanup job for %s is %s",
+                    "[cleanup] setup cleanup job for %s is %s",
                     resource.getMetadata().getName(),
                     setupJobResult.proceed() ? "completed" : "not completed");
             if (setupJobResult.proceed()) {
@@ -179,7 +183,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
             }
         } else {
             log.infof(
-                    "deployer cleanup job for %s is not completed yet",
+                    "[cleanup] deployer cleanup job for %s is not completed yet",
                     resource.getMetadata().getName());
             rescheduleDuration = deployerJobResult.reschedule();
         }
@@ -309,17 +313,22 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 setupJob
                         ? AppResourcesFactory.generateSetupJob(params)
                         : AppResourcesFactory.generateDeployerJob(params);
+        log.debugf(
+                "Applying job %s in namespace %s",
+                job.getMetadata().getName(), job.getMetadata().getNamespace());
         KubeUtil.patchJob(client, job);
     }
 
     private static boolean areSpecChanged(
             ApplicationCustomResource cr, AppLastApplied appLastApplied, boolean checkSetup) {
         if (appLastApplied == null) {
+            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
             return true;
         }
         final String lastAppliedAsString =
                 checkSetup ? appLastApplied.getSetup() : appLastApplied.getRuntimeDeployer();
         if (lastAppliedAsString == null) {
+            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
             return true;
         }
         final JSONComparator.Result diff =

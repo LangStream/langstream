@@ -1092,9 +1092,10 @@ public class BaseEndToEndTest implements TestWatcher {
             return true;
         }
         log.info(
-                "application {} is not in expected status {}, dumping status",
+                "application {} is not in expected status {} but is in {}, dumping:",
                 applicationId,
-                expectedStatus);
+                expectedStatus,
+                status);
         executeCommandOnClient(
                 "bin/langstream apps get %s -o yaml".formatted(applicationId).split(" "));
         return false;

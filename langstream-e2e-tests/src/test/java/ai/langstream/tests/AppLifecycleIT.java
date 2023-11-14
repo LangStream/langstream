@@ -42,12 +42,16 @@ public class AppLifecycleIT extends BaseEndToEndTest {
                         "instance",
                         Map.of(
                                 "streamingCluster",
-                                Map.of("kafka", Map.of("bootstrapServers", "wrong:9092")),
+                                Map.of(
+                                        "type",
+                                        "kafka",
+                                        "configuration",
+                                        Map.of("bootstrapServers", "wrong:9092")),
                                 "computeCluster",
                                 Map.of("type", "kubernetes")));
 
         final File instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
-        YAML_MAPPER.writeValue(BaseEndToEndTest.instanceFile, instanceContent);
+        YAML_MAPPER.writeValue(instanceFile, instanceContent);
 
         deployLocalApplication(
                 tenant, false, applicationId, "python-processor", instanceFile, Map.of());

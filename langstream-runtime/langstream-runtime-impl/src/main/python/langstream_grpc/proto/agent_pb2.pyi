@@ -119,6 +119,28 @@ class Record(_message.Message):
         timestamp: _Optional[int] = ...,
     ) -> None: ...
 
+class TopicProducerWriteResult(_message.Message):
+    __slots__ = ["record_id", "error"]
+    RECORD_ID_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    record_id: int
+    error: str
+    def __init__(
+        self, record_id: _Optional[int] = ..., error: _Optional[str] = ...
+    ) -> None: ...
+
+class TopicProducerRecord(_message.Message):
+    __slots__ = ["topic", "record"]
+    TOPIC_FIELD_NUMBER: _ClassVar[int]
+    RECORD_FIELD_NUMBER: _ClassVar[int]
+    topic: str
+    record: Record
+    def __init__(
+        self,
+        topic: _Optional[str] = ...,
+        record: _Optional[_Union[Record, _Mapping]] = ...,
+    ) -> None: ...
+
 class PermanentFailure(_message.Message):
     __slots__ = ["record_id", "error_message"]
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]

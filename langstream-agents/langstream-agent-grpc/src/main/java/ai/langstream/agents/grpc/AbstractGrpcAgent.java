@@ -17,6 +17,7 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,13 +25,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
+import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +69,12 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     protected final AtomicBoolean restarting = new AtomicBoolean(false);
 
     @Getter protected volatile boolean startFailedButDevelopmentMode = false;
+    protected AgentServiceGrpc.AgentServiceStub asyncStub;
+
+    protected CompletableFuture<StreamObserver<TopicProducerWriteResult>>
+            topicProducerWriteResults = CompletableFuture.completedFuture(null);
+
+    private final Map<String, TopicProducer> topicProducers = new ConcurrentHashMap<>();
 
     protected record GrpcAgentRecord(
             Long id,
@@ -90,6 +100,93 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         }
         blockingStub =
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
+        asyncStub = AgentServiceGrpc.newStub(channel).withWaitForReady();
+
+        topicProducerWriteResults = new CompletableFuture<>();
+        topicProducerWriteResults.complete(
+                asyncStub.getTopicProducerRecords(
+                        new StreamObserver<>() {
+                            @Override
+                            public void onNext(TopicProducerRecord topicProducerRecord) {
+                                TopicProducer topicProducer =
+                                        topicProducers.computeIfAbsent(
+                                                topicProducerRecord.getTopic(),
+                                                topic -> {
+                                                    TopicProducer tp =
+                                                            agentContext
+                                                                    .getTopicConnectionProvider()
+                                                                    .createProducer(
+                                                                            agentContext
+                                                                                    .getGlobalAgentId(),
+                                                                            topic,
+                                                                            Map.of());
+                                                    tp.start();
+                                                    return tp;
+                                                });
+                                try {
+                                    topicProducer
+                                            .write(fromGrpc(topicProducerRecord.getRecord()))
+                                            .whenComplete(
+                                                    (r, e) -> {
+                                                        if (e != null) {
+                                                            log.error("Error writing record", e);
+                                                            sendTopicProducerWriteResult(
+                                                                    TopicProducerWriteResult
+                                                                            .newBuilder()
+                                                                            .setError(
+                                                                                    e
+                                                                                            .getMessage()));
+                                                        } else {
+                                                            sendTopicProducerWriteResult(
+                                                                    TopicProducerWriteResult
+                                                                            .newBuilder()
+                                                                            .setRecordId(
+                                                                                    topicProducerRecord
+                                                                                            .getRecord()
+                                                                                            .getRecordId()));
+                                                        }
+                                                    });
+                                } catch (IOException e) {
+                                    agentContext.criticalFailure(e);
+                                }
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                if (!restarting.get()) {
+                                    agentContext.criticalFailure(
+                                            new RuntimeException(
+                                                    "getTopicProducerRecords: gRPC server sent error: %s"
+                                                            .formatted(throwable.getMessage()),
+                                                    throwable));
+                                } else {
+                                    log.info(
+                                            "getTopicProducerRecords: ignoring error during restart {}",
+                                            throwable + "");
+                                }
+                            }
+
+                            @Override
+                            public void onCompleted() {
+                                if (!restarting.get()) {
+                                    agentContext.criticalFailure(
+                                            new RuntimeException(
+                                                    "getTopicProducerRecords: gRPC server completed the stream unexpectedly"));
+                                } else {
+                                    log.info(
+                                            "getTopicProducerRecords: ignoring error server stop during restart");
+                                }
+                            }
+                        }));
+    }
+
+    private synchronized void sendTopicProducerWriteResult(
+            TopicProducerWriteResult.Builder result) {
+        try {
+            topicProducerWriteResults.get().onNext(result.build());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -103,6 +200,16 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     }
 
     protected synchronized void stopBeforeRestart() throws Exception {
+        restarting.set(true);
+        StreamObserver<TopicProducerWriteResult> topicProducerWriteResultStreamObserver =
+                topicProducerWriteResults.get();
+        if (topicProducerWriteResultStreamObserver != null) {
+            try {
+                topicProducerWriteResultStreamObserver.onCompleted();
+            } catch (IllegalStateException e) {
+                log.info("Ignoring error while stopping {}", e + "");
+            }
+        }
         stopChannel(false);
     }
 
@@ -123,6 +230,10 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     public synchronized void close() throws Exception {
         stopBeforeRestart();
         stopChannel(true);
+        for (TopicProducer topicProducer : topicProducers.values()) {
+            topicProducer.close();
+        }
+        topicProducers.clear();
     }
 
     protected Object fromGrpc(Value value) throws IOException {

@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -132,16 +134,30 @@ class KubernetesApplicationStoreTest {
         store.onTenantCreated(tenant);
         final Application app = new Application();
         store.put(tenant, "myapp", app, "code-1", null);
-        ApplicationCustomResource createdCr =
+        ApplicationCustomResource applicationCustomResource =
                 k3s.getClient()
                         .resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
                         .withName("myapp")
                         .get();
-        createdCr.getMetadata().setFinalizers(List.of("test-finalizer"));
-        k3s.getClient().resource(createdCr).update();
+        applicationCustomResource.getMetadata().setFinalizers(List.of("test-finalizer"));
+        k3s.getClient().resource(applicationCustomResource).update();
         store.delete(tenant, "myapp", false);
-        assertTrue(k3s.getClient().resource(createdCr).get().isMarkedForDeletion());
+        applicationCustomResource = k3s.getClient().resource(applicationCustomResource).get();
+        assertFalse(applicationCustomResource.isMarkedForDeletion());
+        assertTrue(ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                .isMarkedForDeletion());
+        assertEquals(ApplicationSpecOptions.DeleteMode.CLEANUP_REQUIRED, ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                .getDeleteMode());
+
+        store.delete(tenant, "myapp", true);
+        applicationCustomResource = k3s.getClient().resource(applicationCustomResource).get();
+        assertFalse(applicationCustomResource.isMarkedForDeletion());
+        assertTrue(ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                .isMarkedForDeletion());
+        assertEquals(ApplicationSpecOptions.DeleteMode.CLEANUP_BEST_EFFORT, ApplicationSpec.deserializeOptions(applicationCustomResource.getSpec().getOptions())
+                .getDeleteMode());
+
 
         try {
             store.put(tenant, "myapp", app, "code-1", null);
@@ -149,9 +165,10 @@ class KubernetesApplicationStoreTest {
         } catch (IllegalArgumentException aie) {
             assertEquals("Application myapp is marked for deletion.", aie.getMessage());
         }
-        createdCr = k3s.getClient().resource(createdCr).get();
-        createdCr.getMetadata().setFinalizers(List.of());
-        k3s.getClient().resource(createdCr).update();
+        applicationCustomResource = applicationCustomResource;
+        applicationCustomResource.getMetadata().setFinalizers(List.of());
+        k3s.getClient().resource(applicationCustomResource).update();
+        k3s.getClient().resource(applicationCustomResource).delete();
 
         Awaitility.await()
                 .until(

@@ -69,6 +69,7 @@ public class AppControllerIT {
     void testAppController() {
 
         final String tenant = "my-tenant";
+        setupTenant(tenant);
         final String namespace = "langstream-" + tenant;
         final String applicationId = "my-app";
         final ApplicationCustomResource resource =
@@ -87,14 +88,14 @@ public class AppControllerIT {
                 """
                                 .formatted(applicationId, namespace, tenant));
         final KubernetesClient client = deployment.getClient();
-        client.resource(
-                        new NamespaceBuilder()
-                                .withNewMetadata()
-                                .withName(namespace)
-                                .endMetadata()
-                                .build())
+        deployment
+                .getClient()
+                .resource(
+                        new SecretBuilder().withNewMetadata().withName(applicationId).endMetadata().build())
+                .inNamespace(namespace)
                 .serverSideApply();
-        client.resource(resource).inNamespace(namespace).create();
+        final ApplicationCustomResource createdCr =
+                client.resource(resource).inNamespace(namespace).create();
 
         Awaitility.await()
                 .untilAsserted(
@@ -123,6 +124,9 @@ public class AppControllerIT {
         client.resource(job).inNamespace(namespace).delete();
 
         createMockJob(namespace, client, job.getMetadata().getName());
+        patchCustomResourceWithStatusDone(createdCr);
+        awaitJobCompleted(namespace, job.getMetadata().getName());
+
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(30))
@@ -246,6 +250,17 @@ public class AppControllerIT {
 
         awaitJobCompleted(namespace, deployerJobName);
         awaitJobCompleted(namespace, setupJobName);
+        patchCustomResourceWithStatusDone(app);
+
+        deployment
+                .getClient()
+                .resources(ApplicationCustomResource.class)
+                .inNamespace(app.getMetadata().getNamespace())
+                .withName(app.getMetadata().getName())
+                .delete();
+    }
+
+    private void patchCustomResourceWithStatusDone(ApplicationCustomResource app) {
         final ApplicationStatus status = new ApplicationStatus();
         final AppController.AppLastApplied appLastApplied = new AppController.AppLastApplied();
         appLastApplied.setSetup(SerializationUtil.writeAsJson(app.getSpec()));
@@ -260,13 +275,6 @@ public class AppControllerIT {
                         .get();
         resource.setStatus(status);
         deployment.getClient().resource(resource).patchStatus();
-
-        deployment
-                .getClient()
-                .resources(ApplicationCustomResource.class)
-                .inNamespace(app.getMetadata().getNamespace())
-                .withName(app.getMetadata().getName())
-                .delete();
     }
 
     private void awaitJobCompleted(String namespace, String deployerJobName) {

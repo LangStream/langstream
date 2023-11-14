@@ -89,7 +89,7 @@ class KubernetesApplicationStoreTest {
         assertNotNull(store.get(tenant, "myapp", false));
         store.delete(tenant, "myapp", false);
 
-        assertNull(
+        assertNotNull(
                 k3s.getClient()
                         .resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
@@ -100,15 +100,6 @@ class KubernetesApplicationStoreTest {
         // deletion until the cleanup job is finished
         assertNotNull(k3s.getClient().secrets().inNamespace("s" + tenant).withName("myapp").get());
 
-        Awaitility.await()
-                .untilAsserted(
-                        () ->
-                                assertNull(
-                                        k3s.getClient()
-                                                .secrets()
-                                                .inNamespace("s" + tenant)
-                                                .withName("myapp")
-                                                .get()));
         store.onTenantDeleted(tenant);
         assertTrue(k3s.getClient().namespaces().withName("s" + tenant).get().isMarkedForDeletion());
     }

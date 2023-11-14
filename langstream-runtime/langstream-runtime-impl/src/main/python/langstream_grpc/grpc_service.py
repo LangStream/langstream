@@ -383,11 +383,8 @@ class DefaultAgentContext(AgentContext):
         self.configuration = configuration
         self.context = context
 
-    def get_persistent_state_directory(self) -> str:
-        dir = self.context.get("persistentStateDirectory", "")
-        if not dir:
-            return None
-        return dir
+    def get_persistent_state_directory(self) -> Optional[str]:
+        return self.context.get("persistentStateDirectory")
 
 
 class AgentServer(object):

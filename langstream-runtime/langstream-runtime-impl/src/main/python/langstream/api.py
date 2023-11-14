@@ -67,7 +67,7 @@ class AgentContext(ABC):
     """The Agent context interface"""
 
     @abstractmethod
-    def get_persistent_state_directory(self):
+    def get_persistent_state_directory(self) -> Optional[str]:
         """Return the path of the agent disk. Return None if not configured."""
         pass
 

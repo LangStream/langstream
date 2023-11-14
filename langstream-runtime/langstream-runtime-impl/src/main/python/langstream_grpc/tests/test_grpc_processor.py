@@ -281,23 +281,27 @@ class MyFutureProcessor(Processor):
         return self.executor.submit(lambda r: [r], record)
 
 
-class ProcessorInitOneParameter(Processor):
+class ProcessorInitOneParameter:
+    def __init__(self):
+        self.myparam = None
+
     def init(self, agent_config):
         self.myparam = agent_config["my-param"]
 
-    def process(self, record: Record) -> List[RecordType]:
+    def process(self, _) -> List[RecordType]:
         return [{"value": self.myparam}]
 
 
 class ProcessorUseContext(Processor):
+    def __init__(self):
+        self.myparam = None
+        self.context = None
+
     def init(self, agent_config, context: AgentContext):
         self.myparam = agent_config["my-param"]
         self.context = context
 
     def process(self, record: Record) -> List[RecordType]:
         return [
-            {
-                "value": "directory is "
-                + str(self.context.get_persistent_state_directory())
-            }
+            {"value": f"directory is {self.context.get_persistent_state_directory()}"}
         ]

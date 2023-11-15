@@ -152,7 +152,8 @@ class ApplicationResourceTest {
 
         mockMvc.perform(delete("/api/applications/my-tenant/test")).andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/applications/my-tenant/test")).andExpect(status().isNotFound());
+        // the delete is actually a crd update
+        mockMvc.perform(get("/api/applications/my-tenant/test")).andExpect(status().isOk());
     }
 
     @Test

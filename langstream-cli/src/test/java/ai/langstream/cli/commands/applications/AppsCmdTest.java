@@ -352,13 +352,25 @@ class AppsCmdTest extends CommandTestBase {
     @Test
     public void testDelete() {
         wireMock.register(
-                WireMock.delete(String.format("/api/applications/%s/my-app", TENANT))
+                WireMock.delete(String.format("/api/applications/%s/my-app?force=false", TENANT))
                         .willReturn(WireMock.ok()));
 
         CommandResult result = executeCommand("apps", "delete", "my-app");
         Assertions.assertEquals(0, result.exitCode());
         Assertions.assertEquals("", result.err());
-        Assertions.assertEquals("Application my-app deleted", result.out());
+        Assertions.assertEquals("Application 'my-app' marked for deletion", result.out());
+    }
+
+    @Test
+    public void testForceDelete() {
+        wireMock.register(
+                WireMock.delete(String.format("/api/applications/%s/my-app?force=true", TENANT))
+                        .willReturn(WireMock.ok()));
+
+        CommandResult result = executeCommand("apps", "delete", "my-app", "-f");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+        Assertions.assertEquals("Application 'my-app' marked for deletion (forced)", result.out());
     }
 
     @Test

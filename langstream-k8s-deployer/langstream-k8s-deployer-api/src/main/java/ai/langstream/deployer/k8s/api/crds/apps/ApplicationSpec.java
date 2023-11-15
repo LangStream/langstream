@@ -18,7 +18,6 @@ package ai.langstream.deployer.k8s.api.crds.apps;
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
@@ -42,6 +41,19 @@ public class ApplicationSpec extends NamespacedSpec {
         return mapper.readValue(serializedApplicationInstance, SerializedApplicationInstance.class);
     }
 
+    @SneakyThrows
+    public static ApplicationSpecOptions deserializeOptions(String options) {
+        if (options == null) {
+            return new ApplicationSpecOptions();
+        }
+        return mapper.readValue(options, ApplicationSpecOptions.class);
+    }
+
+    @SneakyThrows
+    public static String serializeOptions(ApplicationSpecOptions options) {
+        return mapper.writeValueAsString(options);
+    }
+
     @Deprecated private String image;
     @Deprecated private String imagePullPolicy;
 
@@ -52,18 +64,5 @@ public class ApplicationSpec extends NamespacedSpec {
     private String application;
 
     private String codeArchiveId;
-
-    @Builder
-    public ApplicationSpec(
-            String tenant,
-            String image,
-            String imagePullPolicy,
-            String application,
-            String codeArchiveId) {
-        super(tenant);
-        this.image = image;
-        this.imagePullPolicy = imagePullPolicy;
-        this.application = application;
-        this.codeArchiveId = codeArchiveId;
-    }
+    private String options;
 }

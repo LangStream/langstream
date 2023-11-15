@@ -27,6 +27,8 @@ spec:
                 type: string
               imagePullPolicy:
                 type: string
+              options:
+                type: string
               tenant:
                 type: string
             required:

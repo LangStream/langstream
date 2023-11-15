@@ -134,7 +134,7 @@ public class InMemoryApplicationStore implements ApplicationStore {
     }
 
     @Override
-    public void delete(String tenant, String applicationId) {
+    public void delete(String tenant, String applicationId, boolean force) {
         APPLICATIONS.remove(getKey(tenant, applicationId));
         SECRETS.remove(getKey(tenant, applicationId));
     }

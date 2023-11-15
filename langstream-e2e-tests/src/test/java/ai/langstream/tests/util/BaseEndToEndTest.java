@@ -893,7 +893,8 @@ public class BaseEndToEndTest implements TestWatcher {
                     final File outputFile =
                             new File(
                                     TEST_LOGS_DIR,
-                                    "%s.%s.%s.log".formatted(filePrefix, podName, container));
+                                    "%s.%s.%s.%s.log"
+                                            .formatted(filePrefix, namespace, podName, container));
                     try (FileWriter writer = new FileWriter(outputFile)) {
                         writer.write(logs);
                     } catch (IOException e) {
@@ -1070,6 +1071,37 @@ public class BaseEndToEndTest implements TestWatcher {
                 expectedRunningTotalExecutors + "/" + expectedRunningTotalExecutors);
     }
 
+    protected static void awaitApplicationInStatus(String applicationId, String status) {
+        Awaitility.await()
+                .atMost(3, TimeUnit.MINUTES)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .until(() -> isApplicationInStatus(applicationId, status));
+    }
+
+    protected static boolean isApplicationInStatus(String applicationId, String expectedStatus) {
+        final String response =
+                executeCommandOnClient(
+                        "bin/langstream apps get %s".formatted(applicationId).split(" "));
+        final List<String> lines = response.lines().collect(Collectors.toList());
+        final String appLine = lines.get(1);
+        final List<String> lineAsList =
+                Arrays.stream(appLine.split(" "))
+                        .filter(s -> !s.isBlank())
+                        .collect(Collectors.toList());
+        final String status = lineAsList.get(3);
+        if (status != null && status.equals(expectedStatus)) {
+            return true;
+        }
+        log.info(
+                "application {} is not in expected status {} but is in {}, dumping:",
+                applicationId,
+                expectedStatus,
+                status);
+        executeCommandOnClient(
+                "bin/langstream apps get %s -o yaml".formatted(applicationId).split(" "));
+        return false;
+    }
+
     @SneakyThrows
     protected static void deployLocalApplicationAndAwaitReady(
             String tenant,
@@ -1100,59 +1132,10 @@ public class BaseEndToEndTest implements TestWatcher {
             String appDirName,
             Map<String, String> env,
             int expectedNumExecutors) {
-        String testAppsBaseDir = "src/test/resources/apps";
-        String testSecretBaseDir = "src/test/resources/secrets";
-
-        final File appDir = Paths.get(testAppsBaseDir, appDirName).toFile();
-        final File secretFile = Paths.get(testSecretBaseDir, "secret1.yaml").toFile();
-        validateApp(appDir, secretFile);
-        copyFileToClientContainer(appDir, "/tmp/app");
-        copyFileToClientContainer(instanceFile, "/tmp/instance.yaml");
-
-        copyFileToClientContainer(secretFile, "/tmp/secrets.yaml");
-
-        String beforeCmd = "";
-        if (env != null && !env.isEmpty()) {
-            beforeCmd =
-                    env.entrySet().stream()
-                            .map(
-                                    e -> {
-                                        final String safeValue =
-                                                e.getValue() == null ? "" : e.getValue();
-                                        return "export '%s'='%s'"
-                                                .formatted(
-                                                        e.getKey(), safeValue.replace("'", "''"));
-                                    })
-                            .collect(Collectors.joining(" && "));
-            beforeCmd += " && ";
-        }
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
-
-        final String podUids;
-        if (isUpdate) {
-            podUids =
-                    client
-                            .pods()
-                            .inNamespace(tenantNamespace)
-                            .withLabels(
-                                    Map.of(
-                                            "langstream-application",
-                                            applicationId,
-                                            "app",
-                                            "langstream-runtime"))
-                            .list()
-                            .getItems()
-                            .stream()
-                            .map(p -> p.getMetadata().getUid())
-                            .sorted()
-                            .collect(Collectors.joining(","));
-        } else {
-            podUids = "";
-        }
-        final String command =
-                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
-                        .formatted(isUpdate ? "update" : "deploy", applicationId);
-        executeCommandOnClient((beforeCmd + command).split(" "));
+        final String podUids =
+                deployLocalApplication(
+                        tenant, isUpdate, applicationId, appDirName, instanceFile, env);
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()
@@ -1190,6 +1173,70 @@ public class BaseEndToEndTest implements TestWatcher {
                                 assertTrue(checkPodReadiness(pod));
                             }
                         });
+    }
+
+    @SneakyThrows
+    protected static String deployLocalApplication(
+            String tenant,
+            boolean isUpdate,
+            String applicationId,
+            String appDirName,
+            File instanceFile,
+            Map<String, String> env) {
+        final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
+        String testAppsBaseDir = "src/test/resources/apps";
+        String testSecretBaseDir = "src/test/resources/secrets";
+
+        final File appDir = Paths.get(testAppsBaseDir, appDirName).toFile();
+        final File secretFile = Paths.get(testSecretBaseDir, "secret1.yaml").toFile();
+        validateApp(appDir, secretFile);
+        copyFileToClientContainer(appDir, "/tmp/app");
+        copyFileToClientContainer(instanceFile, "/tmp/instance.yaml");
+
+        copyFileToClientContainer(secretFile, "/tmp/secrets.yaml");
+
+        String beforeCmd = "";
+        if (env != null && !env.isEmpty()) {
+            beforeCmd =
+                    env.entrySet().stream()
+                            .map(
+                                    e -> {
+                                        final String safeValue =
+                                                e.getValue() == null ? "" : e.getValue();
+                                        return "export '%s'='%s'"
+                                                .formatted(
+                                                        e.getKey(), safeValue.replace("'", "''"));
+                                    })
+                            .collect(Collectors.joining(" && "));
+            beforeCmd += " && ";
+        }
+
+        final String podUids;
+        if (isUpdate) {
+            podUids =
+                    client
+                            .pods()
+                            .inNamespace(tenantNamespace)
+                            .withLabels(
+                                    Map.of(
+                                            "langstream-application",
+                                            applicationId,
+                                            "app",
+                                            "langstream-runtime"))
+                            .list()
+                            .getItems()
+                            .stream()
+                            .map(p -> p.getMetadata().getUid())
+                            .sorted()
+                            .collect(Collectors.joining(","));
+        } else {
+            podUids = "";
+        }
+        final String command =
+                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(isUpdate ? "update" : "deploy", applicationId);
+        executeCommandOnClient((beforeCmd + command).split(" "));
+        return podUids;
     }
 
     private static void validateApp(File appDir, File secretFile) throws Exception {
@@ -1265,10 +1312,10 @@ public class BaseEndToEndTest implements TestWatcher {
     protected void deleteAppAndAwaitCleanup(String tenant, String applicationId) {
         executeCommandOnClient("bin/langstream apps delete %s".formatted(applicationId).split(" "));
 
-        awaitCleanup(tenant, applicationId);
+        awaitApplicationCleanup(tenant, applicationId);
     }
 
-    private static void awaitCleanup(String tenant, String applicationId) {
+    protected static void awaitApplicationCleanup(String tenant, String applicationId) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         Awaitility.await()
                 .atMost(2, TimeUnit.MINUTES)

@@ -283,10 +283,11 @@ public class ApplicationResource {
     void deleteApplication(
             Authentication authentication,
             @NotBlank @PathVariable("tenant") String tenant,
-            @NotBlank @PathVariable("applicationId") String applicationId) {
+            @NotBlank @PathVariable("applicationId") String applicationId,
+            @RequestParam(value = "force", required = false) boolean force) {
         performAuthorization(authentication, tenant);
         getAppOrThrow(tenant, applicationId);
-        applicationService.deleteApplication(tenant, applicationId);
+        applicationService.deleteApplication(tenant, applicationId, force);
         log.info("Deleted application {}", applicationId);
     }
 

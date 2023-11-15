@@ -64,6 +64,31 @@ public class KubeUtil {
         return succeeded != null && succeeded > 0;
     }
 
+    public static boolean isJobFailed(Job job) {
+        if (job == null) {
+            return false;
+        }
+        final Integer failed = job.getStatus().getFailed();
+        return failed != null && failed > 0;
+    }
+
+    public static Pod getJobPod(Job job, KubernetesClient client) {
+        if (job == null) {
+            return null;
+        }
+        final String uid = job.getMetadata().getUid();
+        final List<Pod> pods =
+                client.pods()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withLabel("controller-uid", uid)
+                        .list()
+                        .getItems();
+        if (pods.isEmpty()) {
+            return null;
+        }
+        return pods.get(0);
+    }
+
     public static boolean isStatefulSetReady(StatefulSet sts) {
         if (sts == null || sts.getStatus() == null) {
             return false;

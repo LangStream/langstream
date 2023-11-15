@@ -347,9 +347,9 @@ public class ApplicationService {
     }
 
     @SneakyThrows
-    public void deleteApplication(String tenant, String applicationId) {
+    public void deleteApplication(String tenant, String applicationId, boolean force) {
         checkTenant(tenant);
-        applicationStore.delete(tenant, applicationId);
+        applicationStore.delete(tenant, applicationId, force);
     }
 
     private void checkTenant(String tenant) {

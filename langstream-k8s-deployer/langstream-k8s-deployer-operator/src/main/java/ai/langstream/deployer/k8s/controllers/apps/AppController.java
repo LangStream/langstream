@@ -17,6 +17,8 @@ package ai.langstream.deployer.k8s.controllers.apps;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.controllers.BaseController;
@@ -28,6 +30,7 @@ import ai.langstream.deployer.k8s.util.SpecDiffer;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -37,6 +40,7 @@ import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import java.time.Duration;
+import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
@@ -85,27 +89,44 @@ public class AppController extends BaseController<ApplicationCustomResource>
         String runtimeDeployer;
     }
 
+    public record HandleJobResult(boolean proceed, Duration reschedule) {}
+
+    public class ApplicationDeletedException extends Exception {}
+
     @Override
     protected PatchResult patchResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
+        final ApplicationSpecOptions applicationSpecOptions =
+                ApplicationSpec.deserializeOptions(resource.getSpec().getOptions());
         AppLastApplied appLastApplied = getAppLastApplied(resource);
-        Duration rescheduleDuration = handleJob(resource, appLastApplied, true, false);
-        if (rescheduleDuration == null) {
-            log.infof(
-                    "setup job for %s is completed, checking deployer",
-                    resource.getMetadata().getName());
-            rescheduleDuration = handleJob(resource, appLastApplied, false, false);
-            log.infof(
-                    "setup job for %s is %s",
-                    resource.getMetadata().getName(),
-                    rescheduleDuration != null ? "not completed" : "completed");
-            appLastApplied.setRuntimeDeployer(SerializationUtil.writeAsJson(resource.getSpec()));
-        } else {
-            if (appLastApplied == null) {
-                appLastApplied = new AppLastApplied();
+        Duration rescheduleDuration;
+        if (applicationSpecOptions.isMarkedForDeletion()) {
+            try {
+                rescheduleDuration = cleanupApplication(resource, appLastApplied);
+            } catch (ApplicationDeletedException exception) {
+                return PatchResult.patch(UpdateControl.noUpdate());
             }
-            appLastApplied.setSetup(SerializationUtil.writeAsJson(resource.getSpec()));
-            log.infof("setup job for %s is not completed yet", resource.getMetadata().getName());
+        } else {
+            final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, false);
+            if (setupJobResult.proceed()) {
+                log.infof(
+                        "[deploy] setup job for %s is completed, checking deployer",
+                        resource.getMetadata().getName());
+                final HandleJobResult deployerJobResult =
+                        handleJob(resource, appLastApplied, false, false);
+                log.infof(
+                        "[deploy] setup job for %s is %s",
+                        resource.getMetadata().getName(),
+                        deployerJobResult.proceed() ? "completed" : "not completed");
+
+                rescheduleDuration = deployerJobResult.reschedule();
+            } else {
+
+                log.infof(
+                        "[deploy] setup job for %s is not completed yet",
+                        resource.getMetadata().getName());
+                rescheduleDuration = setupJobResult.reschedule();
+            }
         }
         final UpdateControl<ApplicationCustomResource> updateControl =
                 rescheduleDuration != null
@@ -117,29 +138,59 @@ public class AppController extends BaseController<ApplicationCustomResource>
     @Override
     protected DeleteControl cleanupResources(
             ApplicationCustomResource resource, Context<ApplicationCustomResource> context) {
-        appResourcesLimiter.onAppBeingDeleted(resource);
-        final AppLastApplied appLastApplied = getAppLastApplied(resource);
-        Duration rescheduleDuration = handleJob(resource, appLastApplied, false, true);
+        AppLastApplied appLastApplied = getAppLastApplied(resource);
+        Duration rescheduleDuration;
+        try {
+            rescheduleDuration = cleanupApplication(resource, appLastApplied);
+        } catch (ApplicationDeletedException ex) {
+            rescheduleDuration = null;
+        }
+
         if (rescheduleDuration == null) {
             log.infof(
-                    "deployer cleanup job for %s is completed, checking setup cleanup",
+                    "cleanup complete for app %s is completed, removing from limiter",
                     resource.getMetadata().getName());
-            rescheduleDuration = handleJob(resource, appLastApplied, true, true);
-            log.infof(
-                    "setup cleanup job for %s is %s",
-                    resource.getMetadata().getName(),
-                    rescheduleDuration != null ? "not completed" : "completed");
+            appResourcesLimiter.onAppBeingDeleted(resource);
+            return DeleteControl.defaultDelete();
         } else {
-            log.infof(
-                    "deployer cleanup job for %s is not completed yet",
-                    resource.getMetadata().getName());
+            return DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration);
         }
-        return rescheduleDuration != null
-                ? DeleteControl.noFinalizerRemoval().rescheduleAfter(rescheduleDuration)
-                : DeleteControl.defaultDelete();
     }
 
-    private Duration handleJob(
+    private Duration cleanupApplication(
+            ApplicationCustomResource resource, AppLastApplied appLastApplied)
+            throws ApplicationDeletedException {
+        final HandleJobResult deployerJobResult = handleJob(resource, appLastApplied, false, true);
+        Duration rescheduleDuration;
+        if (deployerJobResult.proceed()) {
+            log.infof(
+                    "[cleanup] deployer cleanup job for %s is completed, checking setup cleanup",
+                    resource.getMetadata().getName());
+
+            final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, true);
+            log.infof(
+                    "[cleanup] setup cleanup job for %s is %s",
+                    resource.getMetadata().getName(),
+                    setupJobResult.proceed() ? "completed" : "not completed");
+            if (setupJobResult.proceed()) {
+                if (!resource.isMarkedForDeletion()) {
+                    client.resource(resource).delete();
+                    throw new ApplicationDeletedException();
+                }
+                return null;
+            } else {
+                return setupJobResult.reschedule();
+            }
+        } else {
+            log.infof(
+                    "[cleanup] deployer cleanup job for %s is not completed yet",
+                    resource.getMetadata().getName());
+            rescheduleDuration = deployerJobResult.reschedule();
+        }
+        return rescheduleDuration;
+    }
+
+    private HandleJobResult handleJob(
             ApplicationCustomResource application,
             AppLastApplied appLastApplied,
             boolean isSetupJob,
@@ -154,6 +205,15 @@ public class AppController extends BaseController<ApplicationCustomResource>
         final Job currentJob =
                 client.batch().v1().jobs().inNamespace(namespace).withName(jobName).get();
         if (currentJob == null || areSpecChanged(application, appLastApplied, isSetupJob)) {
+            if (appLastApplied == null) {
+                appLastApplied = new AppLastApplied();
+            }
+            if (isSetupJob) {
+                appLastApplied.setSetup(SerializationUtil.writeAsJson(application.getSpec()));
+            } else {
+                appLastApplied.setRuntimeDeployer(
+                        SerializationUtil.writeAsJson(application.getSpec()));
+            }
             if (isSetupJob && !delete) {
                 final boolean isDeployable = appResourcesLimiter.checkLimitsForTenant(application);
                 if (!isDeployable) {
@@ -168,7 +228,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
                     application
                             .getStatus()
                             .setResourceLimitStatus(ApplicationStatus.ResourceLimitStatus.REJECTED);
-                    return Duration.ofSeconds(30);
+                    return new HandleJobResult(false, Duration.ofSeconds(30));
                 } else {
                     application
                             .getStatus()
@@ -181,15 +241,58 @@ public class AppController extends BaseController<ApplicationCustomResource>
             } else {
                 application.getStatus().setStatus(ApplicationLifecycleStatus.DELETING);
             }
-            return DEFAULT_RESCHEDULE_DURATION;
+            return new HandleJobResult(false, DEFAULT_RESCHEDULE_DURATION);
         } else {
-            if (KubeUtil.isJobCompleted(currentJob)) {
+            if (KubeUtil.isJobFailed(currentJob)) {
+                if (isSetupJob && delete) {
+                    // failed cleaning up the assets/topics
+                    final ApplicationSpecOptions applicationSpecOptions =
+                            ApplicationSpec.deserializeOptions(application.getSpec().getOptions());
+                    if (applicationSpecOptions.getDeleteMode()
+                            == ApplicationSpecOptions.DeleteMode.CLEANUP_BEST_EFFORT) {
+                        return new HandleJobResult(true, null);
+                    }
+                }
+
+                String errorMessage = "?";
+                final Pod pod = KubeUtil.getJobPod(currentJob, client);
+                if (pod != null) {
+                    final KubeUtil.PodStatus status =
+                            KubeUtil.getPodsStatuses(List.of(pod)).values().iterator().next();
+                    if (status.getState() == KubeUtil.PodStatus.State.ERROR) {
+                        errorMessage = status.getMessage();
+                    }
+                }
+
+                if (delete) {
+                    final String errMessageJobDescription = isSetupJob ? "assets/topics" : "agents";
+                    application
+                            .getStatus()
+                            .setStatus(
+                                    ApplicationLifecycleStatus.errorDeleting(
+                                            "Failed to cleanup the %s, to delete the application, please cleanup the assets/topics manually and force-delete the application again. Error was:\n%s"
+                                                    .formatted(
+                                                            errMessageJobDescription,
+                                                            errorMessage)));
+                } else {
+                    final String errMessageJobDescription = isSetupJob ? "setup" : "deployer";
+                    application
+                            .getStatus()
+                            .setStatus(
+                                    ApplicationLifecycleStatus.errorDeploying(
+                                            "Failed to deploy the application, error during job: %s. Error was:\n%s"
+                                                    .formatted(
+                                                            errMessageJobDescription,
+                                                            errorMessage)));
+                }
+                return new HandleJobResult(false, null);
+            } else if (KubeUtil.isJobCompleted(currentJob)) {
                 if (!isSetupJob && !delete) {
                     application.getStatus().setStatus(ApplicationLifecycleStatus.DEPLOYED);
                 }
-                return null;
+                return new HandleJobResult(true, null);
             } else {
-                return DEFAULT_RESCHEDULE_DURATION;
+                return new HandleJobResult(false, DEFAULT_RESCHEDULE_DURATION);
             }
         }
     }
@@ -210,17 +313,22 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 setupJob
                         ? AppResourcesFactory.generateSetupJob(params)
                         : AppResourcesFactory.generateDeployerJob(params);
+        log.debugf(
+                "Applying job %s in namespace %s",
+                job.getMetadata().getName(), job.getMetadata().getNamespace());
         KubeUtil.patchJob(client, job);
     }
 
     private static boolean areSpecChanged(
             ApplicationCustomResource cr, AppLastApplied appLastApplied, boolean checkSetup) {
         if (appLastApplied == null) {
+            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
             return true;
         }
         final String lastAppliedAsString =
                 checkSetup ? appLastApplied.getSetup() : appLastApplied.getRuntimeDeployer();
         if (lastAppliedAsString == null) {
+            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
             return true;
         }
         final JSONComparator.Result diff =

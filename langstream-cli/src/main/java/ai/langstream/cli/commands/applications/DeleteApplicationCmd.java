@@ -18,16 +18,28 @@ package ai.langstream.cli.commands.applications;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "delete", header = "Delete an application")
+@CommandLine.Command(
+        name = "delete",
+        header = "Delete an application. The deletion of the application it's asynchronous.")
 public class DeleteApplicationCmd extends BaseApplicationCmd {
 
     @CommandLine.Parameters(description = "ID of the application")
     private String applicationId;
 
+    @CommandLine.Option(
+            names = {"-f", "--force"},
+            description =
+                    "Force application deletion. This could cause orphaned assets and topics.")
+    private boolean force;
+
     @Override
     @SneakyThrows
     public void run() {
-        getClient().applications().delete(applicationId);
-        log(String.format("Application %s deleted", applicationId));
+        getClient().applications().delete(applicationId, force);
+        if (force) {
+            log(String.format("Application '%s' marked for deletion (forced)", applicationId));
+        } else {
+            log(String.format("Application '%s' marked for deletion", applicationId));
+        }
     }
 }

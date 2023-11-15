@@ -29,7 +29,7 @@ public interface Applications {
 
     void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 
-    void delete(String application);
+    void delete(String application, boolean force);
 
     String get(String application, boolean stats);
 

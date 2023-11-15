@@ -9,6 +9,8 @@ It uses our full stack (LangStream, AstraDB, and LangChain) with Azure Blob Stor
 Here is what you will build:
 ![Langstream UI in action](images/langstream_ui_intro.png)
 ![Pipeline flow](images/pipeline_flow.png)
+
+In this demo you will build, the chatbot will be performing RAG on the data ingested by the top pipeline flow. 
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
 - Detect new PDF files uploaded to the specified Azure blob storage container.

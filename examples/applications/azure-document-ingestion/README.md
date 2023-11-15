@@ -7,7 +7,8 @@ This sample application demonstrates how to:
 It uses our full stack (LangStream, AstraDB, and LangChain) with Azure Blob Storage for PDF ingestion. (Although it uses Azure, you could easily swap out Azure for AWS S3 or GCP Cloud Storage.)
 
 Here is what you will build:
-![Langstream UI in action](images/langstream_ui_intro.png)
+![Langstream UI in action](images/langstream_ui_intro.png$)
+![Pipeline flow](images/pipeline_flow.png)
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
 - Detect new PDF files uploaded to the specified Azure blob storage container.

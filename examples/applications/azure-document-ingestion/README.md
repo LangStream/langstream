@@ -170,6 +170,13 @@ After you have asked your question, press enter.
 If you click the App tab, you can see a visual representation of your pipeline. Pretty cool, huh!
 ![Pipeline flow](images/pipeline_flow.png)
 
+### Deploy with Kubernetes
+The best way to deploy this stack in production is with kubernetes via Helm.
+You can do this by following the [instructions for deploying LangStream on Kubernetes](https://docs.langstream.ai/installation/kubernetes)
+
+### Deploy with minikube
+You can also deploy via Minikube. We have a [helper utility](https://github.com/LangStream/langstream#local-deployment) to simplify getting it working. 
+
 ### Run Terraform to deploy dependencies
 1. Review [this Terraform deployment script](deployment.tf).
 

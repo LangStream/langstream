@@ -32,8 +32,9 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      ai-service: "openai"
-      model: "${secrets.open-ai.embeddings-model}"
+      ai-service: "huggingface"
+      model: "${secrets.hugging-face.embeddings-model}" # This is the id of the model
+      model-url: "${secrets.hugging-face.embeddings-model-url}" # This is the URL of the repository containing the model
       embeddings-field: "value.question_embeddings"
       text: "{{ value.question }}"
       flush-interval: 0

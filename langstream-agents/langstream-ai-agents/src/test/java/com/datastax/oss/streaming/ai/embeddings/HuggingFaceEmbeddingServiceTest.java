@@ -15,25 +15,31 @@
  */
 package com.datastax.oss.streaming.ai.embeddings;
 
-import java.util.List;
-import org.junit.jupiter.api.Disabled;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-// disabled, just for experiments/usage demo
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+
+@Slf4j
 public class HuggingFaceEmbeddingServiceTest {
 
-    @Disabled
-    public void testMain() throws Exception {
+    @Test
+    public void testEmbeddings() throws Exception {
         AbstractHuggingFaceEmbeddingService.HuggingFaceConfig conf =
                 AbstractHuggingFaceEmbeddingService.HuggingFaceConfig.builder()
                         .engine("PyTorch")
-                        .modelUrl(
-                                "file:///Users/andreyyegorov/src/djl/model/nlp/text_embedding/ai/djl/huggingface/pytorch/sentence-transformers/all-MiniLM-L6-v2/0.0.1/all-MiniLM-L6-v2.zip")
+                        .modelName("multilingual-e5-small")
+                        .modelUrl("djl://ai.djl.huggingface.pytorch/intfloat/multilingual-e5-small")
                         .build();
 
         try (EmbeddingsService service = new HuggingFaceEmbeddingService(conf)) {
-            List<List<Double>> result =
-                    service.computeEmbeddings(List.of("hello world", "stranger things")).get();
-            result.forEach(System.out::println);
+
+            List<List<Double>> lists =
+                    service.computeEmbeddings(List.of("Hello", "my friend")).get();
+            assertEquals(2, lists.size());
+            assertEquals(List.of(384), List.of(lists.get(0).size()));
+            assertEquals(List.of(384), List.of(lists.get(1).size()));
         }
     }
 }

@@ -46,10 +46,10 @@ pipeline:
     type: "text-splitter"
     configuration:
       splitter_type: "RecursiveCharacterTextSplitter"
-      chunk_size: 400
+      chunk_size: 200
       separators: ["\n\n", "\n", " ", ""]
       keep_separator: false
-      chunk_overlap: 100
+      chunk_overlap: 20
       length_function: "cl100k_base"
   - name: "Convert to structured data"
     type: "document-to-json"
@@ -76,8 +76,9 @@ pipeline:
     id: "step1"
     type: "compute-ai-embeddings"
     configuration:
-      ai-service: "openai"
-      model: "${secrets.open-ai.embeddings-model}"
+      ai-service: "huggingface"
+      model: "${secrets.hugging-face.embeddings-model}" # This is the id of the model
+      model-url: "${secrets.hugging-face.embeddings-model-url}" # This is the URL of the repository containing the model
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10

@@ -16,20 +16,24 @@
 package com.datastax.oss.streaming.ai.embeddings;
 
 import ai.djl.MalformedModelException;
+import ai.djl.engine.Engine;
 import ai.djl.huggingface.translator.TextEmbeddingTranslatorFactory;
 import ai.djl.inference.Predictor;
+import ai.djl.pytorch.jni.LibUtils;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.TranslateException;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +41,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
         implements EmbeddingsService, AutoCloseable {
+
+    static {
+        log.info("Loading libtorch");
+        LibUtils.loadLibrary();
+        Engine.getEngine("PyTorch");
+    }
+
     /**
      * comma-separated list of allowed url prefixes, like
      * file://,s3://,djl://,https://models.datastax.com/
@@ -90,6 +101,8 @@ public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
     // http://djl.ai/docs/development/inference_performance_optimization.html#multithreading-support
     ZooModel<IN, OUT> model;
 
+    private static final ReentrantLock localModelLock = new ReentrantLock();
+
     private static final ThreadLocal<Predictor<?, ?>> predictorThreadLocal = new ThreadLocal<>();
     private static final ConcurrentLinkedQueue<Predictor<?, ?>> predictorList =
             new ConcurrentLinkedQueue<>();
@@ -98,7 +111,8 @@ public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
             throws IOException,
                     ModelNotFoundException,
                     MalformedModelException,
-                    IllegalAccessException {
+                    IllegalAccessException,
+                    InterruptedException {
         Objects.requireNonNull(conf);
         Objects.requireNonNull(conf.modelName);
 
@@ -142,7 +156,19 @@ public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
 
         Criteria<IN, OUT> criteria = builder.build();
 
-        model = criteria.loadModel();
+        localModelLock.lockInterruptibly();
+        try {
+            model = criteria.loadModel();
+        } catch (ai.djl.engine.EngineException error) {
+            log.info("Classloader information: {}", getClass().getClassLoader());
+            log.info(
+                    "Classloader information for Criteria: {}",
+                    criteria.getClass().getClassLoader());
+            log.info("Context classloader: {}", Thread.currentThread().getContextClassLoader());
+            throw error;
+        } finally {
+            localModelLock.unlock();
+        }
     }
 
     private void checkIfUrlIsAllowed(String modelUrl) throws IllegalAccessException {
@@ -162,7 +188,22 @@ public abstract class AbstractHuggingFaceEmbeddingService<IN, OUT>
             predictorList.add(predictor);
         }
 
-        return predictor.batchPredict(texts);
+        List<OUT> result = new ArrayList<>(texts.size());
+        // we are doing one text at a time, but we could do more
+        // batchPredict wants texts with the same size
+        for (IN in : texts) {
+            try {
+                result.add(predictor.predict(in));
+            } catch (TranslateException error) {
+                Throwable cause = error.getCause();
+                if (cause instanceof IllegalArgumentException err) {
+                    throw new TranslateException(
+                            "Illegal input, maybe the number of tokens is too high", error);
+                }
+                throw error;
+            }
+        }
+        return result;
     }
 
     abstract List<IN> convertInput(List<String> texts);

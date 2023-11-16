@@ -14,9 +14,8 @@
 # limitations under the License.
 #
 
+import asyncio
 import json
-import queue
-import time
 from io import BytesIO
 from typing import List
 
@@ -35,24 +34,24 @@ from langstream_grpc.util import AvroValue, SimpleRecord
 
 
 @pytest.fixture
-def server_and_stub():
-    with ServerAndStub(
+async def server_and_stub():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_source.MySource"
     ) as server_and_stub:
         yield server_and_stub
 
 
-def test_read(server_and_stub):
+async def test_read(server_and_stub):
     stop = False
 
-    def requests():
+    async def requests():
         while not stop:
-            time.sleep(0.1)
-        yield from ()
+            await asyncio.sleep(0.1)
+        yield
 
     responses: list[SourceResponse] = []
     i = 0
-    for response in server_and_stub.stub.read(iter(requests())):
+    async for response in server_and_stub.stub.read(requests()):
         responses.append(response)
         i += 1
         stop = i == 4
@@ -92,24 +91,21 @@ def test_read(server_and_stub):
     assert record.value.long_value == 43
 
 
-def test_commit(server_and_stub):
-    to_commit = queue.Queue()
+async def test_commit(server_and_stub):
+    to_commit = asyncio.Queue()
 
-    def send_commit():
+    async def send_commit():
         committed = 0
         while committed < 3:
-            try:
-                commit_id = to_commit.get(True, 1)
-                yield SourceRequest(committed_records=[commit_id])
-                committed += 1
-            except queue.Empty:
-                pass
+            commit_id = await to_commit.get()
+            yield SourceRequest(committed_records=[commit_id])
+            committed += 1
 
     with pytest.raises(grpc.RpcError):
         response: SourceResponse
-        for response in server_and_stub.stub.read(iter(send_commit())):
+        async for response in server_and_stub.stub.read(send_commit()):
             for record in response.records:
-                to_commit.put(record.record_id)
+                await to_commit.put(record.record_id)
 
     sent = server_and_stub.server.agent.sent
     committed = server_and_stub.server.agent.committed
@@ -118,24 +114,21 @@ def test_commit(server_and_stub):
     assert committed[1].value() == sent[1]["value"]
 
 
-def test_permanent_failure(server_and_stub):
-    to_fail = queue.Queue()
+async def test_permanent_failure(server_and_stub):
+    to_fail = asyncio.Queue()
 
-    def send_failure():
-        try:
-            record_id = to_fail.get(True)
-            yield SourceRequest(
-                permanent_failure=PermanentFailure(
-                    record_id=record_id, error_message="failure"
-                )
+    async def send_failure():
+        record_id = await to_fail.get()
+        yield SourceRequest(
+            permanent_failure=PermanentFailure(
+                record_id=record_id, error_message="failure"
             )
-        except queue.Empty:
-            pass
+        )
 
     response: SourceResponse
-    for response in server_and_stub.stub.read(iter(send_failure())):
+    async for response in server_and_stub.stub.read(send_failure()):
         for record in response.records:
-            to_fail.put(record.record_id)
+            await to_fail.put(record.record_id)
 
     failures = server_and_stub.server.agent.failures
     assert len(failures) == 1

@@ -1,12 +1,11 @@
 [packages]
 grpcio = "*"
+protobuf = "*"
 fastavro = "*"
 
 [full]
-"openai[embeddings]" = "*"
 "openai[datalib]" = "*"
-"openai[wandb]" = "*"
-langchain = "*"
+"langchain[openai]" = "*"
 langserve = "*"
 sse-starlette = "*"
 fastapi = "*"

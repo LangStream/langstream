@@ -8,6 +8,9 @@ It uses our full stack (LangStream, AstraDB, and LangChain) with Azure Blob Stor
 
 Here is what you will build:
 ![Langstream UI in action](images/langstream_ui_intro.png)
+![Pipeline flow](images/pipeline_flow.png)
+
+In this demo you will build, the chatbot will be performing RAG on the data ingested by the top pipeline flow. 
 ### Features:
 - Create a Cassandra keyspace and table in AstraDB (if not already created).
 - Detect new PDF files uploaded to the specified Azure blob storage container.
@@ -166,6 +169,13 @@ After you have asked your question, press enter.
 ## View flow (for fun)
 If you click the App tab, you can see a visual representation of your pipeline. Pretty cool, huh!
 ![Pipeline flow](images/pipeline_flow.png)
+
+### Deploy with Kubernetes
+The best way to deploy this stack in production is with kubernetes via Helm.
+You can do this by following the [instructions for deploying LangStream on Kubernetes](https://docs.langstream.ai/installation/kubernetes)
+
+### Deploy with minikube
+You can also deploy via Minikube. We have a [helper utility](https://github.com/LangStream/langstream#local-deployment) to simplify getting it working. 
 
 ### Run Terraform to deploy dependencies
 1. Review [this Terraform deployment script](deployment.tf).

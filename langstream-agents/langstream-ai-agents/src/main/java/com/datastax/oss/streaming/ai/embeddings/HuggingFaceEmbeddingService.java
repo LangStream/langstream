@@ -39,7 +39,8 @@ public class HuggingFaceEmbeddingService
             throws IOException,
                     ModelNotFoundException,
                     MalformedModelException,
-                    IllegalAccessException {
+                    IllegalAccessException,
+                    InterruptedException {
         super(conf);
     }
 

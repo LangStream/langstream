@@ -181,6 +181,20 @@ public class NarFileHandler
             file.extractTo(dest);
             directory = dest;
         }
+
+        interface ClassloaderBuilder {
+            URLClassLoader apply(PackageMetadata metadata) throws Exception;
+        }
+
+        public synchronized URLClassLoader buildClassloader(ClassloaderBuilder builder)
+                throws Exception {
+            if (this.classLoader != null) {
+                return classLoader;
+            }
+            unpack();
+            this.classLoader = builder.apply(this);
+            return classLoader;
+        }
     }
 
     public synchronized void scan() throws Exception {
@@ -394,7 +408,6 @@ public class NarFileHandler
 
         classloaders = new ArrayList<>();
         for (PackageMetadata metadata : packages.values()) {
-            metadata.unpack();
             URLClassLoader result =
                     createClassloaderForPackage(customLibClasspath, metadata, parentClassloader);
             classloaders.add(result);
@@ -422,46 +435,50 @@ public class NarFileHandler
     }
 
     private static URLClassLoader createClassloaderForPackage(
-            List<URL> customLibClasspath, PackageMetadata metadata, ClassLoader parentClassloader)
+            List<URL> customLibClasspath,
+            PackageMetadata packageMetadata,
+            ClassLoader parentClassloader)
             throws Exception {
 
-        if (metadata.classLoader != null) {
-            return metadata.classLoader;
-        }
+        return packageMetadata.buildClassloader(
+                (metadata) -> {
+                    log.info(
+                            "Creating classloader for package {} id {}",
+                            metadata.name,
+                            System.identityHashCode(metadata));
+                    List<URL> urls = new ArrayList<>();
 
-        metadata.unpack();
+                    log.debug("Adding agents code {}", metadata.directory);
+                    urls.add(metadata.directory.toFile().toURI().toURL());
 
-        log.debug("Creating classloader for package {}", metadata.name);
-        List<URL> urls = new ArrayList<>();
+                    Path metaInfDirectory = metadata.directory.resolve("META-INF");
+                    if (Files.isDirectory(metaInfDirectory)) {
 
-        log.debug("Adding agents code {}", metadata.directory);
-        urls.add(metadata.directory.toFile().toURI().toURL());
-
-        Path metaInfDirectory = metadata.directory.resolve("META-INF");
-        if (Files.isDirectory(metaInfDirectory)) {
-
-            Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
-            if (Files.isDirectory(dependencies)) {
-                try (DirectoryStream<Path> allFiles = Files.newDirectoryStream(dependencies)) {
-                    for (Path file : allFiles) {
-                        if (file.getFileName().toString().endsWith(".jar")) {
-                            urls.add(file.toUri().toURL());
+                        Path dependencies = metaInfDirectory.resolve("bundled-dependencies");
+                        if (Files.isDirectory(dependencies)) {
+                            try (DirectoryStream<Path> allFiles =
+                                    Files.newDirectoryStream(dependencies)) {
+                                for (Path file : allFiles) {
+                                    if (file.getFileName().toString().endsWith(".jar")) {
+                                        urls.add(file.toUri().toURL());
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
-        }
 
-        URLClassLoader result = new NarFileClassLoader(metadata.name, urls, parentClassloader);
+                    URLClassLoader result =
+                            new NarFileClassLoader(metadata.name, urls, parentClassloader);
 
-        if (!customLibClasspath.isEmpty()) {
-            result =
-                    new NarFileClassLoader(
-                            metadata.name + "+custom-lib", customLibClasspath, result);
-        }
+                    if (!customLibClasspath.isEmpty()) {
+                        result =
+                                new NarFileClassLoader(
+                                        metadata.name + "+custom-lib", customLibClasspath, result);
+                    }
 
-        metadata.classLoader = result;
+                    metadata.classLoader = result;
 
-        return result;
+                    return result;
+                });
     }
 }

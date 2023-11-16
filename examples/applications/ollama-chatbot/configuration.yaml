@@ -30,13 +30,11 @@ configuration:
       id: "ollama"
       configuration:
         url: "${secrets.ollama.url}"
-    - type: "open-ai-configuration"
-      name: "OpenAI Azure configuration"
-      id: "openai"
+    - type: "hugging-face-configuration"
+      name: "Hugging Face AI configuration"
+      id: "huggingface"
       configuration:
-        url: "${secrets.open-ai.url}"
-        access-key: "${secrets.open-ai.access-key}"
-        provider: "${secrets.open-ai.provider}"
+        provider: "local"
   dependencies:
     - name: "HerdDB.org JDBC Driver"
       url: "https://repo1.maven.org/maven2/org/herddb/herddb-jdbc/0.28.0/herddb-jdbc-0.28.0-thin.jar"

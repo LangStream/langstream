@@ -30,12 +30,12 @@ from langstream_grpc.proto.agent_pb2 import (
 from langstream_grpc.tests.server_and_stub import ServerAndStub
 
 
-def test_write():
-    with ServerAndStub(
+async def test_write():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_sink.MySink"
     ) as server_and_stub:
 
-        def requests():
+        async def requests():
             schema = {
                 "type": "record",
                 "name": "Test",
@@ -60,7 +60,10 @@ def test_write():
                 fp.close()
 
         responses: list[SinkResponse]
-        responses = list(server_and_stub.stub.write(iter(requests())))
+        responses = [
+            response async for response in server_and_stub.stub.write(requests())
+        ]
+
         assert len(responses) == 1
         assert responses[0].record_id == 43
         assert len(server_and_stub.server.agent.written_records) == 1
@@ -70,47 +73,45 @@ def test_write():
         )
 
 
-def test_write_error():
-    with ServerAndStub(
+async def test_write_error():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_sink.MyErrorSink"
     ) as server_and_stub:
         responses: list[SinkResponse]
-        responses = list(
-            server_and_stub.stub.write(
-                iter(
-                    [
-                        SinkRequest(
-                            record=GrpcRecord(
-                                value=Value(string_value="test"),
-                            )
+        responses = [
+            response
+            async for response in server_and_stub.stub.write(
+                [
+                    SinkRequest(
+                        record=GrpcRecord(
+                            value=Value(string_value="test"),
                         )
-                    ]
-                )
+                    )
+                ]
             )
-        )
+        ]
         assert len(responses) == 1
         assert responses[0].error == "test-error"
 
 
-def test_write_future():
-    with ServerAndStub(
+async def test_write_future():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_sink.MyFutureSink"
     ) as server_and_stub:
         responses: list[SinkResponse]
-        responses = list(
-            server_and_stub.stub.write(
-                iter(
-                    [
-                        SinkRequest(
-                            record=GrpcRecord(
-                                record_id=42,
-                                value=Value(string_value="test"),
-                            )
+        responses = [
+            response
+            async for response in server_and_stub.stub.write(
+                [
+                    SinkRequest(
+                        record=GrpcRecord(
+                            record_id=42,
+                            value=Value(string_value="test"),
                         )
-                    ]
-                )
+                    )
+                ]
             )
-        )
+        ]
         assert len(responses) == 1
         assert responses[0].record_id == 42
         assert len(server_and_stub.server.agent.written_records) == 1

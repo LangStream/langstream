@@ -29,18 +29,17 @@ class ServerAndStub(object):
         self.config["className"] = class_name
         self.context = context
         self.server: Optional[AgentServer] = None
-        self.channel: Optional[grpc.Channel] = None
+        self.channel: Optional[grpc.aio.Channel] = None
         self.stub: Optional[AgentServiceStub] = None
 
-    def __enter__(self):
-        self.server = AgentServer(
-            "[::]:0", json.dumps(self.config), json.dumps(self.context)
-        )
-        self.server.start()
-        self.channel = grpc.insecure_channel("localhost:%d" % self.server.port)
+    async def __aenter__(self):
+        self.server = AgentServer("[::]:0")
+        await self.server.init(json.dumps(self.config), json.dumps(self.context))
+        await self.server.start()
+        self.channel = grpc.aio.insecure_channel("localhost:%d" % self.server.port)
         self.stub = AgentServiceStub(channel=self.channel)
         return self
 
-    def __exit__(self, *args):
-        self.channel.close()
-        self.server.stop()
+    async def __aexit__(self, *args):
+        await self.channel.close()
+        await self.server.stop()

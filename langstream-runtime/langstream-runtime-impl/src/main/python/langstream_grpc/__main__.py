@@ -14,10 +14,20 @@
 # limitations under the License.
 #
 
+import asyncio
 import logging
 import sys
 
 from langstream_grpc.grpc_service import AgentServer
+
+
+async def main(target, config, context):
+    server = AgentServer(target)
+    await server.init(config, context)
+    await server.start()
+    await server.grpc_server.wait_for_termination()
+    await server.stop()
+
 
 if __name__ == "__main__":
     logging.addLevelName(logging.WARNING, "WARN")
@@ -34,7 +44,4 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    server = AgentServer(sys.argv[1], sys.argv[2], sys.argv[3])
-    server.start()
-    server.grpc_server.wait_for_termination()
-    server.stop()
+    asyncio.run(main(*sys.argv[1:]))

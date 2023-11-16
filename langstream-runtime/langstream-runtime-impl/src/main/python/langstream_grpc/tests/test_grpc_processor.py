@@ -61,8 +61,8 @@ from langstream_grpc.tests.server_and_stub import ServerAndStub
         pytest.param("double_value", "double_value", 42.0, 43.0, 44.0),
     ],
 )
-def test_process(input_type, output_type, value, key, header):
-    with ServerAndStub(
+async def test_process(input_type, output_type, value, key, header):
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyProcessor"
     ) as server_and_stub:
         record = GrpcRecord(
@@ -79,8 +79,8 @@ def test_process(input_type, output_type, value, key, header):
             timestamp=43,
         )
         response: ProcessorResponse
-        for response in server_and_stub.stub.process(
-            iter([ProcessorRequest(records=[record])])
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[record])]
         ):
             assert len(response.results) == 1
             assert response.results[0].record_id == record.record_id
@@ -96,8 +96,8 @@ def test_process(input_type, output_type, value, key, header):
             assert result.timestamp == record.timestamp
 
 
-def test_avro():
-    with ServerAndStub(
+async def test_avro():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyProcessor"
     ) as server_and_stub:
         requests = []
@@ -131,7 +131,9 @@ def test_avro():
             fp.close()
 
         responses: list[ProcessorResponse]
-        responses = list(server_and_stub.stub.process(iter(requests)))
+        responses = [
+            response async for response in server_and_stub.stub.process(requests)
+        ]
         response_schema = responses[0]
         assert len(response_schema.results) == 0
         assert response_schema.HasField("schema")
@@ -152,13 +154,13 @@ def test_avro():
             fp.close()
 
 
-def test_empty_record():
-    with ServerAndStub(
+async def test_empty_record():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyProcessor"
     ) as server_and_stub:
         response: ProcessorResponse
-        for response in server_and_stub.stub.process(
-            iter([ProcessorRequest(records=[GrpcRecord()])])
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord()])]
         ):
             assert len(response.results) == 1
             assert response.results[0].record_id == 0
@@ -172,31 +174,25 @@ def test_empty_record():
             assert result.HasField("timestamp") is False
 
 
-def test_failing_record():
-    with ServerAndStub(
+async def test_failing_record():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyFailingProcessor"
     ) as server_and_stub:
-        for response in server_and_stub.stub.process(
-            iter([ProcessorRequest(records=[GrpcRecord()])])
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord()])]
         ):
             assert len(response.results) == 1
             assert response.results[0].HasField("error") is True
             assert response.results[0].error == "failure"
 
 
-def test_future_record():
-    with ServerAndStub(
+async def test_future_record():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyFutureProcessor"
     ) as server_and_stub:
         response: ProcessorResponse
-        for response in server_and_stub.stub.process(
-            iter(
-                [
-                    ProcessorRequest(
-                        records=[GrpcRecord(value=Value(string_value="test"))]
-                    )
-                ]
-            )
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord(value=Value(string_value="test"))])]
         ):
             assert len(response.results) == 1
             assert response.results[0].HasField("error") is False
@@ -204,35 +200,35 @@ def test_future_record():
             assert response.results[0].records[0].value.string_value == "test"
 
 
-def test_info():
-    with ServerAndStub(
+async def test_info():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyProcessor"
     ) as server_and_stub:
-        info: InfoResponse = server_and_stub.stub.agent_info(empty_pb2.Empty())
+        info: InfoResponse = await server_and_stub.stub.agent_info(empty_pb2.Empty())
         assert info.json_info == '{"test-info-key": "test-info-value"}'
 
 
-def test_init_one_parameter():
-    with ServerAndStub(
+async def test_init_one_parameter():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.ProcessorInitOneParameter",
         {"my-param": "my-value"},
     ) as server_and_stub:
-        for response in server_and_stub.stub.process(
-            iter([ProcessorRequest(records=[GrpcRecord()])])
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord()])]
         ):
             assert len(response.results) == 1
             result = response.results[0].records[0]
             assert result.value.string_value == "my-value"
 
 
-def test_processor_use_context():
-    with ServerAndStub(
+async def test_processor_use_context():
+    async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.ProcessorUseContext",
         {"my-param": "my-value"},
         {"persistentStateDirectory": "/tmp/processor"},
     ) as server_and_stub:
-        for response in server_and_stub.stub.process(
-            iter([ProcessorRequest(records=[GrpcRecord()])])
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord()])]
         ):
             assert len(response.results) == 1
             result = response.results[0].records[0]

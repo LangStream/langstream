@@ -25,5 +25,5 @@ pipeline:
     input: "${globals.chunksTopic}"
     configuration:
       datasource: "AstraVector"
-      table: "${globals.vectorKeyspace}.${globals.vectorTable}"
+      table-name: "${globals.vectorKeyspace}.${globals.vectorTable}"
       mapping: "filename=value.filename, chunk_id=value.chunk_id, language=value.language, text=value.text, embeddings_vector=value.embeddings_vector, num_tokens=value.chunk_num_tokens"

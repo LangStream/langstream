@@ -23,8 +23,12 @@ import java.util.Map;
 import lombok.Data;
 
 @Data
-@AgentConfig(name = "Pinecone", description = """
+@AgentConfig(
+        name = "Pinecone",
+        description =
+                """
     Writes data to Pinecone service.
+    To add metadata fields you can add vector.metadata.my-field: "value.my-field". The value is a JSTL Expression to compute the actual value.
 """)
 public class PineconeVectorDatabaseWriterConfig
         extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
@@ -39,7 +43,7 @@ public class PineconeVectorDatabaseWriterConfig
 
     @Override
     public boolean isAgentConfigModelAllowUnknownProperties() {
-        return false;
+        return true;
     }
 
     @ConfigProperty(description = "JSTL Expression to compute the id.")

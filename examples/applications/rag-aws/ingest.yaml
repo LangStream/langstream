@@ -77,7 +77,7 @@ pipeline:
     configuration:
       fields:
         - name: "value.filename"
-          expression: "properties.url"
+          expression: "properties.name"
           type: STRING
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"

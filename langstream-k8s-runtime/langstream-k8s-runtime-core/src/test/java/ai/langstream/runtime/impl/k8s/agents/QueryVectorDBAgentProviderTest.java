@@ -105,6 +105,26 @@ class QueryVectorDBAgentProviderTest {
                 null);
     }
 
+    @Test
+    @SneakyThrows
+    public void testWritePinecone() {
+        validate(
+                """
+                        pipeline:
+                          - name: "db"
+                            type: "vector-db-sink"
+                            configuration:
+                                datasource: "PineconeDatasource"
+                                vector.id: "value.id"
+                                vector.vector: "value.embeddings"
+                                vector.namespace: "value.namespace"
+                                vector.metadata.genre: "value.genre"
+                                vector.metadata.genre2: "value.genre2"
+
+                        """,
+                null);
+    }
+
     private void validate(String pipeline, String expectErrMessage) throws Exception {
         AgentValidationTestUtil.validate(pipeline, expectErrMessage);
     }
@@ -428,7 +448,7 @@ class QueryVectorDBAgentProviderTest {
                           "vector-db-sink_pinecone" : {
                             "type" : "vector-db-sink",
                             "name" : "Pinecone",
-                            "description" : "Writes data to Pinecone service.",
+                            "description" : "Writes data to Pinecone service.\\n    To add metadata fields you can add vector.metadata.my-field: \\"value.my-field\\". The value is a JSTL Expression to compute the actual value.",
                             "properties" : {
                               "datasource" : {
                                 "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'pinecone'.",

@@ -105,7 +105,6 @@ class QueryVectorDBAgentProviderTest {
                 null);
     }
 
-
     @Test
     @SneakyThrows
     public void testWritePinecone() {
@@ -121,7 +120,7 @@ class QueryVectorDBAgentProviderTest {
                                 vector.namespace: "value.namespace"
                                 vector.metadata.genre: "value.genre"
                                 vector.metadata.genre2: "value.genre2"
-                                  
+
                         """,
                 null);
     }

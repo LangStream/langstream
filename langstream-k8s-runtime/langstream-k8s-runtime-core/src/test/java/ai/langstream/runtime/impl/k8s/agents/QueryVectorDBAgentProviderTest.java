@@ -448,7 +448,7 @@ class QueryVectorDBAgentProviderTest {
                           "vector-db-sink_pinecone" : {
                             "type" : "vector-db-sink",
                             "name" : "Pinecone",
-                            "description" : "Writes data to Pinecone service.",
+                            "description" : "Writes data to Pinecone service.\\n    To add metadata fields you can add vector.metadata.my-field: \\"value.my-field\\". The value is a JSTL Expression to compute the actual value.",
                             "properties" : {
                               "datasource" : {
                                 "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'pinecone'.",

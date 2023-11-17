@@ -184,5 +184,6 @@ pipeline:
     input: "${globals.logTopic}"
     configuration:
       datasource: "AstraVector"
-      table: "${globals.vectorKeyspace}.${globals.chatTable}"
+      table-name: "${globals.chatTable}"
+      keyspace: "${globals.vectorKeyspace}"
       mapping: "sessionid=value.sessionid,question=value.questionNoContext,answer=value.answer,prompt=value.prompt,timestamp=now()"

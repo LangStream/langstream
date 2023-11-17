@@ -49,6 +49,14 @@ public class AgentValidationTestUtil {
                               contact-points: "xx"
                               loadBalancing-localDc: "xx"
                               port: 999
+                          - type: "vector-database"
+                            name: "PineconeDatasource"
+                            configuration:
+                              service: "pinecone"
+                              api-key: "xx"
+                              index-name: "xx"
+                              project-name: "999x"
+                              environment: "us-east1"
                     """;
         }
         Application applicationInstance =

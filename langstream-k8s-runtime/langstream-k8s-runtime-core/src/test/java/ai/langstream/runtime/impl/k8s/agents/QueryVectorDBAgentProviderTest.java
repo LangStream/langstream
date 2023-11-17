@@ -105,6 +105,27 @@ class QueryVectorDBAgentProviderTest {
                 null);
     }
 
+
+    @Test
+    @SneakyThrows
+    public void testWritePinecone() {
+        validate(
+                """
+                        pipeline:
+                          - name: "db"
+                            type: "vector-db-sink"
+                            configuration:
+                                datasource: "PineconeDatasource"
+                                vector.id: "value.id"
+                                vector.vector: "value.embeddings"
+                                vector.namespace: "value.namespace"
+                                vector.metadata.genre: "value.genre"
+                                vector.metadata.genre2: "value.genre2"
+                                  
+                        """,
+                null);
+    }
+
     private void validate(String pipeline, String expectErrMessage) throws Exception {
         AgentValidationTestUtil.validate(pipeline, expectErrMessage);
     }

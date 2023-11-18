@@ -19,7 +19,6 @@ import importlib
 import json
 import os
 import logging
-import queue
 import threading
 from concurrent.futures import Future
 from io import BytesIO
@@ -140,22 +139,6 @@ class AgentService(AgentServiceServicer):
             read_result.append(True)
         except Exception as e:
             read_result.append(e)
-
-    @staticmethod
-    def handle_requests(handler, requests):
-        results = queue.Queue(1000)
-        thread = threading.Thread(target=handler, args=(requests, results))
-        thread.start()
-
-        while True:
-            try:
-                result = results.get(True, 0.1)
-                if isinstance(result, bool):
-                    break
-                yield result
-            except queue.Empty:
-                pass
-        thread.join()
 
     async def process(self, requests: AsyncIterable[ProcessorRequest], _):
         async for request in requests:
@@ -321,10 +304,10 @@ class MainExecutor(threading.Thread):
             self.onError()
 
 
-def call_method_new_thread_if_exists(klass, methodName, *args, **kwargs):
-    method = getattr(klass, methodName, None)
+def call_method_new_thread_if_exists(klass, method_name, *args, **kwargs):
+    method = getattr(klass, method_name, None)
     if callable(method):
-        executor = MainExecutor(crash_process, klass, methodName, *args, **kwargs)
+        executor = MainExecutor(crash_process, klass, method_name, *args, **kwargs)
         executor.start()
         return True
 

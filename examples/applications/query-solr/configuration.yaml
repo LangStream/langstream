@@ -19,10 +19,16 @@ configuration:
   resources:
   - type: "open-ai-configuration"
     name: "OpenAI Azure configuration"
+    id: "openai"
     configuration:
       url: "${secrets.open-ai.url}"
       access-key: "${secrets.open-ai.access-key}"
       provider: "${secrets.open-ai.provider}"
+  - type: "hugging-face-configuration"
+    name: "Hugging Face AI configuration"
+    id: "huggingface"
+    configuration:
+      provider: "local"
   - type: "vector-database"
     name: "SolrDataSource"
     configuration:

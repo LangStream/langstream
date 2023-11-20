@@ -40,7 +40,7 @@ assets:
              "add-field-type" : {
                    "name": "knn_vector",
                    "class": "solr.DenseVectorField",
-                   "vectorDimension": "1536",
+                   "vectorDimension": "384",
                    "similarityFunction": "cosine"
               }
              }
@@ -108,10 +108,10 @@ pipeline:
     type: "text-splitter"
     configuration:
       splitter_type: "RecursiveCharacterTextSplitter"
-      chunk_size: 400
+      chunk_size: 200
       separators: ["\n\n", "\n", " ", ""]
       keep_separator: false
-      chunk_overlap: 100
+      chunk_overlap: 20
       length_function: "cl100k_base"
   - name: "Convert to structured data"
     type: "document-to-json"
@@ -133,7 +133,9 @@ pipeline:
     type: "compute-ai-embeddings"
     output: chunks-topic
     configuration:
-      model: "text-embedding-ada-002" # This needs to match the name of the model deployment, not the base model
+      ai-service: "huggingface"
+      model: "multilingual-e5-small"
+      model-url: "djl://ai.djl.huggingface.pytorch/intfloat/multilingual-e5-small"
       embeddings-field: "value.embeddings_vector"
       text: "{{ value.text }}"
       batch-size: 10

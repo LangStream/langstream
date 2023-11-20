@@ -32,7 +32,9 @@ pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
     configuration:
-      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      ai-service: "huggingface"
+      model: "multilingual-e5-small"
+      model-url: "djl://ai.djl.huggingface.pytorch/intfloat/multilingual-e5-small"
       embeddings-field: "value.question_embeddings"
       text: "{{ value.question }}"
       flush-interval: 0
@@ -51,6 +53,7 @@ pipeline:
     type: "ai-chat-completions"
 
     configuration:
+      ai-service: "openai"
       model: "${secrets.open-ai.chat-completions-model}" # This needs to be set to the model deployment name, not the base name
       # on the log-topic we add a field with the answer
       completion-field: "value.answer"

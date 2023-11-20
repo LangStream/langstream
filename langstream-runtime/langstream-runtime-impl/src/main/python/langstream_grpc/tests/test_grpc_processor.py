@@ -186,9 +186,10 @@ async def test_failing_record():
             assert response.results[0].error == "failure"
 
 
-async def test_future_record():
+@pytest.mark.parametrize("klass", ["MyFutureProcessor", "MyAsyncProcessor"])
+async def test_future_record(klass):
     async with ServerAndStub(
-        "langstream_grpc.tests.test_grpc_processor.MyFutureProcessor"
+        f"langstream_grpc.tests.test_grpc_processor.{klass}"
     ) as server_and_stub:
         response: ProcessorResponse
         async for response in server_and_stub.stub.process(
@@ -270,11 +271,15 @@ class MyFailingProcessor(Processor):
 
 class MyFutureProcessor(Processor):
     def __init__(self):
-        self.written_records = []
         self.executor = ThreadPoolExecutor(max_workers=10)
 
     def process(self, record: Record) -> Future[List[RecordType]]:
         return self.executor.submit(lambda r: [r], record)
+
+
+class MyAsyncProcessor(Processor):
+    async def process(self, record: Record) -> List[RecordType]:
+        return [record]
 
 
 class ProcessorInitOneParameter:

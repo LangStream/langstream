@@ -98,6 +98,8 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                             ConfigurationUtils.getString(
                                                     "port", "9042", datasource));
 
+                                    String token =
+                                            ConfigurationUtils.getString("token", "", datasource);
                                     String secureBundleString =
                                             ConfigurationUtils.getString(
                                                     "secureBundle", "", datasource);
@@ -107,9 +109,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                                 "cloud.secureConnectBundle", secureBundleString);
                                     } else {
                                         // AstraDB, token/database/databaseId
-                                        String token =
-                                                ConfigurationUtils.getString(
-                                                        "token", "", datasource);
+
                                         String database =
                                                 ConfigurationUtils.getString(
                                                         "database", "", datasource);
@@ -145,14 +145,14 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                             ConfigurationUtils.getString(
                                                     "username",
                                                     ConfigurationUtils.getString(
-                                                            "clientId", "", datasource),
+                                                            "clientId", "token", datasource),
                                                     datasource));
                                     configuration.put(
                                             "auth.password",
                                             ConfigurationUtils.getString(
                                                     "password",
                                                     ConfigurationUtils.getString(
-                                                            "secret", "", datasource),
+                                                            "secret", token, datasource),
                                                     datasource));
 
                                     break;

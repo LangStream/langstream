@@ -211,11 +211,21 @@ public class CassandraDataSource implements QueryStepDataSource {
         if (password == null) {
             password = ConfigurationUtils.getString("secret", null, dataSourceConfig);
         }
+
+        // in AstraDB you can use "token" as clientId and the AstraCS token as password
+        if (username == null && astraToken != null && !astraToken.isEmpty()) {
+            username = "token";
+        }
+        if (password == null) {
+            password = astraToken;
+        }
+
         String secureBundle = ConfigurationUtils.getString("secureBundle", "", dataSourceConfig);
         List<String> contactPoints = ConfigurationUtils.getList("contact-points", dataSourceConfig);
         String loadBalancingLocalDc =
                 ConfigurationUtils.getString("loadBalancing-localDc", "", dataSourceConfig);
         int port = ConfigurationUtils.getInteger("port", 9042, dataSourceConfig);
+        log.info("Username/ClientId: {}", username);
         log.info("Contact points: {}", contactPoints);
         log.info("Secure Bundle: {}", secureBundle);
 

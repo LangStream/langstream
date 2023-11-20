@@ -22,7 +22,7 @@ import logging
 import threading
 from concurrent.futures import Future
 from io import BytesIO
-from typing import Union, List, Tuple, Any, Optional, Dict, AsyncIterable
+from typing import Union, List, Tuple, Any, Optional, AsyncIterable
 
 import fastavro
 import grpc
@@ -86,40 +86,33 @@ class AgentService(AgentServiceServicer):
         async for _ in request_iterator:
             yield
 
-    async def read(self, requests: AsyncIterable[SourceRequest], _):
-        read_records = {}
-        op_result = []
+    async def do_read(self, context, read_records):
         last_record_id = 0
-        read_requests_task = asyncio.create_task(
-            self.handle_read_requests(requests, read_records, op_result)
-        )
         while True:
-            if len(op_result) > 0:
-                if op_result[0] is True:
-                    break
-                raise op_result[0]
-            records = await asyncio.to_thread(self.agent.read)
+            if inspect.iscoroutinefunction(self.agent.read):
+                records = await self.agent.read()
+            else:
+                records = await asyncio.to_thread(self.agent.read)
             if len(records) > 0:
                 records = [wrap_in_record(record) for record in records]
                 grpc_records = []
                 for record in records:
                     schemas, grpc_record = self.to_grpc_record(record)
                     for schema in schemas:
-                        yield SourceResponse(schema=schema)
+                        await context.write(SourceResponse(schema=schema))
                     grpc_records.append(grpc_record)
                 for i, record in enumerate(records):
                     last_record_id += 1
                     grpc_records[i].record_id = last_record_id
                     read_records[last_record_id] = record
-                yield SourceResponse(records=grpc_records)
-        read_requests_task.cancel()
+                await context.write(SourceResponse(records=grpc_records))
+            else:
+                await asyncio.sleep(0)
 
-    async def handle_read_requests(
-        self,
-        requests: AsyncIterable[SourceRequest],
-        read_records: Dict[int, Record],
-        read_result,
-    ):
+    async def read(self, requests: AsyncIterable[SourceRequest], context):
+        read_records = {}
+        read_requests_task = asyncio.create_task(self.do_read(context, read_records))
+
         try:
             async for request in requests:
                 if len(request.committed_records) > 0:
@@ -136,9 +129,8 @@ class AgentService(AgentServiceServicer):
                         record,
                         RuntimeError(failure.error_message),
                     )
-            read_result.append(True)
-        except Exception as e:
-            read_result.append(e)
+        finally:
+            read_requests_task.cancel()
 
     async def process(self, requests: AsyncIterable[ProcessorRequest], _):
         async for request in requests:
@@ -149,9 +141,13 @@ class AgentService(AgentServiceServicer):
                 for source_record in request.records:
                     grpc_result = ProcessorResult(record_id=source_record.record_id)
                     try:
-                        processed_records = await asyncio.to_thread(
-                            self.agent.process, self.from_grpc_record(source_record)
-                        )
+                        r = self.from_grpc_record(source_record)
+                        if inspect.iscoroutinefunction(self.agent.process):
+                            processed_records = await self.agent.process(r)
+                        else:
+                            processed_records = await asyncio.to_thread(
+                                self.agent.process, r
+                            )
                         if isinstance(processed_records, Future):
                             processed_records = await asyncio.wrap_future(
                                 processed_records
@@ -175,9 +171,11 @@ class AgentService(AgentServiceServicer):
                 self.client_schemas[request.schema.schema_id] = schema
             if request.HasField("record"):
                 try:
-                    result = await asyncio.to_thread(
-                        self.agent.write, self.from_grpc_record(request.record)
-                    )
+                    r = self.from_grpc_record(request.record)
+                    if inspect.iscoroutinefunction(self.agent.write):
+                        result = await self.agent.write(r)
+                    else:
+                        result = await asyncio.to_thread(self.agent.write, r)
                     if isinstance(result, Future):
                         await asyncio.wrap_future(result)
                     yield SinkResponse(record_id=request.record.record_id)
@@ -280,9 +278,16 @@ def call_method_if_exists(klass, method, *args, **kwargs):
     return None
 
 
-async def acall_method_if_exists(klass, method, *args, **kwargs):
+async def acall_method_if_exists(klass, method_name, *args, **kwargs):
+    method = getattr(klass, method_name, None)
+    if inspect.iscoroutinefunction(method):
+        defined_positional_parameters_count = len(inspect.signature(method).parameters)
+        if defined_positional_parameters_count >= len(args):
+            return await method(*args, **kwargs)
+        else:
+            return await method(*args[:defined_positional_parameters_count], **kwargs)
     return await asyncio.to_thread(
-        call_method_if_exists, klass, method, *args, **kwargs
+        call_method_if_exists, klass, method_name, *args, **kwargs
     )
 
 

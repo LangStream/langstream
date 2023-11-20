@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from io import BytesIO
 
 import fastavro
+import pytest
 
 from langstream_grpc.api import Record, Sink
 from langstream_grpc.proto.agent_pb2 import (
@@ -30,9 +31,10 @@ from langstream_grpc.proto.agent_pb2 import (
 from langstream_grpc.tests.server_and_stub import ServerAndStub
 
 
-async def test_write():
+@pytest.mark.parametrize("klass", ["MySink", "MyFutureSink", "MyAsyncSink"])
+async def test_write(klass):
     async with ServerAndStub(
-        "langstream_grpc.tests.test_grpc_sink.MySink"
+        f"langstream_grpc.tests.test_grpc_sink.{klass}"
     ) as server_and_stub:
 
         async def requests():
@@ -66,6 +68,7 @@ async def test_write():
 
         assert len(responses) == 1
         assert responses[0].record_id == 43
+        assert responses[0].error == ""
         assert len(server_and_stub.server.agent.written_records) == 1
         assert (
             server_and_stub.server.agent.written_records[0].value().value["field"]
@@ -94,41 +97,12 @@ async def test_write_error():
         assert responses[0].error == "test-error"
 
 
-async def test_write_future():
-    async with ServerAndStub(
-        "langstream_grpc.tests.test_grpc_sink.MyFutureSink"
-    ) as server_and_stub:
-        responses: list[SinkResponse]
-        responses = [
-            response
-            async for response in server_and_stub.stub.write(
-                [
-                    SinkRequest(
-                        record=GrpcRecord(
-                            record_id=42,
-                            value=Value(string_value="test"),
-                        )
-                    )
-                ]
-            )
-        ]
-        assert len(responses) == 1
-        assert responses[0].record_id == 42
-        assert len(server_and_stub.server.agent.written_records) == 1
-        assert server_and_stub.server.agent.written_records[0].value() == "test"
-
-
 class MySink(Sink):
     def __init__(self):
         self.written_records = []
 
     def write(self, record: Record):
         self.written_records.append(record)
-
-
-class MyErrorSink(Sink):
-    def write(self, record: Record):
-        raise RuntimeError("test-error")
 
 
 class MyFutureSink(Sink):
@@ -138,3 +112,13 @@ class MyFutureSink(Sink):
 
     def write(self, record: Record) -> Future[None]:
         return self.executor.submit(lambda r: self.written_records.append(r), record)
+
+
+class MyAsyncSink(MySink):
+    async def write(self, record: Record):
+        super().write(record)
+
+
+class MyErrorSink(Sink):
+    def write(self, record: Record):
+        raise RuntimeError("test-error")

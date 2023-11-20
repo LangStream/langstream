@@ -47,8 +47,8 @@ configuration:
     name: "AstraDatasource"
     configuration:
         service: "astra"
-        clientId: "${secrets.astra.clientId}"
-        secret: "${secrets.astra.secret}"
+        clientId: "token"
+        secret: "${ secrets.astra.token }"
         token: "${secrets.astra.token}"
         database: "${secrets.astra.database}"
         environment: "${secrets.astra.environment}"
@@ -56,8 +56,8 @@ configuration:
     name: "AstraVector"
     configuration:
         service: "astra"
-        clientId: "${secrets.astra.clientId}"
-        secret: "${secrets.astra.secret}"
+        clientId: "token"
+        secret: "${ secrets.astra.token }"
         token: "${secrets.astra.token}"
         database: "${secrets.astra.database}"
         environment: "${secrets.astra.environment}"

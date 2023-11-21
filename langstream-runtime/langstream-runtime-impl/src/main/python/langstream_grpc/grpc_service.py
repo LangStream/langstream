@@ -109,28 +109,39 @@ class AgentService(AgentServiceServicer):
             else:
                 await asyncio.sleep(0)
 
-    async def read(self, requests: AsyncIterable[SourceRequest], context):
-        read_records = {}
-        read_requests_task = asyncio.create_task(self.do_read(context, read_records))
-
-        try:
-            async for request in requests:
-                if len(request.committed_records) > 0:
-                    for record_id in request.committed_records:
-                        record = read_records.pop(record_id, None)
-                        if record is not None:
-                            await acall_method_if_exists(self.agent, "commit", record)
-                if request.HasField("permanent_failure"):
-                    failure = request.permanent_failure
-                    record = read_records.pop(failure.record_id, None)
+    async def handle_read_requests(self, context, read_records):
+        request = await context.read()
+        while request != grpc.aio.EOF:
+            if len(request.committed_records) > 0:
+                for record_id in request.committed_records:
+                    record = read_records.pop(record_id, None)
+                    if record is not None:
+                        await acall_method_if_exists(self.agent, "commit", record)
+            if request.HasField("permanent_failure"):
+                failure = request.permanent_failure
+                record = read_records.pop(failure.record_id, None)
+                if record is not None:
                     await acall_method_if_exists(
                         self.agent,
                         "permanent_failure",
                         record,
                         RuntimeError(failure.error_message),
                     )
-        finally:
-            read_requests_task.cancel()
+            request = await context.read()
+
+    async def read(self, requests: AsyncIterable[SourceRequest], context):
+        read_records = {}
+        read_task = asyncio.create_task(self.do_read(context, read_records))
+        read_requests_task = asyncio.create_task(
+            self.handle_read_requests(context, read_records)
+        )
+
+        done, pending = await asyncio.wait(
+            [read_task, read_requests_task], return_when=asyncio.FIRST_COMPLETED
+        )
+        pending.pop().cancel()
+        # propagate exception if needed
+        done.pop().result()
 
     async def process(self, requests: AsyncIterable[ProcessorRequest], _):
         async for request in requests:

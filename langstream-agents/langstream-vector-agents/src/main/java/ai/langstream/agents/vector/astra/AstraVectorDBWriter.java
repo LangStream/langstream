@@ -31,6 +31,7 @@ import io.stargate.sdk.json.exception.ApiException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
@@ -107,6 +108,10 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                                 }
                             }
                         });
+                // ensure that we always have an ID
+                if (document.getId() == null) {
+                    document.setId(UUID.randomUUID().toString());
+                }
                 if (record.value() == null) {
                     int count = collection.deleteById(document.getId());
                     if (count > 0) {
@@ -123,7 +128,7 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                         return CompletableFuture.completedFuture(id);
                     } catch (ApiException e) {
                         String message = e.getMessage() + "";
-                        // TODO: have a way to get the error code
+                        // TODO: have a way to get the error code DOCUMENT_ALREADY_EXISTS
                         if (message.contains("Document already exists")) {
                             collection. // Already Exist
                                     findOneAndReplace(

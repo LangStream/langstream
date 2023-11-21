@@ -37,10 +37,8 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 public class AstraVectorDBTest {
 
-    private static final String TOKEN =
-            "AstraCS:";
-    private static final String ENDPOINT =
-            "https://";
+    private static final String TOKEN = "AstraCS:";
+    private static final String ENDPOINT = "https://";
 
     @Test
     void testWrite() throws Exception {

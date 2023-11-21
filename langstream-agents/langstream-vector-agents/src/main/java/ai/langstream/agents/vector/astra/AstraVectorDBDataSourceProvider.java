@@ -21,17 +21,17 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AstraCollectionsDataSourceProvider implements DataSourceProvider {
+public class AstraVectorDBDataSourceProvider implements DataSourceProvider {
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         String service = (String) dataSourceConfig.get("service");
-        return "astra-collections".equals(service);
+        return "astra-vector-db".equals(service);
     }
 
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        return new AstraCollectionsDataSource();
+        return new AstraVectorDBDataSource();
     }
 }

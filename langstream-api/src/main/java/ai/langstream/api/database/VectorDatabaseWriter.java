@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  * This is the interface for writing to a vector database. this interface is really simple by
  * intention. For advanced usages users should use Kafka Connect connectors.
  */
-public interface VectorDatabaseWriter {
+public interface VectorDatabaseWriter extends AutoCloseable {
 
     default void initialise(Map<String, Object> agentConfiguration) throws Exception {}
 

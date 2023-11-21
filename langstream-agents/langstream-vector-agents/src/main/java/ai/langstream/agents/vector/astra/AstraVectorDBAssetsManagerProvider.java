@@ -24,7 +24,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AstraCollectionsAssetsManagerProvider implements AssetManagerProvider {
+public class AstraVectorDBAssetsManagerProvider implements AssetManagerProvider {
 
     @Override
     public boolean supports(String assetType) {
@@ -44,7 +44,7 @@ public class AstraCollectionsAssetsManagerProvider implements AssetManagerProvid
 
     private abstract static class BaseAstraAssetManager implements AssetManager {
 
-        AstraCollectionsDataSource datasource;
+        AstraVectorDBDataSource datasource;
         AssetDefinition assetDefinition;
 
         @Override
@@ -80,7 +80,8 @@ public class AstraCollectionsAssetsManagerProvider implements AssetManagerProvid
         }
 
         private String getCollection() {
-            return ConfigurationUtils.getString("collection", null, assetDefinition.getConfig());
+            return ConfigurationUtils.getString(
+                    "collection-name", null, assetDefinition.getConfig());
         }
 
         private int getVectorDimension() {
@@ -105,8 +106,8 @@ public class AstraCollectionsAssetsManagerProvider implements AssetManagerProvid
         }
     }
 
-    private static AstraCollectionsDataSource buildDataSource(AssetDefinition assetDefinition) {
-        AstraCollectionsDataSource dataSource = new AstraCollectionsDataSource();
+    private static AstraVectorDBDataSource buildDataSource(AssetDefinition assetDefinition) {
+        AstraVectorDBDataSource dataSource = new AstraVectorDBDataSource();
         Map<String, Object> datasourceDefinition =
                 ConfigurationUtils.getMap("datasource", Map.of(), assetDefinition.getConfig());
         Map<String, Object> configuration =

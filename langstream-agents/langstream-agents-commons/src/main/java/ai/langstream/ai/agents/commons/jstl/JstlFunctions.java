@@ -100,6 +100,28 @@ public class JstlFunctions {
                 result.add(JstlTypeConverter.INSTANCE.coerceToFloat(o));
             }
             return result;
+        } else if (input instanceof float[] a) {
+            List<Float> result = new ArrayList<>(a.length);
+            for (Object o : a) {
+                result.add(JstlTypeConverter.INSTANCE.coerceToFloat(o));
+            }
+            return result;
+        } else {
+            throw new IllegalArgumentException("Cannot convert " + input + " to list of float");
+        }
+    }
+
+    public static float[] toArrayOfFloat(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (input instanceof Collection<?> collection) {
+            float[] result = new float[collection.size()];
+            int i = 0;
+            for (Object o : collection) {
+                result[i++] = JstlTypeConverter.INSTANCE.coerceToFloat(o);
+            }
+            return result;
         } else {
             throw new IllegalArgumentException("Cannot convert " + input + " to list of float");
         }

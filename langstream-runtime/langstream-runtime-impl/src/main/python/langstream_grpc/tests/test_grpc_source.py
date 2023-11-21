@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import asyncio
 import json
 from io import BytesIO
 from typing import List
@@ -25,7 +24,6 @@ import pytest
 
 from langstream_grpc.api import Record, RecordType, Source
 from langstream_grpc.proto.agent_pb2 import (
-    SourceResponse,
     SourceRequest,
     PermanentFailure,
 )
@@ -33,40 +31,26 @@ from langstream_grpc.tests.server_and_stub import ServerAndStub
 from langstream_grpc.util import AvroValue, SimpleRecord
 
 
-@pytest.mark.parametrize("klass", ["MySource", "MyAsyncSource"])
+@pytest.mark.parametrize("klass", ["MyAsyncSource"])
 async def test_read(klass):
     async with ServerAndStub(
         f"langstream_grpc.tests.test_grpc_source.{klass}"
     ) as server_and_stub:
-        stop = False
+        read_call = server_and_stub.stub.read()
+        response = await read_call.read()
 
-        async def requests():
-            while not stop:
-                await asyncio.sleep(0.1)
-            yield
-
-        responses: list[SourceResponse] = []
-        i = 0
-        async for response in server_and_stub.stub.read(requests()):
-            responses.append(response)
-            for record in response.records:
-                print(record.record_id)
-            i += 1
-            stop = i == 4
-
-        response_schema = responses[0]
-        assert len(response_schema.records) == 0
-        assert response_schema.HasField("schema")
-        assert response_schema.schema.schema_id == 1
-        schema = response_schema.schema.value.decode("utf-8")
+        assert len(response.records) == 0
+        assert response.HasField("schema")
+        assert response.schema.schema_id == 1
+        schema = response.schema.value.decode("utf-8")
         assert (
             schema
             == '{"name":"test.Test","type":"record","fields":[{"name":"field","type":"string"}]}'  # noqa: E501
         )
 
-        response_record = responses[1]
-        assert len(response_schema.records) == 0
-        record = response_record.records[0]
+        response = await read_call.read()
+        assert len(response.records) == 1
+        record = response.records[0]
         assert record.record_id == 1
         assert record.value.schema_id == 1
         fp = BytesIO(record.value.avro_value)
@@ -76,17 +60,21 @@ async def test_read(klass):
         finally:
             fp.close()
 
-        response_record = responses[2]
-        assert len(response_schema.records) == 0
-        record = response_record.records[0]
+        response = await read_call.read()
+        assert len(response.records) == 1
+        record = response.records[0]
         assert record.record_id == 2
         assert record.value.long_value == 42
 
-        response_record = responses[3]
-        assert len(response_schema.records) == 0
-        record = response_record.records[0]
+        response = await read_call.read()
+        assert len(response.records) == 1
+        record = response.records[0]
         assert record.record_id == 3
         assert record.value.long_value == 43
+
+        await read_call.done_writing()
+
+        assert await read_call.read() == grpc.aio.EOF
 
 
 @pytest.mark.parametrize("klass", ["MySource", "MyAsyncSource"])
@@ -94,20 +82,20 @@ async def test_commit(klass):
     async with ServerAndStub(
         f"langstream_grpc.tests.test_grpc_source.{klass}"
     ) as server_and_stub:
-        to_commit = asyncio.Queue()
+        read_call = server_and_stub.stub.read()
 
-        async def send_commit():
-            committed = 0
-            while committed < 3:
-                commit_id = await to_commit.get()
-                yield SourceRequest(committed_records=[commit_id])
-                committed += 1
+        # first read is a schema
+        await read_call.read()
+
+        for _ in range(3):
+            response = await read_call.read()
+            assert len(response.records) == 1
+            await read_call.write(
+                SourceRequest(committed_records=[response.records[0].record_id])
+            )
 
         with pytest.raises(grpc.RpcError):
-            response: SourceResponse
-            async for response in server_and_stub.stub.read(send_commit()):
-                for record in response.records:
-                    await to_commit.put(record.record_id)
+            await read_call.read()
 
         sent = server_and_stub.server.agent.sent
         committed = server_and_stub.server.agent.committed
@@ -121,25 +109,46 @@ async def test_permanent_failure(klass):
     async with ServerAndStub(
         f"langstream_grpc.tests.test_grpc_source.{klass}"
     ) as server_and_stub:
-        to_fail = asyncio.Queue()
+        read_call = server_and_stub.stub.read()
 
-        async def send_failure():
-            record_id = await to_fail.get()
-            yield SourceRequest(
+        # first read is a schema
+        await read_call.read()
+
+        response = await read_call.read()
+        await read_call.write(
+            SourceRequest(
                 permanent_failure=PermanentFailure(
-                    record_id=record_id, error_message="failure"
+                    record_id=response.records[0].record_id, error_message="failure"
                 )
             )
+        )
 
-        response: SourceResponse
-        async for response in server_and_stub.stub.read(send_failure()):
-            for record in response.records:
-                await to_fail.put(record.record_id)
+        await read_call.done_writing()
+
+        try:
+            response = await read_call.read()
+            while response != grpc.aio.EOF:
+                response = await read_call.read()
+            pytest.fail("call should have raised an exception")
+        except grpc.RpcError as e:
+            assert "failure" in e.details()
 
         failures = server_and_stub.server.agent.failures
         assert len(failures) == 1
         assert failures[0][0] == server_and_stub.server.agent.sent[0]
         assert str(failures[0][1]) == "failure"
+
+
+async def test_read_error():
+    async with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_source.MyErrorSource"
+    ) as server_and_stub:
+        read_call = server_and_stub.stub.read()
+        try:
+            await read_call.read()
+            pytest.fail("call should have raised an exception")
+        except grpc.RpcError as e:
+            assert "test-error" in e.details()
 
 
 class MySource(Source):
@@ -177,6 +186,7 @@ class MySource(Source):
 
     def permanent_failure(self, record: Record, error: Exception):
         self.failures.append((record, error))
+        raise error
 
 
 class MyAsyncSource(MySource):
@@ -188,3 +198,8 @@ class MyAsyncSource(MySource):
 
     async def permanent_failure(self, record: Record, error: Exception):
         return super().permanent_failure(record, error)
+
+
+class MyErrorSource(Source):
+    def read(self) -> List[RecordType]:
+        raise ValueError("test-error")

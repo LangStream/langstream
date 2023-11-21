@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from io import BytesIO
 
 import fastavro
+import grpc.aio
 import pytest
 
 from langstream_grpc.api import Record, Sink
@@ -36,44 +37,46 @@ async def test_write(klass):
     async with ServerAndStub(
         f"langstream_grpc.tests.test_grpc_sink.{klass}"
     ) as server_and_stub:
+        write_call = server_and_stub.stub.write()
 
-        async def requests():
-            schema = {
-                "type": "record",
-                "name": "Test",
-                "namespace": "test",
-                "fields": [{"name": "field", "type": {"type": "string"}}],
-            }
-            canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
-            yield SinkRequest(
+        schema = {
+            "type": "record",
+            "name": "Test",
+            "namespace": "test",
+            "fields": [{"name": "field", "type": {"type": "string"}}],
+        }
+        canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
+        await write_call.write(
+            SinkRequest(
                 schema=Schema(schema_id=42, value=canonical_schema.encode("utf-8"))
             )
+        )
 
-            fp = BytesIO()
-            try:
-                fastavro.schemaless_writer(fp, schema, {"field": "test"})
-                yield SinkRequest(
+        fp = BytesIO()
+        try:
+            fastavro.schemaless_writer(fp, schema, {"field": "test"})
+            await write_call.write(
+                SinkRequest(
                     record=GrpcRecord(
                         record_id=43,
                         value=Value(schema_id=42, avro_value=fp.getvalue()),
                     )
                 )
-            finally:
-                fp.close()
+            )
+        finally:
+            fp.close()
 
-        responses: list[SinkResponse]
-        responses = [
-            response async for response in server_and_stub.stub.write(requests())
-        ]
-
-        assert len(responses) == 1
-        assert responses[0].record_id == 43
-        assert responses[0].error == ""
+        response = await write_call.read()
+        assert response.record_id == 43
+        assert response.error == ""
         assert len(server_and_stub.server.agent.written_records) == 1
         assert (
             server_and_stub.server.agent.written_records[0].value().value["field"]
             == "test"
         )
+
+        await write_call.done_writing()
+        assert await write_call.read() == grpc.aio.EOF
 
 
 async def test_write_error():

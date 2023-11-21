@@ -66,7 +66,17 @@
     <dependency>
       <groupId>com.datastax.astra</groupId>
       <artifactId>astra-sdk-devops</artifactId>
-      <version>0.6.9</version>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-db-client</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-sdk</artifactId>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>io.netty.incubator</groupId>

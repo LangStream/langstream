@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.ai.agents.datasource.impl;
+package ai.langstream.agents.vector.astra;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
-import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
-public class AstraDataSource implements DataSourceProvider {
+@Slf4j
+public class AstraCollectionsDataSourceProvider implements DataSourceProvider {
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         String service = (String) dataSourceConfig.get("service");
-        return "astra".equals(service) || "cassandra".equals(service);
+        return "astra-collections".equals(service);
     }
 
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        return new CassandraDataSource();
+        return new AstraCollectionsDataSource();
     }
 }

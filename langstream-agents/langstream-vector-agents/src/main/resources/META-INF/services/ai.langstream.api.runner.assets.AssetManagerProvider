@@ -3,3 +3,4 @@ ai.langstream.agents.vector.milvus.MilvusAssetsManagerProvider
 ai.langstream.agents.vector.jdbc.JdbcAssetsManagerProvider
 ai.langstream.agents.vector.solr.SolrAssetsManagerProvider
 ai.langstream.agents.vector.opensearch.OpenSearchAssetsManagerProvider
+ai.langstream.agents.vector.astra.AstraCollectionsAssetsManagerProvider

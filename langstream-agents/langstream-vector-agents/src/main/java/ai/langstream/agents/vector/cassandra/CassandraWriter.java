@@ -27,7 +27,7 @@ import com.datastax.oss.common.sink.AbstractSinkTask;
 import com.datastax.oss.common.sink.config.CassandraSinkConfig;
 import com.datastax.oss.common.sink.util.SinkUtil;
 import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
-import com.dtsx.astra.sdk.db.DatabaseClient;
+import com.dtsx.astra.sdk.db.DbOpsClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -121,7 +121,7 @@ public class CassandraWriter implements VectorDatabaseWriterProvider {
                                                         "environment", "PROD", datasource);
                                         if (!token.isEmpty()
                                                 && (!database.isEmpty() || !databaseId.isEmpty())) {
-                                            DatabaseClient databaseClient =
+                                            DbOpsClient databaseClient =
                                                     CassandraDataSource.buildAstraClient(
                                                             token,
                                                             database,

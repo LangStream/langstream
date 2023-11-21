@@ -25,7 +25,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.streaming.ai.datasource.CassandraDataSource;
-import com.dtsx.astra.sdk.db.DatabaseClient;
+import com.dtsx.astra.sdk.db.DbOpsClient;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -211,7 +211,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         public boolean assetExists() throws Exception {
             String keySpace = getKeyspace();
             log.info("Checking if keyspace {} exists", keySpace);
-            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            DbOpsClient astraDbClient = datasource.buildAstraClient();
             boolean exist = astraDbClient.keyspaces().exist(keySpace);
             log.info("Result: {}", exist);
             return exist;
@@ -220,7 +220,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
         @Override
         public void deployAsset() throws Exception {
             String keySpace = getKeyspace();
-            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            DbOpsClient astraDbClient = datasource.buildAstraClient();
             try {
                 astraDbClient.keyspaces().create(keySpace);
             } catch (com.dtsx.astra.sdk.db.exception.KeyspaceAlreadyExistException e) {
@@ -250,7 +250,7 @@ public class CassandraAssetsManagerProvider implements AssetManagerProvider {
             String keySpace = getKeyspace();
 
             log.info("Deleting keyspace {}", keySpace);
-            DatabaseClient astraDbClient = datasource.buildAstraClient();
+            DbOpsClient astraDbClient = datasource.buildAstraClient();
             try {
                 astraDbClient.keyspaces().delete(keySpace);
                 return true;

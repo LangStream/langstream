@@ -42,6 +42,7 @@ pipeline:
       datasource: "AstraDatasource"
       query: |
           {
+              "collection-name": "documents",
               "limit": 20,
               "vector": ?
           }

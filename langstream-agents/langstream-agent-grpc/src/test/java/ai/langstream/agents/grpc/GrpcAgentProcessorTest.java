@@ -227,8 +227,8 @@ public class GrpcAgentProcessorTest {
     @CsvSource({
         "failing-server,gRPC server sent error: INTERNAL: server error",
         "completing-server,gRPC server completed the stream unexpectedly",
-        "wrong-record-id,Received unknown record id 2",
-        "wrong-schema-id,Error while processing record 1: Unknown schema id 1"
+        "wrong-record-id,GrpcAgentProcessor error while processing record: Received unknown record id 2",
+        "wrong-schema-id,GrpcAgentProcessor error while processing record: Unknown schema id 1"
     })
     void testServerError(String origin, String error) throws Exception {
         Record inputRecord = SimpleRecord.builder().origin(origin).build();

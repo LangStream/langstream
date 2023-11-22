@@ -94,6 +94,13 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
         return new StreamObserver<>() {
             @Override
             public void onNext(SinkResponse response) {
+                if (!writeHandles.containsKey(response.getRecordId())) {
+                    agentContext.criticalFailure(
+                            new RuntimeException(
+                                    "GrpcAgentSink received unknown record id: %s"
+                                            .formatted(response.getRecordId())));
+                    return;
+                }
                 CompletableFuture<?> handle = writeHandles.get(response.getRecordId());
                 if (response.hasError()) {
                     handle.completeExceptionally(new RuntimeException(response.getError()));
@@ -124,7 +131,7 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
             public void onCompleted() {
                 if (startFailedButDevelopmentMode || restarting.get()) {
                     log.info(
-                            "Ignoring server complietion during restart in dev mode, "
+                            "Ignoring server completion during restart in dev mode, "
                                     + "ignoring records {}",
                             writeHandles);
                     writeHandles.forEach((id, handle) -> handle.complete(null));

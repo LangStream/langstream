@@ -63,12 +63,28 @@ class Record(ABC):
 RecordType = Union[Record, dict, list, tuple]
 
 
+class TopicProducer(ABC):
+    """The topic producer interface"""
+
+    async def awrite(self, topic: str, record: Record):
+        """Write a record to a topic (for async methods)."""
+        pass
+
+    def write(self, topic: str, record: Record) -> Future:
+        """Write a record to a topic (for non-async methods)."""
+        pass
+
+
 class AgentContext(ABC):
     """The Agent context interface"""
 
-    @abstractmethod
     def get_persistent_state_directory(self) -> Optional[str]:
         """Return the path of the agent disk. Return None if not configured."""
+        return None
+
+    @abstractmethod
+    def get_topic_producer(self) -> TopicProducer:
+        """Return the topic producer"""
         pass
 
 

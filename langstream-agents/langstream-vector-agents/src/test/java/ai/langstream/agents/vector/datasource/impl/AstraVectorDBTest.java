@@ -17,6 +17,8 @@ package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.agents.vector.astra.AstraVectorDBAssetsManagerProvider;
@@ -31,6 +33,7 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -39,11 +42,11 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 public class AstraVectorDBTest {
 
-    private static final String TOKEN = "AstraCS:";
-    private static final String ENDPOINT = "https://";
+    private static final String TOKEN = "";
+    private static final String ENDPOINT = "";
 
     @Test
-    void testWrite() throws Exception {
+    void testWriteAndRead() throws Exception {
         AstraVectorDBDataSourceProvider dataSourceProvider = new AstraVectorDBDataSourceProvider();
         Map<String, Object> config = Map.of("token", TOKEN, "endpoint", ENDPOINT);
 
@@ -101,10 +104,14 @@ public class AstraVectorDBTest {
 
                 writer.initialise(Map.of("collection-name", collectionName, "fields", fields));
 
+                // INSERT
+
+                String name = "do'c1";
+
                 // the PK contains a single quote in order to test escaping values in deletion
                 SimpleRecord record =
                         SimpleRecord.of(
-                                "{\"name\": \"do'c1\", \"chunk_id\": 1}",
+                                "{\"name\": \"%s\", \"chunk_id\": 1}".formatted(name),
                                 """
                                         {
                                             "vector": %s,
@@ -114,7 +121,7 @@ public class AstraVectorDBTest {
                                         .formatted(vectorAsString));
                 writer.upsert(record, Map.of()).get();
 
-                String query =
+                String similarityQuery =
                         """
                         {
                             "collection-name": "%s",
@@ -123,17 +130,147 @@ public class AstraVectorDBTest {
                         }
                         """
                                 .formatted(collectionName);
-                List<Object> params = List.of(vector);
-                List<Map<String, Object>> results = datasource.fetchData(query, params);
-                log.info("Results: {}", results);
 
-                assertEquals(1, results.size());
-                assertEquals("do'c1", results.get(0).get("name"));
-                assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                // QUERY, SIMILARITY SEARCH
+                assertContents(
+                        datasource,
+                        similarityQuery,
+                        List.of(vector),
+                        results -> {
+                            assertEquals(1, results.size());
+                            assertEquals(name, results.get(0).get("name"));
+                            assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                        });
 
+                // QUERY, SIMILARITY SEARCH WITH METADATA FILTERING
+                String similarityQueryWithFilterOnName =
+                        """
+                        {
+                            "collection-name": "%s",
+                            "vector": ?,
+                            "max": 10,
+                            "filter": {
+                                "name": ?
+                            }
+                        }
+                        """
+                                .formatted(collectionName);
+                assertContents(
+                        datasource,
+                        similarityQueryWithFilterOnName,
+                        List.of(vector, name),
+                        results -> {
+                            assertEquals(1, results.size());
+                            assertEquals(name, results.get(0).get("name"));
+                            assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                        });
+
+                assertContents(
+                        datasource,
+                        """
+                        {
+                            "collection-name": "%s",
+                            "vector": ?,
+                            "max": 10,
+                            "filter": {
+                                "name": ?
+                            },
+                            "select": ["text"],
+                            "include-similarity": true
+                        }
+                        """
+                                .formatted(collectionName),
+                        List.of(vector, name),
+                        results -> {
+                            assertEquals(1, results.size());
+                            assertNull(results.get(0).get("name"));
+                            assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                            assertNotNull(results.get(0).get("similarity"));
+                            assertNull(results.get(0).get("vector"));
+                        });
+
+                assertContents(
+                        datasource,
+                        """
+                        {
+                            "collection-name": "%s",
+                            "vector": ?,
+                            "max": 10,
+                            "filter": {
+                                "name": ?
+                            },
+                            "select": ["text"],
+                            "include-similarity": false
+                        }
+                        """
+                                .formatted(collectionName),
+                        List.of(vector, name),
+                        results -> {
+                            assertEquals(1, results.size());
+                            assertNull(results.get(0).get("name"));
+                            assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                            assertNull(results.get(0).get("similarity"));
+                            assertNull(results.get(0).get("vector"));
+                        });
+
+                assertContents(
+                        datasource,
+                        """
+                        {
+                            "collection-name": "%s",
+                            "vector": ?,
+                            "max": 10,
+                            "filter": {
+                                "name": ?
+                            },
+                            "select": ["text", "$vector"],
+                            "include-similarity": false
+                        }
+                        """
+                                .formatted(collectionName),
+                        List.of(vector, name),
+                        results -> {
+                            assertEquals(1, results.size());
+                            assertNull(results.get(0).get("name"));
+                            assertEquals("Lorem ipsum...", results.get(0).get("text"));
+                            assertNull(results.get(0).get("similarity"));
+                            assertNotNull(results.get(0).get("vector"));
+                        });
+
+                String queryWithFilterOnName =
+                        """
+                        {
+                            "collection-name": "%s",
+                            "max": 10,
+                            "filter": {
+                                "name": ?
+                            }
+                        }
+                        """
+                                .formatted(collectionName);
+
+                // QUERY, WITH METADATA FILTERING
+                assertContents(
+                        datasource,
+                        queryWithFilterOnName,
+                        List.of(name),
+                        results -> {
+                            assertEquals(1, results.size());
+                        });
+
+                // QUERY, WITH METADATA FILTERING, NO RESULTS
+                assertContents(
+                        datasource,
+                        queryWithFilterOnName,
+                        List.of("bad-name"),
+                        results -> {
+                            assertEquals(0, results.size());
+                        });
+
+                // UPDATE
                 SimpleRecord recordUpdated =
                         SimpleRecord.of(
-                                "{\"name\": \"do'c1\", \"chunk_id\": 1}",
+                                "{\"name\": \"%s\", \"chunk_id\": 1}".formatted(name),
                                 """
                                         {
                                             "vector": %s,
@@ -143,25 +280,49 @@ public class AstraVectorDBTest {
                                         .formatted(vector2AsString));
                 writer.upsert(recordUpdated, Map.of()).get();
 
-                List<Object> params2 = List.of(vector2);
-                List<Map<String, Object>> results2 = datasource.fetchData(query, params2);
-                log.info("Results: {}", results2);
+                assertContents(
+                        datasource,
+                        similarityQuery,
+                        List.of(vector2),
+                        results -> {
+                            log.info("Results: {}", results);
+                            assertEquals(1, results.size());
+                            assertEquals(name, results.get(0).get("name"));
+                            assertEquals("Lorem ipsum changed...", results.get(0).get("text"));
+                        });
 
-                assertEquals(1, results2.size());
-                assertEquals("do'c1", results2.get(0).get("name"));
-                assertEquals("Lorem ipsum changed...", results2.get(0).get("text"));
-
+                // DELETE
                 SimpleRecord recordDelete =
-                        SimpleRecord.of("{\"name\": \"do'c1\", \"chunk_id\": 1}", null);
+                        SimpleRecord.of(
+                                "{\"name\": \"%s\", \"chunk_id\": 1}".formatted(name), null);
                 writer.upsert(recordDelete, Map.of()).get();
 
-                List<Map<String, Object>> results3 = datasource.fetchData(query, params2);
-                log.info("Results: {}", results3);
-                assertEquals(0, results3.size());
+                assertContents(
+                        datasource,
+                        similarityQuery,
+                        List.of(vector2),
+                        result -> {
+                            assertEquals(0, result.size());
+                        });
 
+                // CLEANUP
                 assertTrue(tableManager.assetExists());
                 tableManager.deleteAssetIfExists();
             }
         }
+    }
+
+    private static List<Map<String, Object>> assertContents(
+            QueryStepDataSource datasource,
+            String query,
+            List<Object> params,
+            Consumer<List<Map<String, Object>>> assertion) {
+        log.info("Query: {}", query);
+        log.info("Params: {}", params);
+        List<Map<String, Object>> results = datasource.fetchData(query, params);
+        log.info("Result: {}", results);
+        assertion.accept(results);
+        ;
+        return results;
     }
 }

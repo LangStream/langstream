@@ -29,6 +29,7 @@ assets:
 pipeline:
   - name: "Write to Astra"
     type: "vector-db-sink"
+    input: "chunks-topic"
     configuration:
       datasource: "AstraDatasource"
       collection-name: "documents"

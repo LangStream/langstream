@@ -175,6 +175,9 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
             CollectionClient collection = this.getAstraDB().collection(collectionName);
 
             String action = (String) queryMap.remove("action");
+            if (action == null) {
+                action = "findOneAndUpdate";
+            }
 
             switch (action) {
                 case "findOneAndUpdate":
@@ -192,9 +195,10 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                         }
                         Map<String, Object> updateMap =
                                 (Map<String, Object>) queryMap.remove("update");
-                        if (updateMap != null) {
-                            update.set(builder, updateMap);
+                        if (updateMap == null || updateMap.isEmpty()) {
+                            throw new IllegalArgumentException("update map cannot be empty");
                         }
+                        update.set(builder, updateMap);
 
                         UpdateQuery updateQuery = builder.build();
                         log.info(

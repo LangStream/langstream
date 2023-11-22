@@ -85,5 +85,14 @@ public class AstraVectorDBAssetsProvider extends AbstractAssetProvider {
                 required = true)
         @JsonProperty("collection-name")
         private String collectionName;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Size of the vector.
+                       """,
+                required = true)
+        @JsonProperty("vector-dimension")
+        private int vectorDimension;
     }
 }

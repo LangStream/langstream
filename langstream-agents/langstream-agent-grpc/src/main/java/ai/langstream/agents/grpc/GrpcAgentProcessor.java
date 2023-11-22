@@ -126,41 +126,31 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
         return new StreamObserver<>() {
             @Override
             public void onNext(ProcessorResponse response) {
-                if (response.hasSchema()) {
-                    org.apache.avro.Schema schema =
-                            new org.apache.avro.Schema.Parser()
-                                    .parse(response.getSchema().getValue().toStringUtf8());
-                    serverSchemas.put(response.getSchema().getSchemaId(), schema);
+                try {
+                    if (response.hasSchema()) {
+                        org.apache.avro.Schema schema =
+                                new org.apache.avro.Schema.Parser()
+                                        .parse(response.getSchema().getValue().toStringUtf8());
+                        serverSchemas.put(response.getSchema().getSchemaId(), schema);
+                    }
+                    for (ProcessorResult result : response.getResultsList()) {
+                        RecordAndSink recordAndSink = sourceRecords.remove(result.getRecordId());
+                        if (recordAndSink == null) {
+                            throw new IllegalArgumentException(
+                                    "Received unknown record id " + result.getRecordId());
+                        } else {
+                            recordAndSink
+                                    .sink()
+                                    .emit(fromGrpc(recordAndSink.sourceRecord(), result));
+                        }
+                    }
+                } catch (Exception e) {
+                    agentContext.criticalFailure(
+                            new RuntimeException(
+                                    "GrpcAgentProcessor error while processing record: %s"
+                                            .formatted(e.getMessage()),
+                                    e));
                 }
-                response.getResultsList()
-                        .forEach(
-                                result -> {
-                                    RecordAndSink recordAndSink =
-                                            sourceRecords.remove(result.getRecordId());
-                                    if (recordAndSink == null) {
-                                        agentContext.criticalFailure(
-                                                new RuntimeException(
-                                                        "Received unknown record id "
-                                                                + result.getRecordId()));
-                                    } else {
-                                        try {
-                                            recordAndSink
-                                                    .sink()
-                                                    .emit(
-                                                            fromGrpc(
-                                                                    recordAndSink.sourceRecord(),
-                                                                    result));
-                                        } catch (Exception e) {
-                                            agentContext.criticalFailure(
-                                                    new RuntimeException(
-                                                            "Error while processing record %s: %s"
-                                                                    .formatted(
-                                                                            result.getRecordId(),
-                                                                            e.getMessage()),
-                                                            e));
-                                        }
-                                    }
-                                });
             }
 
             @Override

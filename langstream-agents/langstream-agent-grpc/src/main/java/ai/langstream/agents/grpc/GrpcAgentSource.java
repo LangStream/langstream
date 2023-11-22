@@ -105,19 +105,20 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
         return new StreamObserver<>() {
             @Override
             public void onNext(SourceResponse response) {
-                if (response.hasSchema()) {
-                    org.apache.avro.Schema schema =
-                            new org.apache.avro.Schema.Parser()
-                                    .parse(response.getSchema().getValue().toStringUtf8());
-                    serverSchemas.put(response.getSchema().getSchemaId(), schema);
-                }
                 try {
+                    if (response.hasSchema()) {
+                        org.apache.avro.Schema schema =
+                                new org.apache.avro.Schema.Parser()
+                                        .parse(response.getSchema().getValue().toStringUtf8());
+                        serverSchemas.put(response.getSchema().getSchemaId(), schema);
+                    }
+
                     for (ai.langstream.agents.grpc.Record record : response.getRecordsList()) {
                         readRecords.add(fromGrpc(record));
                     }
                 } catch (Exception e) {
                     agentContext.criticalFailure(
-                            new RuntimeException("Error while processing records", e));
+                            new RuntimeException("GrpcAgentSource error while reading records", e));
                 }
             }
 

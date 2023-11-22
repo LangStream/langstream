@@ -25,6 +25,7 @@ assets:
     config:
       collection-name: "documents"
       datasource: "AstraDatasource"
+      vector-dimension: 1536
 pipeline:
   - name: "Write to Astra"
     type: "vector-db-sink"

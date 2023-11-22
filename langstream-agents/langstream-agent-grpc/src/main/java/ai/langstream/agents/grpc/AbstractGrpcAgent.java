@@ -107,47 +107,65 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
                 asyncStub.getTopicProducerRecords(
                         new StreamObserver<>() {
                             @Override
-                            public void onNext(TopicProducerRecord topicProducerRecord) {
-                                TopicProducer topicProducer =
-                                        topicProducers.computeIfAbsent(
-                                                topicProducerRecord.getTopic(),
-                                                topic -> {
-                                                    TopicProducer tp =
-                                                            agentContext
-                                                                    .getTopicConnectionProvider()
-                                                                    .createProducer(
-                                                                            agentContext
-                                                                                    .getGlobalAgentId(),
-                                                                            topic,
-                                                                            Map.of());
-                                                    tp.start();
-                                                    return tp;
-                                                });
+                            public void onNext(TopicProducerResponse topicProducerResponse) {
                                 try {
-                                    topicProducer
-                                            .write(fromGrpc(topicProducerRecord.getRecord()))
-                                            .whenComplete(
-                                                    (r, e) -> {
-                                                        if (e != null) {
-                                                            log.error("Error writing record", e);
-                                                            sendTopicProducerWriteResult(
-                                                                    TopicProducerWriteResult
-                                                                            .newBuilder()
-                                                                            .setError(
-                                                                                    e
-                                                                                            .getMessage()));
-                                                        } else {
-                                                            sendTopicProducerWriteResult(
-                                                                    TopicProducerWriteResult
-                                                                            .newBuilder()
-                                                                            .setRecordId(
-                                                                                    topicProducerRecord
-                                                                                            .getRecord()
-                                                                                            .getRecordId()));
-                                                        }
-                                                    });
-                                } catch (IOException e) {
-                                    agentContext.criticalFailure(e);
+                                    if (topicProducerResponse.hasSchema()) {
+                                        serverSchemas.put(
+                                                topicProducerResponse.getSchema().getSchemaId(),
+                                                new org.apache.avro.Schema.Parser()
+                                                        .parse(
+                                                                topicProducerResponse
+                                                                        .getSchema()
+                                                                        .getValue()
+                                                                        .toStringUtf8()));
+                                    }
+                                    if (topicProducerResponse.hasRecord()
+                                            && !"".equals(topicProducerResponse.getTopic())) {
+                                        TopicProducer topicProducer =
+                                                topicProducers.computeIfAbsent(
+                                                        topicProducerResponse.getTopic(),
+                                                        topic -> {
+                                                            TopicProducer tp =
+                                                                    agentContext
+                                                                            .getTopicConnectionProvider()
+                                                                            .createProducer(
+                                                                                    agentContext
+                                                                                            .getGlobalAgentId(),
+                                                                                    topic,
+                                                                                    Map.of());
+                                                            tp.start();
+                                                            return tp;
+                                                        });
+                                        topicProducer
+                                                .write(fromGrpc(topicProducerResponse.getRecord()))
+                                                .whenComplete(
+                                                        (r, e) -> {
+                                                            if (e != null) {
+                                                                log.error(
+                                                                        "Error writing record", e);
+                                                                sendTopicProducerWriteResult(
+                                                                        TopicProducerWriteResult
+                                                                                .newBuilder()
+                                                                                .setError(
+                                                                                        e
+                                                                                                .getMessage()));
+                                                            } else {
+                                                                sendTopicProducerWriteResult(
+                                                                        TopicProducerWriteResult
+                                                                                .newBuilder()
+                                                                                .setRecordId(
+                                                                                        topicProducerResponse
+                                                                                                .getRecord()
+                                                                                                .getRecordId()));
+                                                            }
+                                                        });
+                                    }
+                                } catch (Exception e) {
+                                    agentContext.criticalFailure(
+                                            new RuntimeException(
+                                                    "getTopicProducerRecords: Error while processing TopicProducerResponse: %s"
+                                                            .formatted(e.getMessage()),
+                                                    e));
                                 }
                             }
 

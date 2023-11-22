@@ -124,7 +124,7 @@ public class GrpcAgentProcessorTest {
 
                 @Override
                 public StreamObserver<TopicProducerWriteResult> getTopicProducerRecords(
-                        StreamObserver<TopicProducerRecord> responseObserver) {
+                        StreamObserver<TopicProducerResponse> responseObserver) {
                     return new StreamObserver<>() {
                         @Override
                         public void onNext(TopicProducerWriteResult topicProducerWriteResult) {}

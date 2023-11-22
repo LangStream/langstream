@@ -14,8 +14,11 @@
 # limitations under the License.
 #
 
+import json
+from io import BytesIO
 from typing import List, Dict, Any, Optional
 
+import fastavro
 import grpc
 import pytest
 
@@ -25,6 +28,7 @@ from langstream_grpc.proto.agent_pb2 import (
     ProcessorRequest,
     Value,
     TopicProducerWriteResult,
+    Schema,
 )
 from langstream_grpc.tests.server_and_stub import ServerAndStub
 
@@ -35,23 +39,64 @@ async def test_topic_producer_success(klass):
         f"langstream_grpc.tests.test_grpc_topic_producer.{klass}"
     ) as server_and_stub:
         process_call = server_and_stub.stub.process()
+
+        schema = {
+            "type": "record",
+            "name": "Test",
+            "namespace": "test",
+            "fields": [{"name": "field", "type": {"type": "string"}}],
+        }
+        canonical_schema = fastavro.schema.to_parsing_canonical_form(schema)
         await process_call.write(
-            ProcessorRequest(records=[GrpcRecord(value=Value(string_value="test"))])
+            ProcessorRequest(
+                schema=Schema(schema_id=42, value=canonical_schema.encode("utf-8"))
+            )
         )
 
-        topic_producer_call = server_and_stub.stub.get_topic_producer_records()
-        topic_producer_record = await topic_producer_call.read()
+        fp = BytesIO()
+        try:
+            fastavro.schemaless_writer(fp, schema, {"field": "test"})
+            await process_call.write(
+                ProcessorRequest(
+                    records=[
+                        GrpcRecord(
+                            record_id=43,
+                            value=Value(schema_id=42, avro_value=fp.getvalue()),
+                        )
+                    ]
+                )
+            )
+        finally:
+            fp.close()
 
-        assert topic_producer_record.topic == "topic-producer-topic"
-        assert topic_producer_record.record.value.string_value == "test"
+        topic_producer_call = server_and_stub.stub.get_topic_producer_records()
+        response = await topic_producer_call.read()
+
+        assert response.HasField("schema")
+        assert response.schema.schema_id == 1
+        assert response.schema.value.decode("utf-8") == canonical_schema
+
+        response = await topic_producer_call.read()
+        assert response.topic == "topic-producer-topic"
+        record = response.record
+        assert record.record_id == 1
+        assert record.value.schema_id == 1
+        fp = BytesIO(record.value.avro_value)
+        try:
+            decoded = fastavro.schemaless_reader(fp, json.loads(canonical_schema))
+            assert decoded == {"field": "test"}
+        finally:
+            fp.close()
+
         await topic_producer_call.write(
-            TopicProducerWriteResult(record_id=topic_producer_record.record.record_id)
+            TopicProducerWriteResult(record_id=record.record_id)
         )
 
         await topic_producer_call.done_writing()
 
-        processed = await process_call.read()
-        assert processed.results[0].records[0].value.string_value == "test"
+        response = await process_call.read()
+        assert response.results[0].records[0].value.schema_id == 1
+        assert response.results[0].record_id == 43
 
         await process_call.done_writing()
 

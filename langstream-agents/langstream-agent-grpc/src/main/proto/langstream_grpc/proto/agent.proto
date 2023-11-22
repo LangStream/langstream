@@ -26,7 +26,7 @@ service AgentService {
   rpc read(stream SourceRequest) returns (stream SourceResponse) {}
   rpc process(stream ProcessorRequest) returns (stream ProcessorResponse) {}
   rpc write(stream SinkRequest) returns (stream SinkResponse) {}
-  rpc get_topic_producer_records(stream TopicProducerWriteResult) returns (stream TopicProducerRecord) {}
+  rpc get_topic_producer_records(stream TopicProducerWriteResult) returns (stream TopicProducerResponse) {}
 }
 
 message InfoResponse {
@@ -74,8 +74,9 @@ message TopicProducerWriteResult {
   optional string error = 2;
 }
 
-message TopicProducerRecord {
+message TopicProducerResponse {
   string topic = 1;
+  Schema schema = 2;
   Record record = 3;
 }
 

@@ -42,8 +42,8 @@ from langstream_grpc.proto.agent_pb2 import (
     SourceResponse,
     SinkRequest,
     SinkResponse,
-    TopicProducerRecord,
     TopicProducerWriteResult,
+    TopicProducerResponse,
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
 from .api import Source, Sink, Processor, Record, Agent, AgentContext, TopicProducer
@@ -91,12 +91,13 @@ class AgentService(AgentServiceServicer):
     async def poll_topic_producer_records(self, context):
         while True:
             topic, record, future = await self.topic_producer_records.get()
-            # TODO: handle schemas
-            _, grpc_record = self.to_grpc_record(record)
+            schemas, grpc_record = self.to_grpc_record(record)
+            for schema in schemas:
+                await context.write(TopicProducerResponse(schema=schema))
             self.topic_producer_record_id += 1
             self.topic_producer_records_pending[self.topic_producer_record_id] = future
             grpc_record.record_id = self.topic_producer_record_id
-            await context.write(TopicProducerRecord(topic=topic, record=grpc_record))
+            await context.write(TopicProducerResponse(topic=topic, record=grpc_record))
 
     async def handle_write_results(self, context):
         write_result = await context.read()

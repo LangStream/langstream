@@ -23,6 +23,7 @@ import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -30,12 +31,21 @@ import io.grpc.Status;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.Conversions;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.EncoderFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,17 +72,47 @@ public class AbstractGrpcAgentTest {
 
                 @Override
                 public StreamObserver<TopicProducerWriteResult> getTopicProducerRecords(
-                        StreamObserver<TopicProducerRecord> responseObserver) {
+                        StreamObserver<TopicProducerResponse> responseObserver) {
+                    org.apache.avro.Schema schema =
+                            SchemaBuilder.record("testRecord")
+                                    .fields()
+                                    .name("testField")
+                                    .type()
+                                    .stringType()
+                                    .noDefault()
+                                    .endRecord();
+                    GenericData.Record avroRecord = new GenericData.Record(schema);
+                    avroRecord.put("testField", "test-string");
+
                     responseObserver.onNext(
-                            TopicProducerRecord.newBuilder()
-                                    .setTopic("test-topic")
-                                    .setRecord(
-                                            ai.langstream.agents.grpc.Record.newBuilder()
-                                                    .setRecordId(42)
+                            TopicProducerResponse.newBuilder()
+                                    .setSchema(
+                                            Schema.newBuilder()
+                                                    .setSchemaId(123)
                                                     .setValue(
-                                                            Value.newBuilder()
-                                                                    .setStringValue("test-value1")))
+                                                            ByteString.copyFromUtf8(
+                                                                    schema.toString()))
+                                                    .build())
                                     .build());
+
+                    try {
+                        responseObserver.onNext(
+                                TopicProducerResponse.newBuilder()
+                                        .setTopic("test-topic")
+                                        .setRecord(
+                                                ai.langstream.agents.grpc.Record.newBuilder()
+                                                        .setRecordId(42)
+                                                        .setValue(
+                                                                Value.newBuilder()
+                                                                        .setSchemaId(123)
+                                                                        .setAvroValue(
+                                                                                ByteString.copyFrom(
+                                                                                        serializeGenericRecord(
+                                                                                                avroRecord)))))
+                                        .build());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     return new StreamObserver<>() {
 
                         @Override
@@ -88,7 +128,7 @@ public class AbstractGrpcAgentTest {
                                 responseObserver.onCompleted();
                             } else if (topicProducerWriteResult.getRecordId() == 42) {
                                 responseObserver.onNext(
-                                        TopicProducerRecord.newBuilder()
+                                        TopicProducerResponse.newBuilder()
                                                 .setTopic("test-topic")
                                                 .setRecord(
                                                         ai.langstream.agents.grpc.Record
@@ -164,7 +204,9 @@ public class AbstractGrpcAgentTest {
         TestAgentContext context = new TestAgentContextSuccessful();
         startProcessor(context);
         LinkedBlockingQueue<Record> recordsToWrite = context.recordsToWrite;
-        assertEquals("test-value1", recordsToWrite.poll(5, TimeUnit.SECONDS).value().toString());
+        assertEquals(
+                "{\"testField\": \"test-string\"}",
+                recordsToWrite.poll(5, TimeUnit.SECONDS).value().toString());
         assertEquals("test-value2", recordsToWrite.poll(5, TimeUnit.SECONDS).value().toString());
     }
 
@@ -274,5 +316,16 @@ public class AbstractGrpcAgentTest {
         protected CompletableFuture<?> writeRecord(Record record) {
             return CompletableFuture.failedFuture(new RuntimeException("test-complete"));
         }
+    }
+
+    private static byte[] serializeGenericRecord(GenericRecord record) throws IOException {
+        GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<>(record.getSchema());
+        // enable Decimal conversion, otherwise attempting to serialize java.math.BigDecimal will
+        // throw ClassCastException.
+        writer.getData().addLogicalTypeConversion(new Conversions.DecimalConversion());
+        ByteArrayOutputStream oo = new ByteArrayOutputStream();
+        BinaryEncoder encoder = EncoderFactory.get().directBinaryEncoder(oo, null);
+        writer.write(record, encoder);
+        return oo.toByteArray();
     }
 }

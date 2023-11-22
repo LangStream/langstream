@@ -129,15 +129,18 @@ class TopicProducerWriteResult(_message.Message):
         self, record_id: _Optional[int] = ..., error: _Optional[str] = ...
     ) -> None: ...
 
-class TopicProducerRecord(_message.Message):
-    __slots__ = ["topic", "record"]
+class TopicProducerResponse(_message.Message):
+    __slots__ = ["topic", "schema", "record"]
     TOPIC_FIELD_NUMBER: _ClassVar[int]
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RECORD_FIELD_NUMBER: _ClassVar[int]
     topic: str
+    schema: Schema
     record: Record
     def __init__(
         self,
         topic: _Optional[str] = ...,
+        schema: _Optional[_Union[Schema, _Mapping]] = ...,
         record: _Optional[_Union[Record, _Mapping]] = ...,
     ) -> None: ...
 

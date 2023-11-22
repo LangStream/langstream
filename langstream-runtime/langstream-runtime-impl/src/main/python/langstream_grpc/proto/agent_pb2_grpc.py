@@ -54,7 +54,7 @@ class AgentServiceStub(object):
         self.get_topic_producer_records = channel.stream_stream(
             "/AgentService/get_topic_producer_records",
             request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.FromString,
+            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.FromString,
         )
 
 
@@ -117,7 +117,7 @@ def add_AgentServiceServicer_to_server(servicer, server):
         "get_topic_producer_records": grpc.stream_stream_rpc_method_handler(
             servicer.get_topic_producer_records,
             request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.SerializeToString,
+            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -264,7 +264,7 @@ class AgentService(object):
             target,
             "/AgentService/get_topic_producer_records",
             langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerRecord.FromString,
+            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.FromString,
             options,
             channel_credentials,
             insecure,

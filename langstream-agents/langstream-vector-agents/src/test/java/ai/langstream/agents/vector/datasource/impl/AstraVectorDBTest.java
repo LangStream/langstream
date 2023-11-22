@@ -42,8 +42,10 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 public class AstraVectorDBTest {
 
-    private static final String TOKEN = "";
-    private static final String ENDPOINT = "";
+    private static final String TOKEN =
+            "AstraCS:HQKZyFwTNcNQFPhsLHPHlyYq:0fd08e29b7e7c590e947ac8fa9a4d6d785a4661a8eb1b3c011e2a0d19c2ecd7c";
+    private static final String ENDPOINT =
+            "https://18bdf302-901f-4245-af09-061ebdb480d2-us-east1.apps.astra.datastax.com";
 
     @Test
     void testWriteAndRead() throws Exception {
@@ -305,6 +307,84 @@ public class AstraVectorDBTest {
                             assertEquals(0, result.size());
                         });
 
+                Map<String, Object> executeInsertRes =
+                        executeStatement(
+                                datasource,
+                                """
+                                {
+                                    "action": "insertOne",
+                                    "collection-name": "%s",
+                                    "document": {
+                                        "id": "some-id",
+                                        "name": ?,
+                                        "vector": ?,
+                                        "text": "Some text"
+                                    }
+                                }
+                                """
+                                        .formatted(collectionName),
+                                List.of("some", vector));
+                assertEquals("some-id", executeInsertRes.get("id"));
+
+                assertContents(
+                        datasource,
+                        queryWithFilterOnName,
+                        List.of("some"),
+                        result -> {
+                            assertEquals(1, result.size());
+                            assertEquals("Some text", result.get(0).get("text"));
+                        });
+
+                executeStatement(
+                        datasource,
+                        """
+                        {
+                            "action": "findOneAndUpdate",
+                            "collection-name": "%s",
+                            "filter": {
+                                "_id": ?
+                            },
+                            "update": {
+                                "$set": {
+                                    "text": ?
+                                }
+                            }
+                        }
+                        """
+                                .formatted(collectionName),
+                        List.of("some-id", "new value"));
+
+                assertContents(
+                        datasource,
+                        queryWithFilterOnName,
+                        List.of("some"),
+                        result -> {
+                            assertEquals(1, result.size());
+                            assertEquals("new value", result.get(0).get("text"));
+                        });
+
+                executeStatement(
+                        datasource,
+                        """
+                        {
+                            "action": "deleteOne",
+                            "collection-name": "%s",
+                            "filter": {
+                                "_id": ?
+                            }
+                        }
+                        """
+                                .formatted(collectionName),
+                        List.of("some-id"));
+
+                assertContents(
+                        datasource,
+                        queryWithFilterOnName,
+                        List.of("some"),
+                        result -> {
+                            assertEquals(0, result.size());
+                        });
+
                 // CLEANUP
                 assertTrue(tableManager.assetExists());
                 tableManager.deleteAssetIfExists();
@@ -323,6 +403,15 @@ public class AstraVectorDBTest {
         log.info("Result: {}", results);
         assertion.accept(results);
         ;
+        return results;
+    }
+
+    private static Map<String, Object> executeStatement(
+            QueryStepDataSource datasource, String query, List<Object> params) {
+        log.info("Query: {}", query);
+        log.info("Params: {}", params);
+        Map<String, Object> results = datasource.executeStatement(query, null, params);
+        log.info("Result: {}", results);
         return results;
     }
 }

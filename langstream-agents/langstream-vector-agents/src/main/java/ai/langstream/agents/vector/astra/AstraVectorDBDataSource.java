@@ -21,17 +21,36 @@ import ai.langstream.api.util.ConfigurationUtils;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.dtsx.astra.sdk.AstraDB;
 import io.stargate.sdk.json.CollectionClient;
+import io.stargate.sdk.json.domain.DeleteQuery;
+import io.stargate.sdk.json.domain.DeleteQueryBuilder;
+import io.stargate.sdk.json.domain.JsonDocument;
 import io.stargate.sdk.json.domain.JsonResult;
+import io.stargate.sdk.json.domain.JsonResultUpdate;
 import io.stargate.sdk.json.domain.SelectQuery;
 import io.stargate.sdk.json.domain.SelectQueryBuilder;
+import io.stargate.sdk.json.domain.UpdateQuery;
+import io.stargate.sdk.json.domain.UpdateQueryBuilder;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AstraVectorDBDataSource implements QueryStepDataSource {
+
+    static final Field update;
+
+    static {
+        try {
+            update = UpdateQueryBuilder.class.getDeclaredField("update");
+            update.setAccessible(true);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
 
     AstraDB astraDB;
 
@@ -73,7 +92,7 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
             List<JsonResult> result;
 
             float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
-            Integer max = (Integer) queryMap.remove("max");
+            Integer limit = (Integer) queryMap.remove("limit");
 
             boolean includeSimilarity = vector != null;
             Object includeSimilarityParam = queryMap.remove("include-similarity");
@@ -101,8 +120,8 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
             if (filterMap != null) {
                 selectQueryBuilder.withJsonFilter(JstlFunctions.toJson(filterMap));
             }
-            if (max != null) {
-                selectQueryBuilder.limit(max);
+            if (limit != null) {
+                selectQueryBuilder.limit(limit);
             }
 
             SelectQuery selectQuery = selectQueryBuilder.build();
@@ -143,7 +162,102 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                             .map(v -> v == null ? "null" : v.getClass().toString())
                             .collect(Collectors.joining(",")));
         }
-        throw new UnsupportedOperationException();
+        try {
+            Map<String, Object> queryMap =
+                    InterpolationUtils.buildObjectFromJson(query, Map.class, params);
+            if (queryMap.isEmpty()) {
+                throw new UnsupportedOperationException("Query is empty");
+            }
+            String collectionName = (String) queryMap.remove("collection-name");
+            if (collectionName == null) {
+                throw new UnsupportedOperationException("collection-name is not defined");
+            }
+            CollectionClient collection = this.getAstraDB().collection(collectionName);
+
+            String action = (String) queryMap.remove("action");
+
+            switch (action) {
+                case "findOneAndUpdate":
+                    {
+                        Map<String, Object> filterMap =
+                                (Map<String, Object>) queryMap.remove("filter");
+                        UpdateQueryBuilder builder = UpdateQuery.builder();
+                        if (filterMap != null) {
+                            builder.withJsonFilter(JstlFunctions.toJson(filterMap));
+                        }
+                        String returnDocument = (String) queryMap.remove("return-document");
+                        if (returnDocument != null) {
+                            builder.withReturnDocument(
+                                    UpdateQueryBuilder.ReturnDocument.valueOf(returnDocument));
+                        }
+                        Map<String, Object> updateMap =
+                                (Map<String, Object>) queryMap.remove("update");
+                        if (updateMap != null) {
+                            update.set(builder, updateMap);
+                        }
+
+                        UpdateQuery updateQuery = builder.build();
+                        log.info(
+                                "doing findOneAndUpdate with UpdateQuery {}",
+                                JstlFunctions.toJson(updateQuery));
+                        JsonResultUpdate oneAndUpdate = collection.findOneAndUpdate(updateQuery);
+                        return Map.of("count", oneAndUpdate.getUpdateStatus().getModifiedCount());
+                    }
+                case "deleteOne":
+                    {
+                        Map<String, Object> filterMap =
+                                (Map<String, Object>) queryMap.remove("filter");
+                        DeleteQueryBuilder builder = DeleteQuery.builder();
+                        if (filterMap != null) {
+                            builder.withJsonFilter(JstlFunctions.toJson(filterMap));
+                        }
+                        DeleteQuery delete = builder.build();
+                        log.info(
+                                "doing deleteOne with DeleteQuery {}",
+                                JstlFunctions.toJson(delete));
+                        int count = collection.deleteOne(delete);
+                        return Map.of("count", count);
+                    }
+                case "insertOne":
+                    {
+                        Map<String, Object> documentData =
+                                (Map<String, Object>) queryMap.remove("document");
+                        JsonDocument document = new JsonDocument();
+                        for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+                            String key = entry.getKey();
+                            Object value = entry.getValue();
+                            switch (key) {
+                                case "id":
+                                    document.id(value.toString());
+                                    break;
+                                case "vector":
+                                    document.vector(JstlFunctions.toArrayOfFloat(value));
+                                    break;
+                                case "data":
+                                    document.data(value);
+                                    break;
+                                default:
+                                    document.put(key, value);
+                                    break;
+                            }
+                        }
+                        if (document.getId() == null) {
+                            document.setId(UUID.randomUUID().toString());
+                        }
+
+                        log.info(
+                                "doing insertOne with JsonDocument {}",
+                                JstlFunctions.toJson(document));
+                        String id = collection.insertOne(document);
+                        return Map.of("id", id);
+                    }
+                default:
+                    throw new UnsupportedOperationException("Unsupported action: " + action);
+            }
+
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
     }
 
     public AstraDB getAstraDB() {

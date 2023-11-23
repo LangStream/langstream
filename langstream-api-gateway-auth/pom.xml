@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-ai</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.4.5-SNAPSHOT</version>
+    <version>0.5.0</version>
   </parent>
   <packaging>pom</packaging>
   <modelVersion>4.0.0</modelVersion>

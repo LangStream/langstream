@@ -31,9 +31,9 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.codec.CqlVectorCodec;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
-import com.dtsx.astra.sdk.db.AstraDbClient;
-import com.dtsx.astra.sdk.db.DatabaseClient;
-import com.dtsx.astra.sdk.utils.ApiLocator;
+import com.dtsx.astra.sdk.db.AstraDBOpsClient;
+import com.dtsx.astra.sdk.db.DbOpsClient;
+import com.dtsx.astra.sdk.utils.AstraEnvironment;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.ByteArrayInputStream;
 import java.net.InetSocketAddress;
@@ -241,13 +241,13 @@ public class CassandraDataSource implements QueryStepDataSource {
             log.info(
                     "Automatically downloading the secure bundle for database name {} from AstraDB",
                     astraDatabase);
-            DatabaseClient databaseClient = this.buildAstraClient();
+            DbOpsClient databaseClient = this.buildAstraClient();
             secureBundleDecoded = downloadSecureBundle(databaseClient);
         } else if (!astraDatabaseId.isEmpty() && !astraToken.isEmpty()) {
             log.info(
                     "Automatically downloading the secure bundle for database id {} from AstraDB",
                     astraDatabaseId);
-            DatabaseClient databaseClient = this.buildAstraClient();
+            DbOpsClient databaseClient = this.buildAstraClient();
             secureBundleDecoded = downloadSecureBundle(databaseClient);
         } else {
             log.info("No secure bundle provided, using the default CQL driver for Cassandra");
@@ -281,11 +281,11 @@ public class CassandraDataSource implements QueryStepDataSource {
         return session;
     }
 
-    public DatabaseClient buildAstraClient() {
+    public DbOpsClient buildAstraClient() {
         return buildAstraClient(astraToken, astraDatabase, astraDatabaseId, astraEnvironment);
     }
 
-    public static DatabaseClient buildAstraClient(
+    public static DbOpsClient buildAstraClient(
             String astraToken,
             String astraDatabase,
             String astraDatabaseId,
@@ -293,9 +293,8 @@ public class CassandraDataSource implements QueryStepDataSource {
         if (astraToken.isEmpty()) {
             throw new IllegalArgumentException("You must configure the AstraDB token");
         }
-        AstraDbClient astraDbClient =
-                new AstraDbClient(
-                        astraToken, ApiLocator.AstraEnvironment.valueOf(astraEnvironment));
+        AstraDBOpsClient astraDbClient =
+                new AstraDBOpsClient(astraToken, AstraEnvironment.valueOf(astraEnvironment));
         if (!astraDatabase.isEmpty()) {
             return astraDbClient.databaseByName(astraDatabase);
         } else if (!astraDatabaseId.isEmpty()) {
@@ -306,7 +305,7 @@ public class CassandraDataSource implements QueryStepDataSource {
         }
     }
 
-    public static byte[] downloadSecureBundle(DatabaseClient databaseClient) {
+    public static byte[] downloadSecureBundle(DbOpsClient databaseClient) {
         long start = System.currentTimeMillis();
         byte[] secureBundleDecoded = databaseClient.downloadDefaultSecureConnectBundle();
         long delta = System.currentTimeMillis() - start;

@@ -31,6 +31,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
+import ai.langstream.runtime.impl.k8s.agents.vectors.AstraVectorDBVectorDatabaseWriterConfig;
 import ai.langstream.runtime.impl.k8s.agents.vectors.CassandraVectorDatabaseWriterConfig;
 import ai.langstream.runtime.impl.k8s.agents.vectors.JDBCVectorDatabaseWriterConfig;
 import ai.langstream.runtime.impl.k8s.agents.vectors.MilvusVectorDatabaseWriterConfig;
@@ -80,7 +81,8 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                             "pinecone", PineconeVectorDatabaseWriterConfig.INSTANCE,
                             "opensearch", OpenSearchVectorDatabaseWriterConfig.INSTANCE,
                             "solr", SolrVectorDatabaseWriterConfig.INSTANCE,
-                            "milvus", MilvusVectorDatabaseWriterConfig.INSTANCE);
+                            "milvus", MilvusVectorDatabaseWriterConfig.INSTANCE,
+                            "astra-vector-db", AstraVectorDBVectorDatabaseWriterConfig.INSTANCE);
 
     public QueryVectorDBAgentProvider() {
         super(

@@ -48,7 +48,8 @@ public class AstraDatasourceConfig extends BaseDatasourceConfig {
                             ConfigurationUtils.getString("secureBundle", "", configuration);
                     if (secureBundle.isEmpty()) {
                         if (configuration.get("token") == null
-                                || configuration.get("database") == null) {
+                                || (configuration.get("database") == null
+                                        && configuration.get("database-id") == null)) {
                             throw new IllegalArgumentException(
                                     ClassConfigValidator.formatErrString(
                                             new ClassConfigValidator.ResourceEntityRef(resource),

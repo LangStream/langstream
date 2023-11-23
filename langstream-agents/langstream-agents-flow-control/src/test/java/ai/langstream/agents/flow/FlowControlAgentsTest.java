@@ -355,6 +355,8 @@ public class FlowControlAgentsTest {
         try (LogEventProcessor processor = new LogEventProcessor(); ) {
             processor.init(
                     Map.of(
+                            "message",
+                            "Original is {{{value.original}}}",
                             "fields",
                             List.of(
                                     Map.of(
@@ -362,6 +364,36 @@ public class FlowControlAgentsTest {
                                             "value.computed",
                                             "expression",
                                             "fn:uppercase(value.original)"))));
+            processor.start();
+
+            for (int i = 0; i < 10; i++) {
+                SimpleRecord someRecord =
+                        SimpleRecord.builder()
+                                .value(
+                                        """
+                        {"original": "Hello Folks %s", "activator": %s}
+                        """
+                                                .formatted(i, i))
+                                .build();
+
+                List<Record> read = new ArrayList<>();
+                processor.process(
+                        List.of(someRecord),
+                        (sourceRecordAndResult) ->
+                                read.addAll(sourceRecordAndResult.resultRecords()));
+                assertEquals(1, read.size());
+                Record emittedToDownstream = read.get(0);
+                // the processor must pass downstream the original record
+                assertSame(emittedToDownstream, someRecord);
+                log.info("Received record {}", emittedToDownstream);
+            }
+        }
+    }
+
+    @Test
+    public void testLogEventNoFieldsNoMessage() throws Exception {
+        try (LogEventProcessor processor = new LogEventProcessor(); ) {
+            processor.init(Map.of());
             processor.start();
 
             for (int i = 0; i < 10; i++) {

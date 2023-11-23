@@ -18,6 +18,7 @@ package com.datastax.oss.streaming.ai;
 import ai.langstream.ai.agents.commons.AvroUtil;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.commons.jstl.JstlTypeConverter;
 import com.datastax.oss.streaming.ai.model.ComputeField;
 import com.datastax.oss.streaming.ai.model.ComputeFieldType;
@@ -57,31 +58,34 @@ public class ComputeStep implements TransformStep {
 
     @Override
     public void process(MutableRecord mutableRecord) {
-        computePrimitiveField(
-                fields.stream()
-                        .filter(f -> "primitive".equals(f.getScope()))
-                        .collect(Collectors.toList()),
-                mutableRecord);
-        computeKeyFields(
-                fields.stream()
-                        .filter(f -> "key".equals(f.getScope()))
-                        .collect(Collectors.toList()),
-                mutableRecord);
-        computeValueFields(
-                fields.stream()
-                        .filter(f -> "value".equals(f.getScope()))
-                        .collect(Collectors.toList()),
-                mutableRecord);
-        computeHeaderFields(
-                fields.stream()
-                        .filter(f -> "header".equals(f.getScope()))
-                        .collect(Collectors.toList()),
-                mutableRecord);
-        computeHeaderPropertiesFields(
-                fields.stream()
-                        .filter(f -> "header.properties".equals(f.getScope()))
-                        .collect(Collectors.toList()),
-                mutableRecord);
+        try (JstlFunctions.FilterContextHandle handle =
+                JstlFunctions.FilterContextHandle.start(mutableRecord)) {
+            computePrimitiveField(
+                    fields.stream()
+                            .filter(f -> "primitive".equals(f.getScope()))
+                            .collect(Collectors.toList()),
+                    mutableRecord);
+            computeKeyFields(
+                    fields.stream()
+                            .filter(f -> "key".equals(f.getScope()))
+                            .collect(Collectors.toList()),
+                    mutableRecord);
+            computeValueFields(
+                    fields.stream()
+                            .filter(f -> "value".equals(f.getScope()))
+                            .collect(Collectors.toList()),
+                    mutableRecord);
+            computeHeaderFields(
+                    fields.stream()
+                            .filter(f -> "header".equals(f.getScope()))
+                            .collect(Collectors.toList()),
+                    mutableRecord);
+            computeHeaderPropertiesFields(
+                    fields.stream()
+                            .filter(f -> "header.properties".equals(f.getScope()))
+                            .collect(Collectors.toList()),
+                    mutableRecord);
+        }
     }
 
     public void computeValueFields(List<ComputeField> fields, MutableRecord context) {

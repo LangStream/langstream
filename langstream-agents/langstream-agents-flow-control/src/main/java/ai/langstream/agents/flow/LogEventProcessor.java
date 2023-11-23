@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.flow;
 
+import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
@@ -24,6 +25,8 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,13 +39,22 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
     record FieldDefinition(String name, JstlEvaluator<Object> expressionEvaluator) {}
 
     private final List<FieldDefinition> fields = new ArrayList<>();
+    private Template messageTemplate;
     private JstlPredicate predicate;
 
     @SuppressWarnings("unchecked")
     @Override
     public void init(Map<String, Object> configuration) {
         String when = ConfigurationUtils.getString("when", "true", configuration);
+        String message = ConfigurationUtils.getString("message", "", configuration);
         predicate = new JstlPredicate(when);
+
+        if (!message.isEmpty()) {
+            messageTemplate = Mustache.compiler().compile(message);
+        } else {
+            messageTemplate = null;
+        }
+
         List<Map<String, Object>> fields =
                 (List<Map<String, Object>>) configuration.getOrDefault("fields", List.of());
         fields.forEach(
@@ -66,15 +78,23 @@ public class LogEventProcessor extends AbstractAgentCode implements AgentProcess
         if (!predicate.test(mutableRecord)) {
             return;
         }
-        if (fields.isEmpty()) {
+        if (fields.isEmpty() && messageTemplate == null) {
             log.info("{}", originalRecord);
-        } else {
+            return;
+        }
+
+        if (!fields.isEmpty()) {
             // using LinkedHashMap in order to keep the order
             Map<String, Object> values = new LinkedHashMap<>();
             for (FieldDefinition field : fields) {
                 values.put(field.name, field.expressionEvaluator.evaluate(mutableRecord));
             }
             log.info("{}", values);
+        }
+
+        if (messageTemplate != null) {
+            JsonRecord jsonRecord = mutableRecord.toJsonRecord();
+            log.info("{}", messageTemplate.execute(jsonRecord));
         }
     }
 

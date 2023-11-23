@@ -66,7 +66,32 @@
     <dependency>
       <groupId>com.datastax.astra</groupId>
       <artifactId>astra-sdk-devops</artifactId>
-      <version>0.6.9</version>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-db-client</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.astra</groupId>
+      <artifactId>astra-sdk</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.stargate</groupId>
+      <artifactId>stargate-sdk</artifactId>
+      <version>2.1.4</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.stargate</groupId>
+          <artifactId>stargate-sdk-grpc</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.stargate</groupId>
+          <artifactId>stargate-sdk-graphql</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.netty.incubator</groupId>

@@ -1,2 +1,2 @@
-ai.langstream.ai.agents.datasource.impl.AstraDataSource
+ai.langstream.ai.agents.datasource.impl.CassandraDataSourceProvider
 ai.langstream.ai.agents.datasource.impl.JdbcDataSourceProvider

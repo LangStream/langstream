@@ -177,6 +177,13 @@ public class FlowControlAgentsProvider extends AbstractComposableAgentProvider {
         @ConfigProperty(
                 description =
                         """
+                        Template for a log message to print (Mustache).
+                                """)
+        String message;
+
+        @ConfigProperty(
+                description =
+                        """
                         Condition to trigger the operation. This is a standard EL expression.
                                 """,
                 defaultValue = "true",

@@ -19,6 +19,7 @@ import static ai.langstream.ai.agents.commons.MutableRecord.mutableRecordToRecor
 import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
+import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
@@ -57,7 +58,9 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         configuration.put("type", "query");
         QueryConfig queryConfig = MAPPER.convertValue(configuration, QueryConfig.class);
         queryExecutor = (QueryStep) TransformFunctionUtil.newQuery(queryConfig, dataSource);
-        steps = List.of(new StepPredicatePair(queryExecutor, it -> true));
+        JstlPredicate when =
+                queryConfig.getWhen() == null ? null : new JstlPredicate(queryConfig.getWhen());
+        steps = List.of(new StepPredicatePair(queryExecutor, when));
     }
 
     @Override

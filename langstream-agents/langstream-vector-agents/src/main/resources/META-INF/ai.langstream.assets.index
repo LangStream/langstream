@@ -5,3 +5,4 @@ milvus-collection
 jdbc-table
 solr-collection
 opensearch-index
+astra-collection

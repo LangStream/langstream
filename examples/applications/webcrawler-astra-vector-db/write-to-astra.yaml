@@ -1,0 +1,94 @@
+#
+# Copyright DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: "Write to AstraDB"
+topics:
+  - name: "chunks-topic"
+    creation-mode: create-if-not-exists
+assets:
+  - name: "documents-collection"
+    asset-type: "astra-collection"
+    creation-mode: create-if-not-exists
+    config:
+      collection-name: "${globals.collection-name}"
+      datasource: "AstraDatasource"
+      vector-dimension: 1536
+errors:
+    on-failure: "skip"
+pipeline:
+  - name: "Find existing chunks"
+    input: "chunks-topic"
+    type: "query-vector-db"
+    configuration:
+      datasource: "AstraDatasource"
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      mode: "query"
+      query: |
+          {             
+             "collection-name": "${globals.collection-name}",
+             "filter": {
+                  "filename": ?
+             },
+             "select": ["chunk_id"]        
+          }
+      output-field: "value.all_chunks"
+      fields:
+        - "value.filename"
+  - name: "Detect stale chunks"
+    type: "compute"
+    configuration:
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      fields:
+        - name: "value.stale_chunks"
+          expression: "fn:filter(value.all_chunks, 'record.chunk_id >= fn:toInt(properties.text_num_chunks)')"
+  - name: "Delete stale chunks"
+    type: "query-vector-db"
+    configuration:
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      datasource: "AstraDatasource"
+      loop-over: "value.stale_chunks"
+      mode: "execute"
+      query: |
+        {
+           "action": "deleteMany",
+           "collection-name": "${globals.collection-name}",
+           "filter": {
+              "_id": ?
+           }        
+        }
+      output-field: "value.delete_results"
+      fields:
+        - "record.id"
+  - type: "log-event"
+    configuration:
+      when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
+      message: "Deleted stale chunks: {{{value.delete_results}}}"
+  - name: "Write to Astra"
+    type: "vector-db-sink"
+    configuration:
+      datasource: "AstraDatasource"
+      collection-name: "${globals.collection-name}"
+      fields:
+        - name: "id"
+          expression: "fn:concat(value.filename, '-', value.chunk_id)"
+        - name: "vector"
+          expression: "value.embeddings_vector"
+        - name: "text"
+          expression: "value.text"
+        - name: "filename"
+          expression: "value.filename"
+        - name: "chunk_id"
+          expression: "value.chunk_id"

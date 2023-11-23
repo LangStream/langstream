@@ -91,7 +91,7 @@ class AgentService(AgentServiceServicer):
     async def poll_topic_producer_records(self, context):
         while True:
             topic, record, future = await self.topic_producer_records.get()
-            schemas, grpc_record = self.to_grpc_record(record)
+            schemas, grpc_record = self.to_grpc_record(wrap_in_record(record))
             for schema in schemas:
                 await context.write(TopicProducerResponse(schema=schema))
             self.topic_producer_record_id += 1

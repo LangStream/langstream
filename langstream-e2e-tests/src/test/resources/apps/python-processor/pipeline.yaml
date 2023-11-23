@@ -31,6 +31,12 @@ topics:
       type: string
     keySchema:
       type: string
+  - name: ls-test-topic-producer
+    creation-mode: create-if-not-exists
+    schema:
+      type: string
+    keySchema:
+      type: string
 pipeline:
   - name: "Process using Python"
     resources:

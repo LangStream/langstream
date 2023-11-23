@@ -26,6 +26,7 @@ class Exclamation(Processor):
 
     def process(self, record):
         logging.info("Processing record" + str(record))
+        self.context.get_topic_producer().write("ls-test-topic-producer", {"value": record.value() + " test-topic-producer"}).result()
         directory = self.context.get_persistent_state_directory()
         counter_file = os.path.join(directory, "counter.txt")
         counter = 0

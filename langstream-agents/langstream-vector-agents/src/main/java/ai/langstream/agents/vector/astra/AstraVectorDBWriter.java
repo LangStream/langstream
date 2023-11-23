@@ -91,7 +91,13 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                         fields,
                         (name, value) -> {
                             if (value != null) {
-                                log.info("Field {} value {}", name, value);
+                                if (log.isDebugEnabled()) {
+                                    log.debug(
+                                            "setting value {} ({}) for field {}",
+                                            value,
+                                            value.getClass(),
+                                            name);
+                                }
                                 switch (name) {
                                     case "vector":
                                         document.vector(JstlFunctions.toArrayOfFloat(value));
@@ -114,17 +120,21 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                 }
                 if (record.value() == null) {
                     int count = collection.deleteById(document.getId());
-                    if (count > 0) {
-                        log.info("Deleted document with id {}", document.getId());
-                    } else {
-                        log.info("No document with id {} to delete", document.getId());
+                    if (log.isDebugEnabled()) {
+                        if (count > 0) {
+                            log.debug("Deleted document with id {}", document.getId());
+                        } else {
+                            log.debug("No document with id {} to delete", document.getId());
+                        }
                     }
                     return CompletableFuture.completedFuture(document.getId());
                 } else {
 
                     try {
                         String id = collection.insertOne(document);
-                        log.info("Inserted document with id {}", id);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Inserted document with id {}", id);
+                        }
                         return CompletableFuture.completedFuture(id);
                     } catch (ApiException e) {
                         String message = e.getMessage() + "";
@@ -145,7 +155,7 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                 }
 
             } catch (Throwable e) {
-                log.error("Error while inserting document", e);
+                log.error("Error while inserting document {}", document, e);
                 return CompletableFuture.failedFuture(e);
             }
         }

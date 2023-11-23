@@ -58,7 +58,7 @@ pipeline:
       query-embeddings: "value.question_embeddings"
       output-field: "value.related_documents"
       text-field: "record.text"
-      embeddings-field: "record.embeddings_vector.values"
+      embeddings-field: "record.vector"
       algorithm: "MMR"
       lambda: 0.5
       k1: 1.2

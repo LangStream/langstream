@@ -79,6 +79,23 @@
       <version>1.0</version>
     </dependency>
     <dependency>
+      <groupId>com.datastax.stargate</groupId>
+      <artifactId>stargate-sdk</artifactId>
+      <!-- TODO: upgrade to 2.1.4 when available
+           see https://github.com/stargate/stargate-sdk-java/pull/33 -->
+      <version>2.1.3</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.stargate</groupId>
+          <artifactId>stargate-sdk-grpc</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.stargate</groupId>
+          <artifactId>stargate-sdk-graphql</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>io.netty.incubator</groupId>
       <artifactId>netty-incubator-transport-native-io_uring</artifactId>
       <classifier>linux-aarch_64</classifier>

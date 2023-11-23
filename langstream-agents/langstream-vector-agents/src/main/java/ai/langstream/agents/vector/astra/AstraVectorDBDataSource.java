@@ -57,7 +57,7 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
     @Override
     public void initialize(Map<String, Object> dataSourceConfig) {
         log.info(
-                "Initializing CassandraDataSource with config {}",
+                "Initializing AstraVectorDBDataSource with config {}",
                 ConfigurationUtils.redactSecrets(dataSourceConfig));
         String astraToken = ConfigurationUtils.getString("token", "", dataSourceConfig);
         String astraEndpoint = ConfigurationUtils.getString("endpoint", "", dataSourceConfig);
@@ -125,7 +125,9 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
             }
 
             SelectQuery selectQuery = selectQueryBuilder.build();
-            log.info("doing query {}", JstlFunctions.toJson(selectQuery));
+            if (log.isDebugEnabled()) {
+                log.debug("doing query {}", JstlFunctions.toJson(selectQuery));
+            }
 
             result = collection.query(selectQuery).toList();
 
@@ -201,9 +203,11 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                         update.set(builder, updateMap);
 
                         UpdateQuery updateQuery = builder.build();
-                        log.info(
-                                "doing findOneAndUpdate with UpdateQuery {}",
-                                JstlFunctions.toJson(updateQuery));
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "doing findOneAndUpdate with UpdateQuery {}",
+                                    JstlFunctions.toJson(updateQuery));
+                        }
                         JsonResultUpdate oneAndUpdate = collection.findOneAndUpdate(updateQuery);
                         return Map.of("count", oneAndUpdate.getUpdateStatus().getModifiedCount());
                     }
@@ -216,9 +220,11 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                             builder.withJsonFilter(JstlFunctions.toJson(filterMap));
                         }
                         DeleteQuery delete = builder.build();
-                        log.info(
-                                "doing deleteOne with DeleteQuery {}",
-                                JstlFunctions.toJson(delete));
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "doing deleteOne with DeleteQuery {}",
+                                    JstlFunctions.toJson(delete));
+                        }
                         int count = collection.deleteOne(delete);
                         return Map.of("count", count);
                     }
@@ -249,9 +255,11 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                             document.setId(UUID.randomUUID().toString());
                         }
 
-                        log.info(
-                                "doing insertOne with JsonDocument {}",
-                                JstlFunctions.toJson(document));
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "doing insertOne with JsonDocument {}",
+                                    JstlFunctions.toJson(document));
+                        }
                         String id = collection.insertOne(document);
                         return Map.of("id", id);
                     }

@@ -137,9 +137,7 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
                         }
                         return CompletableFuture.completedFuture(id);
                     } catch (ApiException e) {
-                        String message = e.getMessage() + "";
-                        // TODO: have a way to get the error code DOCUMENT_ALREADY_EXISTS
-                        if (message.contains("Document already exists")) {
+                        if ("DOCUMENT_ALREADY_EXISTS".equals(e.getErrorCode())) {
                             collection. // Already Exist
                                     findOneAndReplace(
                                     UpdateQuery.builder()

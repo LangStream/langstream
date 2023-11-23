@@ -5,6 +5,7 @@ This sample application shows how to use the WebCrawler Source Connector and Ast
 ## Collections
 
 This application creates a collection named "documents" in your DB.
+You can change the name of the collection in the file `configuration.yaml`.
 
 ## Configure access to the Vector Database
 
@@ -12,7 +13,7 @@ Export some ENV variables in order to configure access to the database:
 
 ```
 export ASTRA_VECTOR_DB_TOKEN=AstraCS:...
-export ASTRA_VECTOR_DB_DATABASE=https://....astra.datastax.com
+export ASTRA_VECTOR_DB_ENDPOINT=https://....astra.datastax.com
 ```
 
 You can find the credentials in the Astra DB console.

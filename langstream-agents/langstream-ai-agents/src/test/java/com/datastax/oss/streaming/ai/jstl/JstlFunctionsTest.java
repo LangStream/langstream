@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -523,6 +524,50 @@ public class JstlFunctionsTest {
         {
             List<Object> filter = JstlFunctions.filter(queryResult, "true");
             assertEquals(2, filter.size());
+        }
+    }
+
+    @Test
+    void testFilterQueryResultsWithContext() {
+
+        MutableRecord record = new MutableRecord();
+        record.setValueObject(Map.of("threshold", "0.5"));
+
+        try (JstlFunctions.FilterContextHandle context =
+                JstlFunctions.FilterContextHandle.start(record)) {
+
+            // the query step always produces a list<map<string,string>> result
+            // this test verifies that it is possible to filter the result using the JSTL filter
+            // function
+            List<Map<String, String>> queryResult = new ArrayList<>();
+            queryResult.add(Map.of("name", "product1", "price", "1.2", "similarity", "0.9"));
+            queryResult.add(Map.of("name", "product2", "price", "1.7", "similarity", "0.1"));
+
+            {
+                List<Object> filter =
+                        JstlFunctions.filter(
+                                queryResult, "fn:toDouble(record.similarity) >= value.threshold");
+                assertEquals(1, filter.size());
+                assertEquals("product1", ((Map<String, String>) filter.get(0)).get("name"));
+            }
+
+            {
+                List<Object> filter =
+                        JstlFunctions.filter(
+                                queryResult, "fn:toDouble(record.similarity) < value.threshold");
+                assertEquals(1, filter.size());
+                assertEquals("product2", ((Map<String, String>) filter.get(0)).get("name"));
+            }
+
+            {
+                List<Object> filter = JstlFunctions.filter(queryResult, "false");
+                assertEquals(0, filter.size());
+            }
+
+            {
+                List<Object> filter = JstlFunctions.filter(queryResult, "true");
+                assertEquals(2, filter.size());
+            }
         }
     }
 }

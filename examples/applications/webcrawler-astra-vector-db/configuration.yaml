@@ -16,6 +16,9 @@
 #
 
 configuration:
+  defaults:
+    globals:
+      collection-name: "documents"
   resources:
   - type: "open-ai-configuration"
     name: "OpenAI Azure configuration"

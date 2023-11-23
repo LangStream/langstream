@@ -47,7 +47,7 @@ pipeline:
       when: "fn:toInt(properties.text_num_chunks) == (fn:toInt(properties.chunk_id) + 1)"
       mode: "execute"
       query: "DELETE FROM documents.documents WHERE filename = ? AND chunk_id > ?"
-      output-field: "value.delete-results"
+      output-field: "value.delete_results"
       fields:
         - "value.filename"
         - "fn:toInt(value.chunk_id)"

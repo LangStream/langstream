@@ -300,6 +300,41 @@ public class JstlFunctions {
         return results;
     }
 
+    private static class FilterContext {
+        private final MutableRecord currentMessage;
+
+        FilterContext(MutableRecord currentMessage) {
+            this.currentMessage = currentMessage;
+        }
+    }
+
+    public static class FilterContextHandle implements AutoCloseable {
+
+        private static final ThreadLocal<FilterContext> threadLocal = new ThreadLocal<>();
+
+        public static FilterContextHandle start(MutableRecord currentMessage) {
+            return new FilterContextHandle(currentMessage);
+        }
+
+        private static FilterContext getCurrentFilterContext() {
+            return threadLocal.get();
+        }
+
+        FilterContextHandle(MutableRecord currentMessage) {
+            FilterContext filterContext = threadLocal.get();
+            if (filterContext != null) {
+                throw new IllegalStateException(
+                        "FilterContextHandle already exists for this thread");
+            }
+            threadLocal.set(new FilterContext(currentMessage));
+        }
+
+        @Override
+        public void close() {
+            threadLocal.remove();
+        }
+    }
+
     public static List<Object> filter(Object input, String expression) {
         if (input == null) {
             return null;
@@ -318,6 +353,8 @@ public class JstlFunctions {
             throw new IllegalArgumentException(
                     "fn:filter cannot filter object of type " + input.getClass().getName());
         }
+
+        FilterContext currentContext = FilterContextHandle.getCurrentFilterContext();
         List<Object> result = new ArrayList<>();
         JstlPredicate predicate = new JstlPredicate(expression);
         for (Object o : source) {
@@ -326,14 +363,23 @@ public class JstlFunctions {
             }
             // nulls are always filtered out
             if (o != null) {
-                MutableRecord context = new MutableRecord();
-                context.setRecordObject(o);
-                boolean evaluate = predicate.test(context);
-                if (log.isDebugEnabled()) {
-                    log.debug("Result of evaluation is {}", evaluate);
+                MutableRecord context;
+                if (currentContext != null) {
+                    context = currentContext.currentMessage;
+                } else {
+                    context = new MutableRecord();
                 }
-                if (evaluate) {
-                    result.add(o);
+                context.setRecordObject(o);
+                try {
+                    boolean evaluate = predicate.test(context);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Result of evaluation is {}", evaluate);
+                    }
+                    if (evaluate) {
+                        result.add(o);
+                    }
+                } finally {
+                    context.setRecordObject(null);
                 }
             }
         }

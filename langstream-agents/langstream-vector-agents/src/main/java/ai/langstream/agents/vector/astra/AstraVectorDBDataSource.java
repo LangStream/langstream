@@ -138,6 +138,7 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                                 if (m.getData() != null) {
                                     r.putAll(m.getData());
                                 }
+                                r.put("id", m.getId());
                                 if (m.getSimilarity() != null) {
                                     r.put("similarity", m.getSimilarity());
                                 }
@@ -226,6 +227,23 @@ public class AstraVectorDBDataSource implements QueryStepDataSource {
                                     JstlFunctions.toJson(delete));
                         }
                         int count = collection.deleteOne(delete);
+                        return Map.of("count", count);
+                    }
+                case "deleteMany":
+                    {
+                        Map<String, Object> filterMap =
+                                (Map<String, Object>) queryMap.remove("filter");
+                        DeleteQueryBuilder builder = DeleteQuery.builder();
+                        if (filterMap != null) {
+                            builder.withJsonFilter(JstlFunctions.toJson(filterMap));
+                        }
+                        DeleteQuery delete = builder.build();
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "doing deleteMany with DeleteQuery {}",
+                                    JstlFunctions.toJson(delete));
+                        }
+                        int count = collection.deleteMany(delete);
                         return Map.of("count", count);
                     }
                 case "insertOne":

@@ -130,6 +130,10 @@ public class QueryStep implements TransformStep {
             // loop over a list
             // for each item we name if "record" and we perform the query
             List<Object> nestedRecords = loopOverAccessor.evaluate(mutableRecord);
+            if (nestedRecords == null) {
+                log.info("Property {} not found in record {}", loopOver, mutableRecord);
+                nestedRecords = List.of();
+            }
             results = new ArrayList<>();
             for (Object document : nestedRecords) {
                 MutableRecord nestedRecordContext = new MutableRecord();
@@ -150,6 +154,10 @@ public class QueryStep implements TransformStep {
             // loop over a list
             // for each item we name if "record" and we perform the query
             List<Object> nestedRecords = loopOverAccessor.evaluate(mutableRecord);
+            if (nestedRecords == null) {
+                log.info("Property {} not found in record {}", loopOver, mutableRecord);
+                nestedRecords = List.of();
+            }
             List<Map<String, Object>> results = new ArrayList<>();
             for (Object document : nestedRecords) {
                 MutableRecord nestedRecordContext = new MutableRecord();

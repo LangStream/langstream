@@ -70,7 +70,6 @@ pipeline:
   - name: "Detect language"
     type: "language-detector"
     configuration:
-      allowedLanguages: ["en", "fr"]
       property: "language"
   - name: "Split into chunks"
     type: "text-splitter"

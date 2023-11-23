@@ -59,6 +59,16 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value\","
                                 + "\"headers\":{\"langstream-client-session-id\":\"s1\"}}"));
 
+        output =
+                executeCommandOnClient(
+                        ("bin/langstream gateway consume %s topic-producer --position earliest -n 1 --connect-timeout 30")
+                                .formatted(applicationId)
+                                .split(" "));
+        log.info("Output2: {}", output);
+        Assertions.assertTrue(
+                output.contains(
+                        "{\"record\":{\"key\":null,\"value\":\"my-value test-topic-producer\",\"headers\":{}}"));
+
         updateLocalApplicationAndAwaitReady(
                 tenant,
                 applicationId,
@@ -77,7 +87,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                                         + "30 -p sessionId=s2")
                                 .formatted(applicationId)
                                 .split(" "));
-        log.info("Output2: {}", output);
+        log.info("Output3: {}", output);
         Assertions.assertTrue(
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value!!super secret value - changed\","
@@ -89,6 +99,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         log.info("all topics: {}", topics);
         Assertions.assertTrue(topics.contains("ls-test-topic0"));
         Assertions.assertFalse(topics.contains("ls-test-topic1"));
+        Assertions.assertTrue(topics.contains("ls-test-topic-producer"));
     }
 
     @Test

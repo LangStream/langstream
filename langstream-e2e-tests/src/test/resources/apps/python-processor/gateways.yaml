@@ -34,3 +34,6 @@ gateways:
         headers:
           - key: langstream-client-session-id
             value-from-parameters: sessionId
+  - id: topic-producer
+    type: consume
+    topic: ls-test-topic-producer

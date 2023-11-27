@@ -1,0 +1,3 @@
+[console_scripts]
+cassio-create-init-string = cassio.config.bundle_management:create_init_string_utility
+

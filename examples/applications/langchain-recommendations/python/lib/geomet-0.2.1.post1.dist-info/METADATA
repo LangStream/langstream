@@ -1,0 +1,32 @@
+Metadata-Version: 2.0
+Name: geomet
+Version: 0.2.1.post1
+Summary: GeoJSON <-> WKT/WKB conversion utilities
+Home-page: https://github.com/geomet/geomet
+Maintainer: Lars Butler
+Maintainer-email: lars.butler@gmail.com
+License: Apache 2.0
+Keywords: wkb wkt geojson
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Topic :: Scientific/Engineering :: GIS
+Requires-Python: >2.6, !=3.3.*, <4
+Requires-Dist: click
+Requires-Dist: six
+
+
+GeoMet
+
+Convert GeoJSON to WKT/WKB (Well-Known Text/Binary), and vice versa.
+
+

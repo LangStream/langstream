@@ -204,7 +204,7 @@ public class WebCrawler {
             // we did something
             return true;
         } catch (UnsupportedMimeTypeException notHtml) {
-            if (configuration.isAllowNonHtmlContent()) {
+            if (configuration.isAllowNonHtmlContents()) {
                 log.info(
                         "Url {} lead to a {} content-type document. allow-not-html-content is true, so we are processing it",
                         current,

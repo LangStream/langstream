@@ -206,6 +206,15 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
         @ConfigProperty(
                 description =
                         """
+                Whether to emit non HTML documents to the pipeline (i.e. PDF Files).
+                                """,
+                defaultValue = "false")
+        @JsonProperty("allow-non-html-contents")
+        private boolean allowNonHtmlContents;
+
+        @ConfigProperty(
+                description =
+                        """
                 The starting URLs for the crawl.
                                 """)
         @JsonProperty("seed-urls")

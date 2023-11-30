@@ -345,7 +345,7 @@ class WebCrawlerTest {
         WebCrawlerConfiguration configuration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
-                        .allowNonHtmlContent(true)
+                        .allowNonHtmlContents(true)
                         .handleRobotsFile(false)
                         .maxErrorCount(5)
                         .build();

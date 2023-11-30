@@ -41,7 +41,6 @@ import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -269,7 +268,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         processed(0, 1);
         return List.of(
                 new WebCrawlerSourceRecord(
-                        document.content().getBytes(StandardCharsets.UTF_8), document.url()));
+                        document.content(), document.url(), document.contentType()));
     }
 
     private void checkReindexIsNeeded() {
@@ -336,10 +335,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private static class WebCrawlerSourceRecord implements Record {
         private final byte[] read;
         private final String url;
+        private final String contentType;
 
-        public WebCrawlerSourceRecord(byte[] read, String url) {
+        public WebCrawlerSourceRecord(byte[] read, String url, String contentType) {
             this.read = read;
             this.url = url;
+            this.contentType = contentType;
         }
 
         /**
@@ -370,7 +371,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         @Override
         public Collection<Header> headers() {
-            return List.of(new SimpleRecord.SimpleHeader("url", url));
+            return List.of(
+                    new SimpleRecord.SimpleHeader("url", url),
+                    new SimpleRecord.SimpleHeader("content_type", contentType));
         }
 
         @Override

@@ -115,11 +115,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
         int maxErrorCount = getInt("max-error-count", 5, configuration);
         int httpTimeout = getInt("http-timeout", 10000, configuration);
+        boolean allowNonHtmlContents = getBoolean("allow-non-html-contents", false, configuration);
 
         boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
+        log.info("allow-non-html-contents: {}", allowNonHtmlContents);
         log.info("seed-urls: {}", seedUrls);
         log.info("max-urls: {}", maxUrls);
         log.info("max-depth: {}", maxDepth);
@@ -133,6 +135,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerConfiguration webCrawlerConfiguration =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
+                        .allowNonHtmlContents(allowNonHtmlContents)
                         .maxUrls(maxUrls)
                         .maxDepth(maxDepth)
                         .forbiddenPaths(forbiddenPaths)

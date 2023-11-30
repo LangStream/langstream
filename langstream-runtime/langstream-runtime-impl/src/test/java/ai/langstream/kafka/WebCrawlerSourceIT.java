@@ -93,6 +93,7 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                     output: "${globals.output-topic}"
                                     configuration:\s
                                         seed-urls: ["%s/index.html"]
+                                        allow-non-html-contents: true
                                         allowed-domains: ["%s"]
                                         state-storage: disk
                                 """

@@ -322,4 +322,51 @@ class WebCrawlerTest {
         assertEquals(0, status.getPendingUrls().size());
         assertEquals(2, status.getUrls().size());
     }
+
+    @Test
+    void testBinaryContent(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
+
+        byte[] mockPdf = new byte[] {1, 2, 3, 4, 5};
+        stubFor(
+                get("/index.html")
+                        .willReturn(
+                                okForContentType(
+                                        "text/html",
+                                        """
+                                  <a href="document.pdf">link</a>
+                              """)));
+        stubFor(
+                get("/document.pdf")
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("content-type", "application/pdf")
+                                        .withBody(mockPdf)));
+
+        WebCrawlerConfiguration configuration =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(Set.of(vmRuntimeInfo.getHttpBaseUrl()))
+                        .allowNonHtmlContent(true)
+                        .handleRobotsFile(false)
+                        .maxErrorCount(5)
+                        .build();
+        WebCrawlerStatus status = new WebCrawlerStatus();
+        List<Document> documents = new ArrayList<>();
+        WebCrawler crawler = new WebCrawler(configuration, status, documents::add);
+        crawler.crawl(vmRuntimeInfo.getHttpBaseUrl() + "/index.html");
+        crawler.runCycle();
+
+        assertEquals(1, documents.size());
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/index.html", documents.get(0).url());
+        assertEquals(1, status.getPendingUrls().size());
+        assertEquals(2, status.getUrls().size());
+
+        crawler.runCycle();
+
+        assertEquals(vmRuntimeInfo.getHttpBaseUrl() + "/document.pdf", documents.get(1).url());
+        assertArrayEquals(mockPdf, documents.get(1).content());
+        assertEquals("application/pdf", documents.get(1).contentType());
+
+        assertEquals(0, status.getPendingUrls().size());
+        assertEquals(2, status.getUrls().size());
+    }
 }

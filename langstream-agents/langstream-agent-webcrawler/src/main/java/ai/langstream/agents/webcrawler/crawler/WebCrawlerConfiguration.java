@@ -39,6 +39,7 @@ public class WebCrawlerConfiguration {
     @Builder.Default private boolean handleCookies = true;
     @Builder.Default private boolean handleRobotsFile = true;
     @Builder.Default private boolean scanHtmlDocuments = true;
+    @Builder.Default private boolean allowNonHtmlContent = false;
 
     @Builder.Default private Set<String> allowedTags = Set.of("a");
 

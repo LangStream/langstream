@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -160,14 +161,17 @@ public class WebCrawler {
         connect.timeout(configuration.getHttpTimeout());
 
         boolean redirectedToForbiddenDomain = false;
-        Document document;
+        Document document = null;
+        String contentType = null;
+        byte[] binaryContent = null;
         try {
             document = connect.get();
             Connection.Response response = connect.response();
+            contentType = response.contentType();
             int statusCode = response.statusCode();
             if (statusCode >= 300 && statusCode < 400) {
                 String location = response.header("Location");
-                if (!location.equals(current)) {
+                if (!Objects.equals(location, current)) {
                     if (isUrlForbidden(location)) {
                         redirectedToForbiddenDomain = true;
                         log.warn(
@@ -200,17 +204,44 @@ public class WebCrawler {
             // we did something
             return true;
         } catch (UnsupportedMimeTypeException notHtml) {
-            log.info(
-                    "Url {} lead to a {} content-type document. Skipping",
-                    current,
-                    notHtml.getMimeType());
-            discardUrl(current, reference);
+            if (configuration.isAllowNonHtmlContent()) {
+                log.info(
+                        "Url {} lead to a {} content-type document. allow-not-html-content is true, so we are processing it",
+                        current,
+                        notHtml.getMimeType());
+                handleThrottling(current);
 
-            // prevent from being banned for flooding
-            handleThrottling(current);
+                // download again the file, this is a little inefficient but currently
+                // this is not the most common case, we can improve it later
 
-            // we did something
-            return true;
+                // downloadUrl takes care of retrying
+                HttpResponse<byte[]> httpResponse = downloadUrl(current);
+                contentType =
+                        httpResponse
+                                .headers()
+                                .firstValue("content-type")
+                                .orElse("application/octet-stream");
+                binaryContent = httpResponse.body();
+                visitor.visit(
+                        new ai.langstream.agents.webcrawler.crawler.Document(
+                                current, binaryContent, contentType));
+
+                handleThrottling(current);
+
+                return true;
+            } else {
+                log.info(
+                        "Url {} lead to a {} content-type document. Skipping",
+                        current,
+                        notHtml.getMimeType());
+                discardUrl(current, reference);
+
+                // prevent from being banned for flooding
+                handleThrottling(current);
+
+                // we did something
+                return true;
+            }
         } catch (IOException e) {
             log.info("Error while crawling url: {}, IO Error: {}", current, e + "");
 
@@ -240,7 +271,10 @@ public class WebCrawler {
                                 });
             }
             visitor.visit(
-                    new ai.langstream.agents.webcrawler.crawler.Document(current, document.html()));
+                    new ai.langstream.agents.webcrawler.crawler.Document(
+                            current,
+                            document.html().getBytes(StandardCharsets.UTF_8),
+                            contentType));
         }
 
         // prevent from being banned for flooding

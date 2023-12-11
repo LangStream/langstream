@@ -32,18 +32,7 @@ import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
-import io.fabric8.kubernetes.api.model.KeyToPathBuilder;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -393,6 +382,7 @@ public class AppResourcesFactory {
                 .withLabels(labels)
                 .endMetadata()
                 .withNewSpec()
+                .withSecurityContext(getPodSecurityContext())
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
                 .withServiceAccountName(serviceAccountName)
@@ -464,6 +454,10 @@ public class AppResourcesFactory {
             annotations.putAll(podTemplate.annotations());
         }
         return annotations;
+    }
+
+    private static PodSecurityContext getPodSecurityContext() {
+        return new PodSecurityContextBuilder().withFsGroup(10_000L).build();
     }
 
     public static Map<String, String> getLabelsForDeployer(boolean delete, String applicationId) {

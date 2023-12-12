@@ -77,6 +77,12 @@
       <groupId>com.datastax.astra</groupId>
       <artifactId>astra-sdk</artifactId>
       <version>1.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.datastax.stargate</groupId>
@@ -90,6 +96,10 @@
         <exclusion>
           <groupId>com.datastax.stargate</groupId>
           <artifactId>stargate-sdk-graphql</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

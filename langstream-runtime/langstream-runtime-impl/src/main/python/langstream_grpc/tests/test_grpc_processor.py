@@ -201,6 +201,25 @@ async def test_future_record(klass):
             assert response.results[0].records[0].value.string_value == "test"
 
 
+async def test_big_record():
+    async with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_processor.MyProcessor"
+    ) as server_and_stub:
+        long_string = "a" * 10_000_000
+        response: ProcessorResponse
+        async for response in server_and_stub.stub.process(
+            [
+                ProcessorRequest(
+                    records=[GrpcRecord(value=Value(string_value=long_string))]
+                )
+            ]
+        ):
+            assert len(response.results) == 1
+            assert response.results[0].HasField("error") is False
+            assert len(response.results[0].records) == 1
+            assert response.results[0].records[0].value.string_value == long_string
+
+
 async def test_info():
     async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyProcessor"

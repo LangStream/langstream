@@ -415,7 +415,12 @@ class DefaultAgentContext(AgentContext):
 class AgentServer(object):
     def __init__(self, target: str):
         self.target = target
-        self.grpc_server = grpc.aio.server()
+        self.grpc_server = grpc.aio.server(
+            options=[
+                ("grpc.max_send_message_length", 0x7FFFFFFF),
+                ("grpc.max_receive_message_length", 0x7FFFFFFF),
+            ]
+        )
         self.port = self.grpc_server.add_insecure_port(target)
         self.agent = None
 

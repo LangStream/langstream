@@ -100,7 +100,11 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
         }
         blockingStub =
                 AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
-        asyncStub = AgentServiceGrpc.newStub(channel).withWaitForReady();
+        asyncStub =
+                AgentServiceGrpc.newStub(channel)
+                        .withWaitForReady()
+                        .withMaxInboundMessageSize(Integer.MAX_VALUE)
+                        .withMaxOutboundMessageSize(Integer.MAX_VALUE);
 
         topicProducerWriteResults = new CompletableFuture<>();
         topicProducerWriteResults.complete(

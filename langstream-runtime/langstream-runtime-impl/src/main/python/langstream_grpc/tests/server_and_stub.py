@@ -36,7 +36,13 @@ class ServerAndStub(object):
         self.server = AgentServer("[::]:0")
         await self.server.init(json.dumps(self.config), json.dumps(self.context))
         await self.server.start()
-        self.channel = grpc.aio.insecure_channel("localhost:%d" % self.server.port)
+        self.channel = grpc.aio.insecure_channel(
+            "localhost:%d" % self.server.port,
+            options=[
+                ("grpc.max_send_message_length", 0x7FFFFFFF),
+                ("grpc.max_receive_message_length", 0x7FFFFFFF),
+            ],
+        )
         self.stub = AgentServiceStub(channel=self.channel)
         return self
 

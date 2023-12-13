@@ -187,6 +187,10 @@ public class JstlFunctions {
         return Map.of();
     }
 
+    public static long length(Object o) {
+        return o == null ? 0 : toString(o).length();
+    }
+
     public static Map<String, Object> mapOf(Object... field) {
         Map<String, Object> result = new HashMap<>();
         for (int i = 0; i < field.length; i += 2) {

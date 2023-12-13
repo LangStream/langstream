@@ -117,11 +117,11 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                                 .split(" "));
         log.info("Output: {}", output);
         String bigPayload = Strings.repeat("test", 10000);
+        String value = "the length is " + bigPayload.length();
         Assertions.assertTrue(
                 output.contains(
-                        "{\"record\":{\"key\":null,\"value\":\""
-                                + bigPayload
-                                + "\",\"headers\":{}}"));
+                        "{\"record\":{\"key\":null,\"value\":\"" + value + "\",\"headers\":{}}"),
+                "Output doesn't contain the expected payload: " + output);
 
         deleteAppAndAwaitCleanup(tenant, applicationId);
     }

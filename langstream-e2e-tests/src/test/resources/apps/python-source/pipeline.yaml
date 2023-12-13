@@ -22,12 +22,19 @@ topics:
     creation-mode: create-if-not-exists
     schema:
       type: string
+resources:
+  size: 2
 pipeline:
   - name: "Source using Python"
-    resources:
-      size: 2
     id: "test-python-source"
     type: "python-source"
-    output: ls-test-output
     configuration:
       className: example.TestSource
+  - name: "Compute length"
+    id: "test-python-source"
+    type: "compute"
+    output: ls-test-output
+    configuration:
+      fields:
+        - name: "value"
+          expression: "fn:concat('the length is ', fn:len(value))"

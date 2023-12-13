@@ -41,6 +41,8 @@ import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodSecurityContext;
+import io.fabric8.kubernetes.api.model.PodSecurityContextBuilder;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -304,6 +306,7 @@ public class AgentResourcesFactory {
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
                 .withTerminationGracePeriodSeconds(60L)
+                .withSecurityContext(getPodSecurityContext())
                 .withInitContainers(
                         List.of(
                                 injectConfigForDownloadCodeInitContainer,
@@ -462,6 +465,10 @@ public class AgentResourcesFactory {
             annotations.putAll(podTemplate.annotations());
         }
         return annotations;
+    }
+
+    private static PodSecurityContext getPodSecurityContext() {
+        return new PodSecurityContextBuilder().withFsGroup(10_000L).build();
     }
 
     private static String getStsImagePullPolicy(GenerateStatefulsetParams params) {

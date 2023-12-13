@@ -31,7 +31,7 @@ pipeline:
     configuration:
       className: example.TestSource
   - name: "Compute length"
-    id: "test-python-source"
+    id: "compute-length"
     type: "compute"
     output: ls-test-output
     configuration:

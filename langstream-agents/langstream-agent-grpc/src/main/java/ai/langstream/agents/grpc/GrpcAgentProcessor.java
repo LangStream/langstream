@@ -59,7 +59,12 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
     @Override
     public void start() throws Exception {
         super.start();
-        request = AgentServiceGrpc.newStub(channel).withWaitForReady().process(responseObserver);
+        request =
+                AgentServiceGrpc.newStub(channel)
+                        .withMaxInboundMessageSize(Integer.MAX_VALUE)
+                        .withMaxOutboundMessageSize(Integer.MAX_VALUE)
+                        .withWaitForReady()
+                        .process(responseObserver);
         restarting.set(false);
         startFailedButDevelopmentMode = false;
     }

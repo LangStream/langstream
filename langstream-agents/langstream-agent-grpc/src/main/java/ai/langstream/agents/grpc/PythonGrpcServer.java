@@ -90,7 +90,10 @@ public class PythonGrpcServer {
         ManagedChannel channel =
                 ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
         AgentServiceGrpc.AgentServiceBlockingStub stub =
-                AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
+                AgentServiceGrpc.newBlockingStub(channel)
+                        .withMaxInboundMessageSize(Integer.MAX_VALUE)
+                        .withMaxOutboundMessageSize(Integer.MAX_VALUE)
+                        .withDeadlineAfter(30, TimeUnit.SECONDS);
         for (int i = 0; ; i++) {
             try {
                 stub.agentInfo(Empty.getDefaultInstance());

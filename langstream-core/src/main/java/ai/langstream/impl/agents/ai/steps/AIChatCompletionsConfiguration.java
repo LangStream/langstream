@@ -76,7 +76,7 @@ public class AIChatCompletionsConfiguration extends BaseGenAIStepConfiguration {
                         """
                                 Role of the message. The role is used to identify the speaker in the chat.
                                 """,
-                required = true)
+                required = false)
         private String role;
 
         @ConfigProperty(

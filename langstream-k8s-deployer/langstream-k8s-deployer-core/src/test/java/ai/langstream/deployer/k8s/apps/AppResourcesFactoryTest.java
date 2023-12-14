@@ -127,8 +127,6 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              securityContext:
-                                fsGroup: 10000
                               serviceAccountName: my-tenant
                               volumes:
                               - emptyDir: {}
@@ -228,8 +226,6 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              securityContext:
-                                fsGroup: 10000
                               serviceAccountName: my-tenant
                               volumes:
                               - emptyDir: {}
@@ -346,8 +342,6 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              securityContext:
-                                fsGroup: 10000
                               serviceAccountName: runtime-my-tenant
                               volumes:
                               - emptyDir: {}
@@ -444,8 +438,6 @@ class AppResourcesFactoryTest {
                                 - mountPath: /cluster-runtime-config
                                   name: cluster-runtime-config
                               restartPolicy: Never
-                              securityContext:
-                                fsGroup: 10000
                               serviceAccountName: runtime-my-tenant
                               volumes:
                               - emptyDir: {}

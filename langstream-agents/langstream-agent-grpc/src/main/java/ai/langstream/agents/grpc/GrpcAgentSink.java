@@ -53,12 +53,7 @@ public class GrpcAgentSink extends AbstractGrpcAgent implements AgentSink {
     @Override
     public void start() throws Exception {
         super.start();
-        request =
-                AgentServiceGrpc.newStub(channel)
-                        .withMaxInboundMessageSize(Integer.MAX_VALUE)
-                        .withMaxOutboundMessageSize(Integer.MAX_VALUE)
-                        .withWaitForReady()
-                        .write(responseObserver);
+        request = asyncStub.write(responseObserver);
         restarting.set(false);
         startFailedButDevelopmentMode = false;
     }

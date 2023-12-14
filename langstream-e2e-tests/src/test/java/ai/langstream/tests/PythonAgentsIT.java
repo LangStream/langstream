@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.testcontainers.shaded.com.google.common.base.Strings;
 
 @Slf4j
 @ExtendWith(BaseEndToEndTest.class)
@@ -116,7 +115,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                                 .formatted(applicationId)
                                 .split(" "));
         log.info("Output: {}", output);
-        String bigPayload = Strings.repeat("test", 10000);
+        String bigPayload = "test".repeat(10000);
         String value = "the length is " + bigPayload.length();
         Assertions.assertTrue(
                 output.contains(

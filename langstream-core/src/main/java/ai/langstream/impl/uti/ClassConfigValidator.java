@@ -315,7 +315,7 @@ public class ClassConfigValidator {
             validateExtendedValidationType(propertyValue.getExtendedValidationType(), actualValue);
         }
 
-        if (propertyValue.getItems() != null) {
+        if (propertyValue.getItems() != null && actualValue != null) {
             if (actualValue instanceof Collection collection) {
                 for (Object o : collection) {
                     validateProperty(

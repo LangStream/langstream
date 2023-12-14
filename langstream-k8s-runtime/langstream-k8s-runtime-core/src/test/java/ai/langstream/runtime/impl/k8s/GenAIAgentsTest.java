@@ -843,7 +843,6 @@ class GenAIAgentsTest {
         }
     }
 
-
     @Test
     public void testValidateBadComputeStep() throws Exception {
         Application applicationInstance =
@@ -871,15 +870,17 @@ class GenAIAgentsTest {
                         .getApplication();
 
         try (ApplicationDeployer deployer =
-                     ApplicationDeployer.builder()
-                             .registry(new ClusterRuntimeRegistry())
-                             .pluginsRegistry(new PluginsRegistry())
-                             .build()) {
-            Exception e = assertThrows(Exception.class, () -> {
-                        deployer.createImplementation("app", applicationInstance);
-            });
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
+            Exception e =
+                    assertThrows(
+                            Exception.class,
+                            () -> {
+                                deployer.createImplementation("app", applicationInstance);
+                            });
             assertEquals("Function [fn:len] not found", e.getMessage());
-
         }
     }
 }

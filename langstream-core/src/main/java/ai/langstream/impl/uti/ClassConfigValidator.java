@@ -319,11 +319,7 @@ public class ClassConfigValidator {
             if (actualValue instanceof Collection collection) {
                 for (Object o : collection) {
                     validateProperty(
-                            entityRef,
-                            fullPropertyKey,
-                            o,
-                            propertyValue.getItems(),
-                            propertyKey);
+                            entityRef, fullPropertyKey, o, propertyValue.getItems(), propertyKey);
                 }
             } else {
                 validateProperty(

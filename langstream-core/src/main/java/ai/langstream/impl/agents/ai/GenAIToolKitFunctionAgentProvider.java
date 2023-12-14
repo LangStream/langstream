@@ -93,7 +93,10 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     @Override
     protected Class getAgentConfigModelClass(String type) {
         StepConfigurationInitializer stepConfigurationInitializer = STEP_TYPES.get(type);
-        log.info("Validating agent configuration model for type {} with {}", type, stepConfigurationInitializer.getAgentConfigurationModelClass());
+        log.info(
+                "Validating agent configuration model for type {} with {}",
+                type,
+                stepConfigurationInitializer.getAgentConfigurationModelClass());
         return stepConfigurationInitializer.getAgentConfigurationModelClass();
     }
 

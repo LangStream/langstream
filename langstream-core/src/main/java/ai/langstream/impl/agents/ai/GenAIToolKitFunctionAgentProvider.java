@@ -90,6 +90,13 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
         return ComponentType.PROCESSOR;
     }
 
+    @Override
+    protected Class getAgentConfigModelClass(String type) {
+        StepConfigurationInitializer stepConfigurationInitializer = STEP_TYPES.get(type);
+        log.info("Validating agent configuration model for type {} with {}", type, stepConfigurationInitializer.getAgentConfigurationModelClass());
+        return stepConfigurationInitializer.getAgentConfigurationModelClass();
+    }
+
     public interface TopicConfigurationGenerator {
         void generateTopicConfiguration(String topicName);
     }

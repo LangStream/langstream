@@ -314,6 +314,26 @@ public class ClassConfigValidator {
         if (propertyValue.getExtendedValidationType() != null) {
             validateExtendedValidationType(propertyValue.getExtendedValidationType(), actualValue);
         }
+
+        if (propertyValue.getItems() != null) {
+            if (actualValue instanceof Collection collection) {
+                for (Object o : collection) {
+                    validateProperty(
+                            entityRef,
+                            fullPropertyKey,
+                            o,
+                            propertyValue.getItems(),
+                            propertyKey);
+                }
+            } else {
+                validateProperty(
+                        entityRef,
+                        fullPropertyKey,
+                        actualValue,
+                        propertyValue.getItems(),
+                        propertyKey);
+            }
+        }
     }
 
     @Data
@@ -531,7 +551,7 @@ public class ClassConfigValidator {
             case EL_EXPRESSION -> {
                 if (actualValue instanceof String expression) {
                     log.info("Validating EL expression: {}", expression);
-                    new JstlEvaluator(actualValue.toString(), Object.class);
+                    new JstlEvaluator("${" + actualValue + "}", Object.class);
                 } else if (actualValue instanceof Collection collection) {
                     log.info("Validating EL expressions {}", collection);
                     for (Object o : collection) {

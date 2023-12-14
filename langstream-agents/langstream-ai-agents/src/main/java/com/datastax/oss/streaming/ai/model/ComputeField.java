@@ -88,7 +88,7 @@ public class ComputeField {
                 this.validateAndParseScopedName();
                 this.evaluator =
                         new JstlEvaluator<>(String.format("${%s}", this.expression), getJavaType());
-            } catch (ELException ex) {
+            } catch (Throwable ex) {
                 throw new IllegalArgumentException("invalid expression: " + "expression", ex);
             }
             return new ComputeField(name, evaluator, type, scope, optional);

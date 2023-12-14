@@ -47,7 +47,7 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
     public synchronized void close() throws Exception {
         super.close();
         if (server != null) {
-            server.close(false);
+            server.close(true);
         }
     }
 

@@ -30,11 +30,11 @@ pipeline:
     type: "python-source"
     configuration:
       className: example.TestSource
-  - name: "Compute length"
+  - name: "Compute length (because we cannot write a big message to Kafka)"
     id: "compute-length"
     type: "compute"
     output: ls-test-output
     configuration:
       fields:
         - name: "value"
-          expression: "fn:concat('the length is ', fn:len(value))"
+          expression: "fn:concat('the length is ', fn:length(value))"

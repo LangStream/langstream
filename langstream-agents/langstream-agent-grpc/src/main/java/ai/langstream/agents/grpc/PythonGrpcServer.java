@@ -104,7 +104,12 @@ public class PythonGrpcServer {
                     throw e;
                 }
                 log.info("Waiting for python agent to start");
-                Thread.sleep(1000);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException interruptedException) {
+                    log.info("Sleep interrupted");
+                    break;
+                }
             }
         }
         return channel;

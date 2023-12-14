@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -46,6 +47,7 @@ import org.apache.avro.SchemaBuilder;
 
 /** Computes a field dynamically based on JSTL expressions and adds it to the key or the value . */
 @Builder
+@Slf4j
 public class ComputeStep implements TransformStep {
     public static final long MILLIS_PER_DAY = TimeUnit.DAYS.toMillis(1);
     @Builder.Default private final List<ComputeField> fields = new ArrayList<>();
@@ -85,6 +87,9 @@ public class ComputeStep implements TransformStep {
                             .filter(f -> "header.properties".equals(f.getScope()))
                             .collect(Collectors.toList()),
                     mutableRecord);
+        } catch (RuntimeException error) {
+            log.error("Error while computing fields on record {}", mutableRecord, error);
+            throw error;
         }
     }
 

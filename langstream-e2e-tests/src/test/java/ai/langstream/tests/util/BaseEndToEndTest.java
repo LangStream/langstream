@@ -1235,7 +1235,8 @@ public class BaseEndToEndTest implements TestWatcher {
         final String command =
                 "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
                         .formatted(isUpdate ? "update" : "deploy", applicationId);
-        executeCommandOnClient((beforeCmd + command).split(" "));
+        String logs = executeCommandOnClient((beforeCmd + command).split(" "));
+        log.info("Logs after deploy: {}", logs);
         return podUids;
     }
 

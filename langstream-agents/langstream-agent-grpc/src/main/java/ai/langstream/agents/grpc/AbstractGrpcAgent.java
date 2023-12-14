@@ -99,7 +99,10 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
             throw new IllegalStateException("Channel not initialized");
         }
         blockingStub =
-                AgentServiceGrpc.newBlockingStub(channel).withDeadlineAfter(30, TimeUnit.SECONDS);
+                AgentServiceGrpc.newBlockingStub(channel)
+                        .withMaxInboundMessageSize(Integer.MAX_VALUE)
+                        .withMaxOutboundMessageSize(Integer.MAX_VALUE)
+                        .withDeadlineAfter(30, TimeUnit.SECONDS);
         asyncStub =
                 AgentServiceGrpc.newStub(channel)
                         .withWaitForReady()

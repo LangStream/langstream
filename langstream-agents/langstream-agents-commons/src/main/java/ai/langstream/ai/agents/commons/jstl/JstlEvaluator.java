@@ -47,6 +47,9 @@ public class JstlEvaluator<T> {
     private void registerFunctions() {
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction("fn", "length", JstlFunctions.class.getMethod("length", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction("fn", "toJson", JstlFunctions.class.getMethod("toJson", Object.class));
         this.expressionContext
                 .getFunctionMapper()

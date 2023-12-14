@@ -187,7 +187,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                       },
                                       "role" : {
                                         "description" : "Role of the message. The role is used to identify the speaker in the chat.",
-                                        "required" : true,
+                                        "required" : false,
                                         "type" : "string"
                                       }
                                     }
@@ -456,7 +456,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                       },
                                       "type" : {
                                         "description" : "The type of the computed field. This\\n will translate to the schema type of the new field in the transformed message.\\n The following types are currently supported :STRING, INT8, INT16, INT32, INT64, FLOAT, DOUBLE, BOOLEAN, DATE, TIME, TIMESTAMP, LOCAL_DATE_TIME, LOCAL_TIME, LOCAL_DATE, INSTANT.\\n  The type field is not required for the message headers [destinationTopic, messageKey, properties.] and STRING will be used.\\n  For the value and key, if it is not provided, then the type will be inferred from the result of the expression evaluation.",
-                                        "required" : true,
+                                        "required" : false,
                                         "type" : "string"
                                       }
                                     }

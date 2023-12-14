@@ -66,6 +66,18 @@ public class JstlEvaluatorTest {
     }
 
     @Test
+    void testLength() {
+        MutableRecord primitiveStringContext =
+                Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "");
+
+        String value =
+                new JstlEvaluator<>("${fn:length(value)}", String.class)
+                        .evaluate(primitiveStringContext);
+
+        assertEquals("12", value);
+    }
+
+    @Test
     void testNowFunction() {
         MutableRecord primitiveStringContext =
                 Utils.createContextWithPrimitiveRecord(Schema.STRING, "test-message", "");

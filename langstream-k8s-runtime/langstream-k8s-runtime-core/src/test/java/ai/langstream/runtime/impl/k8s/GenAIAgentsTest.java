@@ -18,6 +18,7 @@ package ai.langstream.runtime.impl.k8s;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
@@ -839,6 +840,47 @@ class GenAIAgentsTest {
             assertNull(configuration.get("openai"));
             assertNotNull(configuration.get("vertex"));
             assertNull(configuration.get("service"));
+        }
+    }
+
+    @Test
+    public void testValidateBadComputeStep() throws Exception {
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "compute"
+                                    id: "step1"
+                                    type: "compute"
+                                    input: "input-topic"
+                                    configuration:
+                                      fields:
+                                         - name: value
+                                           expression: "fn:concat('something', fn:len(value))"
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        try (ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .build()) {
+            Exception e =
+                    assertThrows(
+                            Exception.class,
+                            () -> {
+                                deployer.createImplementation("app", applicationInstance);
+                            });
+            assertEquals("Function [fn:len] not found", e.getMessage());
         }
     }
 }

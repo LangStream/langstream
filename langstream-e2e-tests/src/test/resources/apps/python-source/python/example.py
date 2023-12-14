@@ -26,7 +26,7 @@ class TestSource(object):
         if not self.sent:
             logging.info("Sending the record")
             self.sent = True
-            return [SimpleRecord("test")]
+            return [SimpleRecord("test" * 10000)]
         return []
 
     def commit(self, records):

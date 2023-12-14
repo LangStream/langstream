@@ -68,7 +68,7 @@ public class ComputeConfiguration extends BaseGenAIStepConfiguration {
                                   The type field is not required for the message headers [destinationTopic, messageKey, properties.] and STRING will be used.
                                   For the value and key, if it is not provided, then the type will be inferred from the result of the expression evaluation.
                                 """,
-                required = true)
+                required = false)
         private String type;
 
         @ConfigProperty(

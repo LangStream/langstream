@@ -1,4 +1,4 @@
 tox
 black
 ruff
-build
+poetry

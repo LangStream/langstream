@@ -378,12 +378,10 @@
                 <copydir src="${basedir}/src/main/python/langstream" dest="${basedir}/target/python/langstream" />
                 <copydir src="${basedir}/src/main/python/langstream_grpc" dest="${basedir}/target/python/langstream_grpc" />
                 <copy file="${basedir}/src/main/python/LICENSE" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/Pipfile" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/Pipfile.lock" todir="${basedir}/target/python" />
+                <copy file="${basedir}/src/main/python/poetry.lock" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/pyproject.toml" todir="${basedir}/target/python" />
                 <replaceregexp file="${basedir}/target/python/pyproject.toml" match="version = &quot;0.0.0&quot;" replace="version=&quot;${pythonpackage.version}&quot;" />
                 <copy file="${basedir}/src/main/python/README.md" todir="${basedir}/target/python" />
-                <copy file="${basedir}/src/main/python/setup.py" todir="${basedir}/target/python" />
                 <copy file="${basedir}/src/main/python/tox.ini" todir="${basedir}/target/python" />
               </target>
             </configuration>
@@ -444,10 +442,9 @@
             </goals>
             <configuration>
               <workingDirectory>${project.build.directory}/python</workingDirectory>
-              <executable>python</executable>
+              <executable>poetry</executable>
               <skip>${skipPythonPackage}</skip>
               <arguments>
-                <argument>-m</argument>
                 <argument>build</argument>
               </arguments>
             </configuration>

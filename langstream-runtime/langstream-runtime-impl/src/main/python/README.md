@@ -2,8 +2,8 @@
 
 This package contains helper classes to build LangStream agents.
 
-## Generate new Pipfile.lock
+## Generate new poetry.lock
 
 ```
-pipenv lock  
+poetry lock  
 ```

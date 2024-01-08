@@ -680,8 +680,7 @@
                 <exclude>**/*.tpl</exclude>
                 <exclude>**/.idea/**</exclude>
                 <exclude>**/.mvn/**</exclude>
-                <exclude>**/Pipfile</exclude>
-                <exclude>**/Pipfile.lock</exclude>
+                <exclude>**/poetry.lock</exclude>
                 <exclude>**/*.ini</exclude>
                 <exclude>**/venv/**</exclude>
                 <exclude>**/.tox/**</exclude>

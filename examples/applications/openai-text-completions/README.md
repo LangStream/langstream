@@ -2,7 +2,7 @@
 
 This sample application shows how to use the `gpt-3.5-turbo-instruct` Open AI model.
 
-## Configure you OpenAI
+## Configure your OpenAI key
 
 
 ```

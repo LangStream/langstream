@@ -34,3 +34,4 @@ dist
 .tox
 build/
 venv/
+.vscode

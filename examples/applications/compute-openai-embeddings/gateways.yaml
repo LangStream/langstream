@@ -1,0 +1,21 @@
+gateways:
+  - id: "input"
+    type: produce
+    topic: "input-topic"
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: langstream-client-session-id
+          valueFromParameters: sessionId
+
+  - id: "output"
+    type: consume
+    topic: "output-topic"
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            valueFromParameters: sessionId

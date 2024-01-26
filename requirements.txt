@@ -1,4 +1,4 @@
-tox
-black
-ruff
-poetry
+tox~=4.11.1
+black~=24.1.0
+ruff~=0.1.14
+poetry~=1.7.1

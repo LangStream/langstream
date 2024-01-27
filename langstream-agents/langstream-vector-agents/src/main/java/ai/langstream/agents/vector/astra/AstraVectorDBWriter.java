@@ -17,6 +17,7 @@ package ai.langstream.agents.vector.astra;
 
 import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
+import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
@@ -24,6 +25,8 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
 import io.stargate.sdk.json.CollectionClient;
 import io.stargate.sdk.json.domain.JsonDocument;
 import io.stargate.sdk.json.domain.UpdateQuery;
@@ -53,8 +56,7 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
 
         AstraVectorDBDataSource dataSource;
         private final Map<String, Object> datasourceConfig;
-        private String collectionName;
-        private CollectionClient collection;
+        private Template collectionTemplate;
 
         private final LinkedHashMap<String, JstlEvaluator> fields = new LinkedHashMap<>();
 
@@ -65,10 +67,11 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) {
-            collectionName =
+            String collectionTemplated =
                     ConfigurationUtils.getString("collection-name", "", agentConfiguration);
             dataSource.initialize(datasourceConfig);
-            collection = dataSource.getAstraDB().collection(collectionName);
+            // Collection name is a mustache template because it is passed in the record
+            collectionTemplate = Mustache.compiler().compile(collectionTemplated);
 
             List<Map<String, Object>> fields =
                     (List<Map<String, Object>>)
@@ -85,6 +88,16 @@ public class AstraVectorDBWriter implements VectorDatabaseWriterProvider {
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
             MutableRecord mutableRecord = recordToMutableRecord(record, true);
             JsonDocument document = new JsonDocument();
+
+            final JsonRecord jsonRecord = mutableRecord.toJsonRecord();
+
+            log.debug("Processing record {}", jsonRecord.toString());
+
+            String collectionName = collectionTemplate.execute(jsonRecord);
+            CollectionClient collection = dataSource.getAstraDB().collection(collectionName);
+
+            log.debug("Upserting document in collection {}", collectionName);
+
             try {
                 computeFields(
                         mutableRecord,

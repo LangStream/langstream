@@ -84,7 +84,7 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
                     mutableRecord.setResultField(fieldValue, fieldName, null, null, null);
                 });
         Record record = MutableRecord.mutableRecordToRecord(mutableRecord).orElseThrow();
-        log.info("Generated record {}", record);
+        log.debug("Generated record {}", record);
         return record;
     }
 

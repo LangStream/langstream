@@ -160,16 +160,19 @@ public class AgentRunner {
         log.info("Code directory {}", codeDirectory);
         log.info("Base persistent state directory {}", basePersistentStateDirectory);
 
+        boolean sharingNarFileHandler = sharedNarFileHandler != null;
         List<URL> customLibClasspath = buildCustomLibClasspath(codeDirectory);
         NarFileHandler narFileHandler =
-                sharedNarFileHandler != null
+                sharingNarFileHandler
                         ? sharedNarFileHandler
                         : new NarFileHandler(
                                 agentsDirectory,
                                 customLibClasspath,
                                 Thread.currentThread().getContextClassLoader());
         try {
-            narFileHandler.scan();
+            if (!sharingNarFileHandler) {
+                narFileHandler.scan();
+            }
 
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                     new TopicConnectionsRuntimeRegistry();
@@ -208,7 +211,7 @@ public class AgentRunner {
                 topicConnectionsRuntimeWithClassloader.close();
             }
         } finally {
-            if (sharedNarFileHandler == null) {
+            if (!sharingNarFileHandler) {
                 narFileHandler.close();
             }
         }

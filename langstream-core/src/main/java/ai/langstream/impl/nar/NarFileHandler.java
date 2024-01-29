@@ -210,6 +210,18 @@ public class NarFileHandler
 
     public void handleNarFile(Path narFile) throws Exception {
         String filename = narFile.getFileName().toString();
+        if (packages.containsKey(filename)) {
+            log.error(
+                    "NarFileHandler ID: {} The package {} has already been processed",
+                    System.identityHashCode(this),
+                    filename);
+            log.error(
+                    "NarFileHandler ID: {} Current packages: {}",
+                    System.identityHashCode(this),
+                    packages.keySet());
+            throw new IllegalStateException(
+                    "The package " + filename + " has already been processed");
+        }
 
         // first of all we look for an index file
         try (ZipFile zipFile = new ZipFile(narFile.toFile())) {

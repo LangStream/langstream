@@ -113,8 +113,9 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
             log.debug("Processed record value: {}", processedRecord.value());
             // Send the processed record to the record sink
             recordSink.emit(new SourceRecordAndResult(record, List.of(processedRecord), null));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error processing record: {}", e.getMessage());
+            recordSink.emit(new SourceRecordAndResult(record, null, e));
         }
     }
 

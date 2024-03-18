@@ -88,15 +88,24 @@ public class S3SourceTest {
         for (int i = 0; i < 2; i++) {
             String s = content + i;
             minioClient.putObject(
-                    PutObjectArgs.builder().bucket(bucket).object("test-" + i + ".txt").stream(
+                    PutObjectArgs.builder().bucket(bucket).object("test'-" + i + ".txt").stream(
                                     new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
                                     s.length(),
                                     -1)
                             .build());
         }
+        // List objects from the bucket
+        Iterable<Result<Item>> results =
+                minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build());
+
+        for (Result<Item> result : results) {
+            Item item = result.get();
+            // Display the object name in the logs
+            System.out.println(item.objectName());
+        }
 
         // Create a input record that specifies the first file
-        String objectName = "test-0.txt";
+        String objectName = "test'-0.txt";
         SimpleRecord someRecord =
                 SimpleRecord.builder()
                         .value("{\"objectName\": \"" + objectName + "\"}")
@@ -152,7 +161,7 @@ public class S3SourceTest {
                 foundOrigHeader.isPresent()); // Check that the object name is passed in the record
 
         // Get the next file
-        String secondObjectName = "test-1.txt";
+        String secondObjectName = "test'-1.txt";
         someRecord =
                 SimpleRecord.builder()
                         .value("{\"objectName\": \"" + secondObjectName + "\"}")
@@ -391,7 +400,7 @@ public class S3SourceTest {
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);
         configs.put("bucketName", bucket);
-        configs.put("objectName", "{{ value.objectName }}");
+        configs.put("objectName", "{{{ value.objectName }}}");
         agent.init(configs);
         AgentContext context = mock(AgentContext.class);
         when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);

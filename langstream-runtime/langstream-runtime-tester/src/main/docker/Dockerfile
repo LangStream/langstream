@@ -23,6 +23,8 @@ USER 0
 ADD maven/minio /minio/minio
 ADD maven/herddb-services-0.28.0.zip /herddb/herddb-services-0.28.0.zip
 COPY maven/kafka_2.13-3.5.2.tgz /kafka/kafka.tgz
+COPY maven/apache-pulsar-3.1.3-bin.tar.gz /pulsar/pulsar.tar.gz
+
 
 RUN chmod -R g+w /kafka \
        && cd /kafka \
@@ -40,7 +42,13 @@ RUN chmod -R g+w /kafka \
        && chmod a+x /herddb/herddb \
        && chmod a+x /herddb/herddb/bin/* \
        && rm -rf herddb-services-0.28.0.zip \
-       && chown 10000:0 -R /herddb
+       && chown 10000:0 -R /herddb \
+       && cd /pulsar \
+       && tar xvf pulsar.tar.gz --strip-components=1 \
+       && rm -rf pulsar.tar.gz \
+       && chmod a+x /pulsar/bin/* \
+       && chown 10000:0 -R /pulsar
+
 
 # Add the runtime code at the end. This optimizes docker layers to not depend on artifacts-specific changes.
 RUN rm -rf /app/lib

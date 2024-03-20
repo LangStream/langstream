@@ -80,6 +80,11 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
     private boolean startBroker = true;
 
     @CommandLine.Option(
+            names = {"--use-pulsar"},
+            description = "Use Pulsar instead of Kafka")
+    private boolean usePulsar = false;
+
+    @CommandLine.Option(
             names = {"--start-s3"},
             description = "Start the S3 service")
     private boolean startS3 = true;
@@ -198,6 +203,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             log("Secrets file: " + secretsFile.getAbsolutePath());
         }
         log("Start broker: " + startBroker);
+        log("Use Pulsar: " + usePulsar);
         log("Start S3: " + startS3);
         log("Start Database: " + startDatabase);
         log("Start Webservices " + startWebservices);
@@ -226,15 +232,32 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             }
         } else {
             if (startBroker || dryRun) {
-                instanceContents =
-                        "instance:\n"
-                                + "  streamingCluster:\n"
-                                + "    type: \"kafka\"\n"
-                                + "    configuration:\n"
-                                + "      admin:\n"
-                                + "        bootstrap.servers: localhost:9092";
-                log(
-                        "Using default instance file that connects to the Kafka broker inside the docker container");
+                if (usePulsar) {
+                    instanceContents =
+                            "instance:\n"
+                                    + "  streamingCluster:\n"
+                                    + "    type: \"pulsar\"\n"
+                                    + "    configuration:\n"
+                                    + "      admin:\n"
+                                    + "        serviceUrl: http://localhost:8080\n"
+                                    + "      service:\n"
+                                    + "        serviceUrl: pulsar://localhost:6650\n"
+                                    + "      default-tenant: \"public\"\n"
+                                    + "      default-namespace: \"default\"";
+                    log(
+                            "Using default instance file that connects to the Pulsar broker inside the docker container");
+
+                } else {
+                    instanceContents =
+                            "instance:\n"
+                                    + "  streamingCluster:\n"
+                                    + "    type: \"kafka\"\n"
+                                    + "    configuration:\n"
+                                    + "      admin:\n"
+                                    + "        bootstrap.servers: localhost:9092";
+                    log(
+                            "Using default instance file that connects to the Kafka broker inside the docker container");
+                }
             } else {
                 instanceContents = "instance:\n" + "  streamingCluster:\n" + "    type: \"noop\"\n";
                 log("The broker is disabled, you won't be able to use topics");
@@ -268,6 +291,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
                 instanceContents,
                 secretsContents,
                 startBroker,
+                usePulsar,
                 startS3,
                 startWebservices,
                 startDatabase,
@@ -310,6 +334,7 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
             String instanceContents,
             String secretsContents,
             boolean startBroker,
+            boolean usePulsar,
             boolean startS3,
             boolean startWebservices,
             boolean startDatabase,
@@ -327,6 +352,8 @@ public class LocalRunApplicationCmd extends BaseDockerCmd {
         commandLine.add("-i");
         commandLine.add("-e");
         commandLine.add("START_BROKER=" + startBroker);
+        commandLine.add("-e");
+        commandLine.add("USE_PULSAR=" + usePulsar);
         commandLine.add("-e");
         commandLine.add("START_MINIO=" + startS3);
         commandLine.add("-e");

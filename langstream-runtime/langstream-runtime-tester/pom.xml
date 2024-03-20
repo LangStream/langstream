@@ -185,6 +185,20 @@
                 </configuration>
               </execution>
 
+              <execution>
+                <id>download-pulsar</id>
+                <phase>prepare-package</phase>
+                <goals>
+                    <goal>download-single</goal>
+                </goals>
+                <configuration>
+                    <url>https://downloads.apache.org</url>
+                    <fromFile>pulsar/pulsar-3.1.3/apache-pulsar-3.1.3-bin.tar.gz</fromFile>
+                    <toDir>${project.build.directory}/pulsar</toDir>
+                    <skipIfExists>true</skipIfExists>
+                </configuration>
+            </execution>
+
             </executions>
           </plugin>
           <plugin>

@@ -24,3 +24,4 @@ pipeline:
     output: "output-topic"
     configuration:
       className: example.Exclamation
+      dbname: "example"

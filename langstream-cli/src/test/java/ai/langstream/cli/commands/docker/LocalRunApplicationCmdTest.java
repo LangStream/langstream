@@ -65,7 +65,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         log.info("Last line: {}", lastLine);
         assertTrue(
                 lastLine.contains(
-                        "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
+                        "run --rm -i -e START_BROKER=true -e USE_PULSAR=false -e START_MINIO=true -e START_HERDDB=true "
                                 + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
                                 + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(

@@ -119,6 +119,9 @@ class ApplicationPlaceholderResolverTest {
                                             - name: "${globals.input-topic}"
                                             - name: "${globals.output-topic}"
                                             - name: "${globals.stream-response-topic}"
+                                        resources:
+                                          size: "${globals.size}"
+                                          parallelism: "${globals.scaled-agents.parallelism}"
                                         pipeline:
                                           - name: "agent1"
                                             id: "agent1"
@@ -137,6 +140,9 @@ class ApplicationPlaceholderResolverTest {
                                         input-topic: my-input-topic
                                         output-topic: my-output-topic
                                         stream-response-topic: my-stream-topic
+                                        size: 10
+                                        scaled-agents:
+                                          parallelism: 5
                                 """,
                                 """
                                 secrets:
@@ -176,6 +182,8 @@ class ApplicationPlaceholderResolverTest {
         assertEquals(
                 "my-output-topic",
                 resolved.getModule("module-1").getTopics().get("my-output-topic").getName());
+        assertEquals(10, agentConfiguration.getResources().size());
+        assertEquals(5, agentConfiguration.getResources().parallelism());
     }
 
     @Test

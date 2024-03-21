@@ -175,8 +175,31 @@ public class ApplicationResourceLimitsChecker {
                         agent.getResources());
                 return -1;
             }
-            totalUnits += agent.getResources().parallelism() * agent.getResources().size();
+            // Resolve parallelism and size to integers
+            Integer parallelism = resolveObjectToInteger(agent.getResources().parallelism());
+            Integer size = resolveObjectToInteger(agent.getResources().size());
+            totalUnits += parallelism * size;
         }
         return totalUnits;
+    }
+
+    private static Integer resolveObjectToInteger(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof String) {
+            // Let's assume it's always correctly formatted as an integer
+            // by the time it reaches this point
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                log.error("Error parsing string to integer: {}", value, e);
+                return null;
+            }
+        } else {
+            log.error(
+                    "Unsupported type for resource spec value: {}",
+                    value.getClass().getSimpleName());
+            return null;
+        }
     }
 }

@@ -15,10 +15,19 @@
 # limitations under the License.
 #
 
-START_BROKER=${START_BROKER:-true}
 if [ "$START_BROKER" = "true" ]; then
-  echo "Starting Broker"
-  /kafka/bin/kafka-server-start.sh -daemon /kafka/config/kraft/server.properties
+  # Decide which broker to start based on USE_PULSAR
+  if [ "$USE_PULSAR" = "true" ]; then
+    echo "Starting Pulsar"
+    # Start Pulsar in standalone mode; adjust the command as needed for your setup
+    /pulsar/bin/pulsar standalone --no-functions-worker --no-stream-storage &
+  else
+    echo "Starting Kafka"
+    # Start Kafka; adjust the command as needed for your setup
+    /kafka/bin/kafka-server-start.sh -daemon /kafka/config/kraft/server.properties
+  fi
+else
+  echo "Broker startup is disabled"
 fi
 
 START_MINIO=${START_MINIO:-true}

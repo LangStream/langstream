@@ -25,15 +25,19 @@ topics:
 errors:
     on-failure: "skip"
 pipeline:
+  - name: "convert-to-structure"
+    input: "input-topic"
+    type: "document-to-json"
+    configuration:
+      text-field: "text"
   - name: "compute-embeddings"
     id: "step1"
     type: "compute-ai-embeddings"
-    input: "input-topic"
     output: "output-topic"
     configuration:
       model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
       embeddings-field: "value.embeddings"
-      text: "{{ value.name }} {{ value.description }}"
+      text: "{{ value.text }}"
       batch-size: 10
       # this is in milliseconds. It is important to take this value into consideration when using this agent in the chat response pipeline
       # in fact this value impacts the latency of the response

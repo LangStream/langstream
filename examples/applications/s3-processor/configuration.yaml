@@ -1,4 +1,5 @@
 #
+#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +15,6 @@
 # limitations under the License.
 #
 
-name: "Exclamation processor"
-topics:
-  - name: "output-topic"
-    creation-mode: create-if-not-exists
-pipeline:
-  - name: "Process using Python"
-    type: "python-source"
-    output: "output-topic"
-    configuration:
-      className: example.Exclamation
-      dbname: "example"
+configuration:
+  resources:
+  dependencies:

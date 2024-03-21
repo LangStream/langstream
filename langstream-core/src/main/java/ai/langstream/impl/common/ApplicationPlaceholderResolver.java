@@ -25,6 +25,7 @@ import ai.langstream.api.model.Instance;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.Pipeline;
 import ai.langstream.api.model.Resource;
+import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +59,7 @@ public class ApplicationPlaceholderResolver {
     @SneakyThrows
     public static Application resolvePlaceholders(Application instance) {
         instance = deepCopy(instance);
+        log.debug("Resolving placeholders in application: {}", instance);
         final Map<String, Object> context = createContext(instance);
         if (log.isDebugEnabled()) {
             log.debug(
@@ -66,8 +68,14 @@ public class ApplicationPlaceholderResolver {
         if (log.isDebugEnabled()) {
             log.debug("Resolve context: {}", context);
         }
+        Instance resolvedInstance = resolveInstance(instance, context);
+        log.debug("Resolved instance: {}", resolvedInstance);
+
+        Map<String, Module> resolvedModule = resolveModules(instance, context);
+        log.debug("Resolved modules: {}", resolvedModule);
 
         instance.setInstance(resolveInstance(instance, context));
+
         instance.setResources(resolveResources(instance, context));
         instance.setModules(resolveModules(instance, context));
         instance.setGateways(resolveGateways(instance, context));
@@ -119,17 +127,49 @@ public class ApplicationPlaceholderResolver {
             for (Map.Entry<String, Pipeline> pipelineEntry : module.getPipelines().entrySet()) {
                 final Pipeline pipeline = pipelineEntry.getValue();
                 List<AgentConfiguration> newAgents = new ArrayList<>();
-                for (AgentConfiguration value : pipeline.getAgents()) {
-                    value.setConfiguration(resolveMap(context, value.getConfiguration()));
-                    value.setInput(resolveConnection(context, value.getInput()));
-                    value.setOutput(resolveConnection(context, value.getOutput()));
-                    newAgents.add(value);
+                for (AgentConfiguration agent : pipeline.getAgents()) {
+                    agent.setConfiguration(resolveMap(context, agent.getConfiguration()));
+                    agent.setInput(resolveConnection(context, agent.getInput()));
+                    agent.setOutput(resolveConnection(context, agent.getOutput()));
+
+                    // Resolve ResourcesSpec for each agent
+                    ResourcesSpec resolvedResources =
+                            resolveResourcesSpec(context, agent.getResources());
+                    agent.setResources(resolvedResources);
+
+                    newAgents.add(agent);
                 }
                 pipeline.setAgents(newAgents);
             }
             newModules.put(moduleEntry.getKey(), module);
         }
         return newModules;
+    }
+
+    private static ResourcesSpec resolveResourcesSpec(
+            Map<String, Object> context, ResourcesSpec resourcesSpec) {
+        if (resourcesSpec == null) {
+            return null;
+        }
+
+        // Resolve parallelism and size.
+        Integer parallelism = resolveValueAsInteger(context, resourcesSpec.parallelism());
+        Integer size = resolveValueAsInteger(context, resourcesSpec.size());
+
+        return new ResourcesSpec(parallelism, size, resourcesSpec.disk());
+    }
+
+    static Integer resolveValueAsInteger(Map<String, Object> context, Object template) {
+        // If the template is a string, assume we need to resolve it using resolveValueAsString and
+        // then parse it as an integer
+        // If it is an integer already, just return it
+        if (template instanceof String) {
+            return Integer.parseInt(resolveValueAsString(context, (String) template));
+        } else if (template instanceof Integer) {
+            return (Integer) template;
+        } else {
+            return null;
+        }
     }
 
     private static Instance resolveInstance(

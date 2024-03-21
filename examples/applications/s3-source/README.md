@@ -16,6 +16,13 @@ The extract-text.yaml file defines a pipeline that will:
 
 Prepare some PDF files and upload them to a bucket in S3.
 
+## Configure your OpenAI key
+
+
+```
+export OPEN_AI_ACCESS_KEY=...
+```
+
 ## Deploy the LangStream application
 
 ```

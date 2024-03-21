@@ -123,9 +123,31 @@ public class ApplicationService {
 
         for (Map.Entry<String, AgentNode> agent : executionPlan.getAgents().entrySet()) {
             final ResourcesSpec resources = agent.getValue().getResources();
-            requestedUnits += resources.size() * resources.parallelism();
+            Integer resolvedParallelism = resolveObjectToInteger(resources.parallelism());
+            Integer resolvedSize = resolveObjectToInteger(resources.size());
+            requestedUnits += resolvedSize * resolvedParallelism;
         }
         return requestedUnits;
+    }
+
+    private static Integer resolveObjectToInteger(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof String) {
+            // Let's assume it's always correctly formatted as an integer
+            // by the time it reaches this point
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                log.error("Error parsing string to integer: {}", value, e);
+                return null;
+            }
+        } else {
+            log.error(
+                    "Unsupported type for resource spec value: {}",
+                    value.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private void validateApplicationModel(Application application) {

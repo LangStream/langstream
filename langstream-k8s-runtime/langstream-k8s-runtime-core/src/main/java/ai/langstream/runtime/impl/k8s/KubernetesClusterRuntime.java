@@ -338,8 +338,10 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             disks = List.of();
         }
 
-        agentSpec.setResources(
-                new AgentSpec.Resources(resourcesSpec.parallelism(), resourcesSpec.size()));
+        Integer resolvedParallelism = resolveObjectToInteger(resourcesSpec.parallelism());
+        Integer resolvedSize = resolveObjectToInteger(resourcesSpec.size());
+
+        agentSpec.setResources(new AgentSpec.Resources(resolvedParallelism, resolvedSize));
         agentSpec.serializeAndSetOptions(new AgentSpec.Options(disks));
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
@@ -352,6 +354,26 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
         agentsCustomResourceDefinitions.add(agentCustomResource);
         secrets.add(secret);
+    }
+
+    private static Integer resolveObjectToInteger(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof String) {
+            // Let's assume it's always correctly formatted as an integer
+            // by the time it reaches this point
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                log.error("Error parsing string to integer: {}", value, e);
+                return null;
+            }
+        } else {
+            log.error(
+                    "Unsupported type for resource spec value: {}",
+                    value.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private static String bytesToHex(byte[] hash) {

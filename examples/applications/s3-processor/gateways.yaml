@@ -1,4 +1,5 @@
 #
+#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +15,24 @@
 # limitations under the License.
 #
 
-name: "Exclamation processor"
-topics:
-  - name: "output-topic"
-    creation-mode: create-if-not-exists
-pipeline:
-  - name: "Process using Python"
-    type: "python-source"
-    output: "output-topic"
-    configuration:
-      className: example.Exclamation
-      dbname: "example"
+gateways:
+  - id: "request"
+    type: produce
+    topic: "request-topic"
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: langstream-client-session-id
+          valueFromParameters: sessionId
+
+  - id: "reply"
+    type: consume
+    topic: "response-topic"
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: langstream-client-session-id
+            valueFromParameters: sessionId

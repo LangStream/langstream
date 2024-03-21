@@ -18,14 +18,21 @@ package ai.langstream.agents.s3;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
 
-public class S3SourceAgentCodeProvider implements AgentCodeProvider {
+public class S3AgentCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
-        return "s3-source".equals(agentType);
+        return switch (agentType) {
+            case "s3-source", "s3-processor" -> true;
+            default -> false;
+        };
     }
 
     @Override
     public AgentCode createInstance(String agentType) {
-        return new S3Source();
+        return switch (agentType) {
+            case "s3-source" -> new S3Source();
+            case "s3-processor" -> new S3Processor();
+            default -> throw new IllegalStateException();
+        };
     }
 }

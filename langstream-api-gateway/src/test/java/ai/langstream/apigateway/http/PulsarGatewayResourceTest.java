@@ -40,7 +40,7 @@ class PulsarGatewayResourceTest extends GatewayResourceTest {
                         "service",
                         Map.of("serviceUrl", pulsarContainer.getBrokerUrl()),
                         "default-tenant",
-                        "public",
+                        "staging",
                         "default-namespace",
                         "default"));
     }
@@ -61,7 +61,7 @@ class PulsarGatewayResourceTest extends GatewayResourceTest {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           default-tenant: "public"
+                           default-tenant: "staging"
                            default-namespace: "default"
                        computeCluster:
                          type: "none"

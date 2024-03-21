@@ -20,7 +20,6 @@ import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.ApplicationStatus;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
@@ -540,10 +539,12 @@ public class KubernetesApplicationStore implements ApplicationStore {
                             + executorId
                             + " not found. Ensure the agent is of type 'service' and not composite.");
         }
-        if (!ComponentType.SERVICE.equals(ComponentType.valueOf(agentId.getComponentType()))) {
-            throw new IllegalArgumentException(
-                    "Executor " + executorId + " is not of type 'service'.");
-        }
+        // Removing this check so that we can connect to any agent. The agent
+        // must be listening on port 8000
+        // if (!ComponentType.SERVICE.equals(ComponentType.valueOf(agentId.getComponentType()))) {
+        //     throw new IllegalArgumentException(
+        //             "Executor " + executorId + " is not of type 'service'.");
+        // }
         // avoid Service looks up for performance
         final String namespace = tenantToNamespace(tenant);
         final String svcName =

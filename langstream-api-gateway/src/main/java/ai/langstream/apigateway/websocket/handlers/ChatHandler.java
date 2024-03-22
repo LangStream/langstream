@@ -21,6 +21,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
@@ -47,8 +48,13 @@ public class ChatHandler extends AbstractHandler {
             ApplicationStore applicationStore,
             ExecutorService executor,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
             TopicProducerCache topicProducerCache) {
-        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
+        super(
+                applicationStore,
+                topicConnectionsRuntimeRegistry,
+                clusterRuntimeRegistry,
+                topicProducerCache);
         this.executor = executor;
     }
 

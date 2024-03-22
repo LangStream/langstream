@@ -15,6 +15,8 @@
  */
 package ai.langstream.apigateway.websocket.handlers;
 
+import java.util.Map;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -26,6 +28,8 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 public class PulsarContainerExtension implements BeforeAllCallback, AfterAllCallback {
     private PulsarContainer pulsarContainer;
+    private Consumer<PulsarContainerExtension> onContainerReady;
+    private Map<String, String> env = Map.of();
 
     private Network network;
 
@@ -43,15 +47,32 @@ public class PulsarContainerExtension implements BeforeAllCallback, AfterAllCall
     public void beforeAll(ExtensionContext extensionContext) {
         network = Network.newNetwork();
         pulsarContainer =
-                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.1.0"))
+                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.2.1"))
                         .withNetwork(network)
+                        .withEnv(env)
                         .withLogConsumer(
                                 outputFrame ->
                                         log.debug(
                                                 "pulsar> {}", outputFrame.getUtf8String().trim()));
         // start Pulsar and wait for it to be ready to accept requests
         pulsarContainer.start();
+        if (onContainerReady != null) {
+            onContainerReady.accept(this);
+        }
     }
+
+    public PulsarContainerExtension withOnContainerReady(
+            Consumer<PulsarContainerExtension> onContainerReady) {
+        this.onContainerReady = onContainerReady;
+        return this;
+    }
+
+    public PulsarContainerExtension withEnv(Map<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
+    protected void onContainerReady() {}
 
     public String getBrokerUrl() {
         return pulsarContainer.getPulsarBrokerUrl();

@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.runtime;
 
+import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import java.util.Map;
 
@@ -28,10 +29,11 @@ public interface StreamingClusterRuntime extends AutoCloseable {
      * Map a Logical TopicDefinition to a Physical TopicImplementation
      *
      * @param topicDefinition the logical topic definition
+     * @param streamingCluster streaming cluster configuration
      * @return the physical topic implementation
      */
     Topic createTopicImplementation(
-            TopicDefinition topicDefinition, ExecutionPlan applicationInstance);
+            TopicDefinition topicDefinition, StreamingCluster streamingCluster);
 
     /**
      * Create the configuration to consume from a topic. The contents of the map are specific to the

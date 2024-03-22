@@ -22,19 +22,18 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.awaitility.Awaitility;
@@ -48,7 +47,7 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
     static PulsarContainerExtension pulsarContainer = new PulsarContainerExtension();
 
     @Test
-    public void testRunAITools() throws Exception {
+    public void simpleTest() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
         String inputTopic = "input-topic-" + UUID.randomUUID();
@@ -79,9 +78,78 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml("public", "default"),
+                        expectedAgents)) {
             try (Producer<String> producer = createProducer(inputTopic);
                     Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
+
+                producer.newMessage()
+                        .value("{\"name\": \"some name\", \"description\": \"some description\"}")
+                        .property("header-key", "header-value")
+                        .send();
+                producer.flush();
+
+                executeAgentRunners(applicationRuntime);
+
+                Message<GenericRecord> record = consumer.receive(30, TimeUnit.SECONDS);
+                assertEquals("{\"name\":\"some name\"}", record.getValue().getNativeObject());
+                assertEquals("header-value", record.getProperties().get("header-key"));
+            }
+        }
+    }
+
+    @Test
+    public void simpleTestDifferentTenant() throws Exception {
+        String tenant = "tenant";
+        String[] expectedAgents = {"app-step1"};
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+
+        PulsarAdmin admin = pulsarContainer.getAdmin();
+
+        TenantInfo info =
+                TenantInfo.builder()
+                        .allowedClusters(new HashSet<>(admin.clusters().getClusters()))
+                        .build();
+        admin.tenants().createTenant("mytenant", info);
+        admin.namespaces().createNamespace("mytenant/mynamespace");
+
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                module: "module-1"
+                id: "pipeline-1"
+                topics:
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                  - name: "%s"
+                    creation-mode: create-if-not-exists
+                pipeline:
+                  - name: "drop-description"
+                    id: "step1"
+                    type: "drop-fields"
+                    input: "%s"
+                    output: "%s"
+                    configuration:
+                      fields:
+                        - "description"
+                """
+                                .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml("mytenant", "mynamespace"),
+                        expectedAgents)) {
+            try (Producer<String> producer = createProducer("mytenant/mynamespace/" + inputTopic);
+                    Consumer<GenericRecord> consumer =
+                            createConsumer("mytenant/mynamespace/" + outputTopic)) {
 
                 producer.newMessage()
                         .value("{\"name\": \"some name\", \"description\": \"some description\"}")
@@ -132,7 +200,11 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml("public", "default"),
+                        expectedAgents)) {
             try (Producer<String> producer = createProducer(inputTopic);
                     Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
 
@@ -187,7 +259,11 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml("public", "default"),
+                        expectedAgents)) {
             try (Producer<KeyValue<String, String>> producer =
                             createProducer(
                                     inputTopic,
@@ -244,7 +320,11 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         setMaxNumLoops(25);
         try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml("public", "default"),
+                        expectedAgents)) {
             try (Producer<String> producer = createProducer(inputTopic);
                     Consumer<GenericRecord> consumer = createConsumer(outputTopic);
                     Consumer<GenericRecord> consumerDeadletter =
@@ -268,7 +348,7 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         }
     }
 
-    private String buildInstanceYaml() {
+    private String buildInstanceYaml(String tenant, String namespace) {
         return """
                      instance:
                        streamingCluster:
@@ -278,12 +358,16 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           default-tenant: "public"
-                           default-namespace: "default"
+                           default-tenant: "%s"
+                           default-namespace: "%s"
                        computeCluster:
                          type: "kubernetes"
                      """
-                .formatted(pulsarContainer.getHttpServiceUrl(), pulsarContainer.getBrokerUrl());
+                .formatted(
+                        pulsarContainer.getHttpServiceUrl(),
+                        pulsarContainer.getBrokerUrl(),
+                        tenant,
+                        namespace);
     }
 
     protected Producer<String> createProducer(String topic) throws PulsarClientException {

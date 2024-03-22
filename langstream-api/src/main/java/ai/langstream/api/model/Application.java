@@ -37,4 +37,15 @@ public class Application {
     public Module getModule(String module) {
         return modules.computeIfAbsent(module, Module::new);
     }
+
+    @JsonIgnore
+    public TopicDefinition resolveTopic(String input) {
+        for (Module module : modules.values()) {
+            if (module.getTopics().containsKey(input)) {
+                return module.resolveTopic(input);
+            }
+        }
+        throw new IllegalArgumentException(
+                "Topic " + input + " is not defined in any module of the application");
+    }
 }

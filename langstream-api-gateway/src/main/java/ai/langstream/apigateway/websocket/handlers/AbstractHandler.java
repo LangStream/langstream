@@ -20,12 +20,16 @@ import ai.langstream.api.events.EventSources;
 import ai.langstream.api.events.GatewayEventData;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
@@ -52,14 +56,17 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected static final String ATTRIBUTE_PRODUCE_GATEWAY = "__produce_gateway";
     protected static final String ATTRIBUTE_CONSUME_GATEWAY = "__consume_gateway";
     protected final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    protected final ClusterRuntimeRegistry clusterRuntimeRegistry;
     protected final ApplicationStore applicationStore;
     private final TopicProducerCache topicProducerCache;
 
     public AbstractHandler(
             ApplicationStore applicationStore,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
             TopicProducerCache topicProducerCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.applicationStore = applicationStore;
         this.topicProducerCache = topicProducerCache;
     }
@@ -187,11 +194,20 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
 
         topicConnectionsRuntime.init(streamingCluster);
 
+        TopicDefinition topicDefinition =
+                context.application().resolveTopic(gateway.getEventsTopic());
+        StreamingClusterRuntime streamingClusterRuntime =
+                new ClusterRuntimeRegistry().getStreamingClusterRuntime(streamingCluster);
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, streamingCluster);
+        final String resolvedTopicName = topicImplementation.topicName();
+
         try (final TopicProducer producer =
                 topicConnectionsRuntime.createProducer(
                         "langstream-events",
                         streamingCluster,
-                        Map.of("topic", gateway.getEventsTopic()))) {
+                        Map.of("topic", resolvedTopicName))) {
             producer.start();
 
             final EventSources.GatewaySource source =
@@ -246,7 +262,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             List<Function<Record, Boolean>> filters,
             AuthenticatedGatewayRequestContext context)
             throws Exception {
-        final ConsumeGateway consumeGateway = new ConsumeGateway(topicConnectionsRuntimeRegistry);
+        final ConsumeGateway consumeGateway =
+                new ConsumeGateway(topicConnectionsRuntimeRegistry, clusterRuntimeRegistry);
         try {
             consumeGateway.setup(topic, filters, context);
         } catch (Exception ex) {
@@ -261,7 +278,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context)
             throws Exception {
         final ProduceGateway produceGateway =
-                new ProduceGateway(topicConnectionsRuntimeRegistry, topicProducerCache);
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistry,
+                        clusterRuntimeRegistry,
+                        topicProducerCache);
 
         try {
             produceGateway.start(topic, commonHeaders, context);

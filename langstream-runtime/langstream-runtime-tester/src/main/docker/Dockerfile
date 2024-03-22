@@ -22,7 +22,7 @@ USER 0
 
 ADD maven/minio /minio/minio
 ADD maven/herddb-services-0.28.0.zip /herddb/herddb-services-0.28.0.zip
-COPY maven/kafka_2.13-3.5.1.tgz /kafka/kafka.tgz
+COPY maven/kafka_2.13-3.5.2.tgz /kafka/kafka.tgz
 
 RUN chmod -R g+w /kafka \
        && cd /kafka \

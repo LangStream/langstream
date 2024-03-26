@@ -22,6 +22,7 @@ import jakarta.el.ELException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -417,6 +418,30 @@ public class JstlFunctions {
 
     public static Object coalesce(Object value, Object valueIfNull) {
         return value == null ? valueIfNull : value;
+    }
+
+    private static String toHexString(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    public static String sha256(Object originalObject) {
+        String originalString = originalObject.toString();
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash =
+                    digest.digest(originalString.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return toHexString(encodedhash);
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 algorithm is not available", e);
+        }
     }
 
     public static String replace(Object input, Object regex, Object replacement) {

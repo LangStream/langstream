@@ -120,6 +120,13 @@ public class JstlFunctionsTest {
     }
 
     @Test
+    void testSha256() {
+        String testString = "hello";
+        String expectedHash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+        assertEquals(expectedHash, JstlFunctions.sha256(testString));
+    }
+
+    @Test
     void testNow() {
         Instant fixedInstant = Instant.now();
         Clock clock = Clock.fixed(fixedInstant, ZoneOffset.UTC);

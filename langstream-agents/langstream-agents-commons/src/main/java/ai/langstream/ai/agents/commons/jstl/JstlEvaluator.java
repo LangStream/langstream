@@ -101,6 +101,9 @@ public class JstlEvaluator<T> {
                                 "concat3", Object.class, Object.class, Object.class));
         this.expressionContext
                 .getFunctionMapper()
+                .mapFunction("fn", "sha256", JstlFunctions.class.getMethod("sha256", Object.class));
+        this.expressionContext
+                .getFunctionMapper()
                 .mapFunction(
                         "fn",
                         "coalesce",

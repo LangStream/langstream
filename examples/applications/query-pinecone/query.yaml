@@ -40,7 +40,7 @@ pipeline:
               "vector": ?,
               "topK": 5,
               "filter":
-                {"$or": [{"genre": "comedy"}, {"year":2019}]}
+                {"genre": {"$eq": "comedy"}}
          }
       fields:
         - "value.embeddings"

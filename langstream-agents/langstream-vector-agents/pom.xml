@@ -75,7 +75,7 @@
       <!-- Pinecone connector -->
       <groupId>io.pinecone</groupId>
       <artifactId>pinecone-client</artifactId>
-      <version>0.2.3</version>
+      <version>0.8.0</version>
     </dependency>
     <dependency>
       <groupId>io.milvus</groupId>

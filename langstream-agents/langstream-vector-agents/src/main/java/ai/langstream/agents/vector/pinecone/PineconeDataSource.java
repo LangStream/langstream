@@ -33,8 +33,7 @@ import io.pinecone.PineconeConnection;
 import io.pinecone.PineconeConnectionConfig;
 import io.pinecone.proto.QueryRequest;
 import io.pinecone.proto.QueryResponse;
-import io.pinecone.proto.QueryVector;
-import io.pinecone.proto.SparseValues;
+import io.pinecone.proto.ScoredVector;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -125,6 +124,7 @@ public class PineconeDataSource implements DataSourceProvider {
                 List<Map<String, Object>> results;
 
                 if (clientConfig.getEndpoint() == null) {
+                    log.debug("Executing query using Pinecone client");
                     results = executeQueryUsingClien(batchQueryRequest, parsedQuery);
                 } else {
                     results = executeQueryWithMockHttpService(batchQueryRequest);
@@ -153,102 +153,104 @@ public class PineconeDataSource implements DataSourceProvider {
         private List<Map<String, Object>> executeQueryUsingClien(
                 QueryRequest batchQueryRequest, Query parsedQuery) {
             List<Map<String, Object>> results;
+
+            if (log.isDebugEnabled()) {
+                log.debug("Query request: {}", batchQueryRequest);
+            }
             QueryResponse queryResponse = connection.getBlockingStub().query(batchQueryRequest);
 
             if (log.isDebugEnabled()) {
                 log.debug("Query response: {}", queryResponse);
+
+                List<ScoredVector> matchesList = queryResponse.getMatchesList();
+                // Loop over matchesList and log the contents
+                for (ScoredVector match : matchesList) {
+                    log.debug("Match ID: {}", match.getId());
+                    log.debug("Match Score: {}", match.getScore());
+                    log.debug("Match Metadata: {}", match.getMetadata());
+                }
             }
-            log.info("Query response: {}", queryResponse);
+
+            log.info("Num matches: {}", queryResponse.getMatchesList().size());
 
             results = new ArrayList<>();
             queryResponse
-                    .getResultsList()
+                    .getMatchesList()
                     .forEach(
-                            res ->
-                                    res.getMatchesList()
-                                            .forEach(
-                                                    match -> {
-                                                        String id = match.getId();
-                                                        Map<String, Object> row = new HashMap<>();
+                            match -> {
+                                String id = match.getId();
+                                Map<String, Object> row = new HashMap<>();
 
-                                                        if (parsedQuery.includeMetadata) {
-                                                            // put all the metadata
-                                                            if (match.getMetadata() != null) {
-                                                                match.getMetadata()
-                                                                        .getFieldsMap()
-                                                                        .forEach(
-                                                                                (key, value) -> {
-                                                                                    if (log
-                                                                                            .isDebugEnabled()) {
-                                                                                        log.debug(
-                                                                                                "Key: {}, value: {} {}",
-                                                                                                key,
-                                                                                                value,
-                                                                                                value
-                                                                                                                != null
-                                                                                                        ? value
-                                                                                                                .getClass()
-                                                                                                        : null);
-                                                                                    }
-                                                                                    Object
-                                                                                            converted =
-                                                                                                    valueToObject(
-                                                                                                            value);
-                                                                                    row.put(
-                                                                                            key,
-                                                                                            converted
-                                                                                                            != null
-                                                                                                    ? converted
-                                                                                                            .toString()
-                                                                                                    : null);
-                                                                                });
+                                if (parsedQuery.includeMetadata) {
+                                    // put all the metadata
+                                    if (match.getMetadata() != null) {
+                                        match.getMetadata()
+                                                .getFieldsMap()
+                                                .forEach(
+                                                        (key, value) -> {
+                                                            if (log.isDebugEnabled()) {
+                                                                log.debug(
+                                                                        "Key: {}, value: {} {}",
+                                                                        key,
+                                                                        value,
+                                                                        value != null
+                                                                                ? value.getClass()
+                                                                                : null);
                                                             }
-                                                        }
-                                                        row.put("id", id);
-                                                        results.add(row);
-                                                    }));
+                                                            Object converted = valueToObject(value);
+                                                            row.put(
+                                                                    key,
+                                                                    converted != null
+                                                                            ? converted.toString()
+                                                                            : null);
+                                                        });
+                                    }
+                                }
+                                row.put("id", id);
+                                results.add(row);
+                            });
             return results;
         }
 
         @NotNull
         private QueryRequest mapQueryToQueryRequest(Query parsedQuery) {
-            QueryVector.Builder builder = QueryVector.newBuilder();
-
-            if (parsedQuery.vector != null) {
-                builder.addAllValues(parsedQuery.vector);
-            }
-
-            if (parsedQuery.sparseVector != null) {
-                builder.setSparseValues(
-                        SparseValues.newBuilder()
-                                .addAllValues(parsedQuery.sparseVector.getValues())
-                                .addAllIndices(parsedQuery.sparseVector.getIndices())
-                                .build());
-            }
-
-            if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
-                builder.setFilter(buildFilter(parsedQuery.filter));
-            }
-
-            if (parsedQuery.namespace != null) {
-                builder.setNamespace(parsedQuery.namespace);
-            }
-
-            QueryVector queryVector = builder.build();
             QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
+            log.info("Parsed query: {}", parsedQuery);
 
+            // Set namespace if available
             if (parsedQuery.namespace != null) {
                 requestBuilder.setNamespace(parsedQuery.namespace);
             }
 
-            QueryRequest batchQueryRequest =
-                    requestBuilder
-                            .addQueries(queryVector)
-                            .setTopK(parsedQuery.topK)
-                            .setIncludeMetadata(parsedQuery.includeMetadata)
-                            .setIncludeValues(parsedQuery.includeValues)
-                            .build();
-            return batchQueryRequest;
+            // Add vector or sparse vector to the request
+            if (parsedQuery.vector != null) {
+                // Use addAllVector for dense vectors
+                Iterable<Float> iterableVector = parsedQuery.vector;
+                requestBuilder.addAllVector(iterableVector);
+            } else if (parsedQuery.sparseVector != null) {
+                // For sparse vectors, you would typically need to handle them differently
+                // This assumes your API has a way to add sparse vectors directly
+                // If not, you might need to convert them to a dense format or handle them as per
+                // your API's capability
+                // Example:
+                // requestBuilder.addAllVector(convertSparseToDense(parsedQuery.sparseVector));
+                // Where `convertSparseToDense` is a method you'd implement to convert sparse
+                // vectors to dense vectors if necessary
+            }
+
+            // Set filter if available
+            if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
+                log.info("Built filter: {}", buildFilter(parsedQuery.filter));
+                requestBuilder.setFilter(buildFilter(parsedQuery.filter));
+            }
+
+            // Other settings from the parsed query
+            requestBuilder
+                    .setTopK(parsedQuery.topK)
+                    .setIncludeMetadata(parsedQuery.includeMetadata)
+                    .setIncludeValues(parsedQuery.includeValues);
+
+            return requestBuilder.build();
         }
 
         public static Object valueToObject(Value value) {

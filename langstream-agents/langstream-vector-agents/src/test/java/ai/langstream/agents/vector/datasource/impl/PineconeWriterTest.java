@@ -16,10 +16,14 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ai.langstream.agents.vector.VectorDBSinkAgent;
 import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -48,9 +52,9 @@ class PineconeWriterTest {
                         "api-key",
                         "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                         "environment",
-                        "asia-southeast1-gcp-free",
+                        "apw5-4e34-81fa",
                         "project-name",
-                        "032e3d0",
+                        "lvkf6c1",
                         "index-name",
                         "example-index");
         VectorDBSinkAgent agent =
@@ -64,20 +68,28 @@ class PineconeWriterTest {
         configuration.put("vector.namespace", "");
         configuration.put("vector.metadata.genre", "value.genre");
 
+        AgentContext agentContext = mock(AgentContext.class);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agent.init(configuration);
         agent.start();
+        agent.setContext(agentContext);
         List<Record> committed = new CopyOnWriteArrayList<>();
         String genre = "random" + UUID.randomUUID();
         List<Float> vector = new ArrayList<>();
-        for (int i = 0; i < 1536; i++) {
+        for (int i = 1; i <= 1536; i++) {
             vector.add(1f / i);
         }
-        Map<String, Object> value = Map.of("id", "1", "vector", vector, "genre", genre);
+        Map<String, Object> value = Map.of("id", "2", "vector", vector, "genre", genre);
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);
         agent.close();
+        // A 20s sleep is needed on the legacy "pod" databases. The serverless databases
+        // work with a 5s sleep.
+        // Sleep for a while to allow the data to be indexed
+        log.info("Sleeping for 5 seconds to allow the data to be indexed");
+        Thread.sleep(5000);
 
         PineconeDataSource dataSource = new PineconeDataSource();
         QueryStepDataSource implementation =
@@ -90,13 +102,13 @@ class PineconeWriterTest {
                       "vector": ?,
                       "topK": 5,
                       "filter":
-                        {"genre": ?}
+                        {"genre": {"$eq": ?}}
                     }
                 """;
         List<Object> params = List.of(vector, genre);
         List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
-        assertEquals(results.size(), 1);
+        assertEquals(1, results.size());
     }
 }

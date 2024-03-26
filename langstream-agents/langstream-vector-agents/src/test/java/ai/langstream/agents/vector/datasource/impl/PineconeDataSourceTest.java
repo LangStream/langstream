@@ -33,8 +33,8 @@ class PineconeDataSourceTest {
         Map<String, Object> config =
                 Map.of(
                         "api-key", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                        "environment", "asia-southeast1-gcp-free",
-                        "project-name", "032e3d0",
+                        "environment", "apw5-4e34-81fa",
+                        "project-name", "lvkf6c1",
                         "index-name", "example-index");
         QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);

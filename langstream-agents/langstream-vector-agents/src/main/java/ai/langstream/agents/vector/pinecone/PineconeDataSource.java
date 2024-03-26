@@ -207,6 +207,7 @@ public class PineconeDataSource implements DataSourceProvider {
                                     }
                                 }
                                 row.put("id", id);
+                                row.put("similarity", match.getScore());
                                 results.add(row);
                             });
             return results;

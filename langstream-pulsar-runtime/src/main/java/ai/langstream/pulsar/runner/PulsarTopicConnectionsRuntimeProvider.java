@@ -525,6 +525,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                 .topic(topic)
                                 .startMessageId(this.startMessageId)
                                 .loadConf(configuration)
+                                .receiverQueueSize(50) // To limit the number of messages in flight
                                 .create();
 
                 reader.seek(
@@ -611,6 +612,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                 .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
+                                .receiverQueueSize(50) // To limit the number of messages in flight
                                 .subscribe();
             }
 

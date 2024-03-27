@@ -396,6 +396,9 @@ public class OpenAICompletionService implements CompletionsService {
                                     });
             resultHandle.exceptionally(
                     error -> {
+                        log.error(
+                                "Error when processing the non-streaming response",
+                                error); // Log the error
                         textNumErrors.count(1);
                         return null;
                     });

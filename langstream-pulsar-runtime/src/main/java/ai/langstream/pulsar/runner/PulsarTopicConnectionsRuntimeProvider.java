@@ -694,6 +694,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             public void start() {
                 topic = (String) configuration.remove("topic");
                 log.info("Starting producer for topic {}", topic);
+                // If the producer has a specified schema, we intialize it here
+                // Otherwise, we will infer the schema from the first message in the write method
                 if (configuration.containsKey("valueSchema")) {
                     SchemaDefinition valueSchemaDefinition =
                             mapper.convertValue(
@@ -713,12 +715,36 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     } else {
                         schema = (Schema<K>) valueSchema;
                     }
-
-                    producer =
-                            client.newProducer(schema)
-                                    .topic(topic)
-                                    .loadConf(configuration)
-                                    .create();
+                    log.info("Schema is {}", schema);
+                    final int maxAttempts =
+                            6; // Maximum number of attempts to initialize the producer
+                    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                        try {
+                            producer =
+                                    client.newProducer(schema)
+                                            .topic(topic)
+                                            .loadConf(configuration)
+                                            .create();
+                            if (producer != null) {
+                                log.info(
+                                        "Producer successfully initialized for topic {} in start method",
+                                        topic);
+                                break; // Break the loop if producer is successfully initialized
+                            }
+                        } catch (Exception e) {
+                            log.error("Failed to initialize producer on attempt " + attempt, e);
+                            if (attempt < maxAttempts) {
+                                log.info(
+                                        "Retrying to initialize producer... Attempt "
+                                                + (attempt + 1)
+                                                + " of "
+                                                + maxAttempts);
+                                Thread.sleep(500); // Wait for 1 second before retrying
+                            } else {
+                                throw e; // Rethrow the exception if max attempts reached
+                            }
+                        }
+                    }
                 }
             }
 
@@ -749,6 +775,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     throw new RuntimeException("PulsarTopicProducer not started");
                 }
                 totalIn.addAndGet(1);
+                // On the first write with no schema, infer the schema from the first message
+                // and initialize the producer. For subsequent writes, the producer the schema
+                // is set so a new producer is not started
                 if (schema == null) {
                     try {
                         final Schema<?> valueSchema;
@@ -768,17 +797,43 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         } else {
                             schema = (Schema<K>) valueSchema;
                         }
-                        producer =
-                                client.newProducer(schema)
-                                        .topic(topic)
-                                        .loadConf(configuration)
-                                        .create();
+                        log.info("Inferred schema {}", schema);
+                        final int maxAttempts =
+                                6; // Maximum number of attempts to initialize the producer
+                        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                            try {
+                                log.info("Creating new producer in write");
+                                producer =
+                                        client.newProducer(schema)
+                                                .topic(topic)
+                                                .loadConf(configuration)
+                                                .create();
+                                if (producer != null) {
+                                    log.info(
+                                            "Producer successfully initialized for topic {} in write method",
+                                            topic);
+                                    break; // Break the loop if producer is successfully initialized
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to initialize producer on attempt " + attempt, e);
+                                if (attempt < maxAttempts) {
+                                    log.info(
+                                            "Retrying to initialize producer... Attempt "
+                                                    + (attempt + 1)
+                                                    + " of "
+                                                    + maxAttempts);
+                                    Thread.sleep(500); // Wait for 1 second before retrying
+                                } else {
+                                    throw e; // Rethrow the exception if max attempts reached
+                                }
+                            }
+                        }
                     } catch (Exception e) {
                         return CompletableFuture.failedFuture(e);
                     }
                 }
 
-                log.info("Writing message {} to topic {}", r, topic);
+                log.info("Writing message {} to topic {} with schema {}", r, topic, schema);
 
                 TypedMessageBuilder<K> message =
                         producer.newMessage()

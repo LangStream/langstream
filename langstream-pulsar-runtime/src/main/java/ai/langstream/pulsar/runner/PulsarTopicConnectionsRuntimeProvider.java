@@ -662,8 +662,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private final Map<String, Object> configuration;
             private final AtomicLong totalIn = new AtomicLong();
             String topic;
-            Producer<K> producer;
-            Schema<K> schema;
+            volatile Producer<K> producer;
+            volatile Schema<K> schema;
 
             private final Object lock = new Object();
 

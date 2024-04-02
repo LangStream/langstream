@@ -51,6 +51,12 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
         super.testSimpleProduceConsume();
     }
 
+    @Override
+    @Test
+    public void testSendEvents() throws Exception {
+        super.testSendEvents();
+    }
+
     @TestConfiguration
     public static class WebSocketTestConfig {
 

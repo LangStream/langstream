@@ -1349,6 +1349,12 @@ abstract class ProduceConsumeHandlerTest {
 
             countDownLatch.await();
             log.info("got messages: {}", messages);
+            assertEquals(5, messages.size());
+            log.info("message 0: {}", messages.get(0));
+            log.info("message 1: {}", messages.get(1));
+            log.info("message 2: {}", messages.get(2));
+            log.info("message 3: {}", messages.get(3));
+            log.info("message 4: {}", messages.get(4));
 
             ConsumePushMessage msg = MAPPER.readValue(messages.get(0), ConsumePushMessage.class);
             EventRecord event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
@@ -1381,6 +1387,7 @@ abstract class ProduceConsumeHandlerTest {
 
             msg = MAPPER.readValue(messages.get(2), ConsumePushMessage.class);
             event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
+            log.info("failing event: {}", event);
             assertEquals(EventRecord.Categories.Gateway, event.getCategory());
             assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
             source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);

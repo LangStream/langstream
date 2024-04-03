@@ -665,8 +665,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             volatile Producer<K> producer;
             volatile Schema<K> schema;
 
-            private final Object lock = new Object();
-
             static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
                     Map.ofEntries(
                             entry(String.class, Schema.STRING),
@@ -754,7 +752,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 // is set so a new producer is not started
                 // Synchronize the initialization of the schema and producer
                 if (schema == null) {
-                    synchronized (lock) {
+                    synchronized (this) {
                         // Double-check idiom to avoid race conditions
                         if (schema == null) {
                             try {
@@ -776,6 +774,17 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                     schema = (Schema<K>) valueSchema;
                                 }
                                 log.info("Inferred schema {}", schema);
+
+                            } catch (Exception e) {
+                                return CompletableFuture.failedFuture(e);
+                            }
+                        }
+                    }
+                }
+                if (producer == null) {
+                    synchronized (this) {
+                        if (producer == null) {
+                            try {
                                 initializeProducer();
                             } catch (Exception e) {
                                 return CompletableFuture.failedFuture(e);

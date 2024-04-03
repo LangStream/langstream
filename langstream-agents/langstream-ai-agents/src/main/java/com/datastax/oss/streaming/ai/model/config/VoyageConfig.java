@@ -16,26 +16,14 @@
 package com.datastax.oss.streaming.ai.model.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
-import java.util.Map;
 import lombok.Getter;
 
 @Getter
-public class TransformStepConfig {
-    @JsonProperty(required = true)
-    private List<StepConfig> steps;
+public class VoyageConfig {
+    // for API compute provider
+    @JsonProperty(value = "api-url", defaultValue = "https://api.voyageai.com/v1/embeddings")
+    private String apiUrl = "https://api.voyageai.com/v1/embeddings";
 
-    @JsonProperty private OpenAIConfig openai;
-
-    @JsonProperty private HuggingFaceConfig huggingface;
-
-    @JsonProperty private BedrockConfig bedrock;
-
-    @JsonProperty private VoyageConfig voyage;
-
-    @JsonProperty private OllamaConfig ollama;
-
-    @JsonProperty private Map<String, Object> datasource;
-
-    @JsonProperty private boolean attemptJsonConversion = true;
+    @JsonProperty(value = "access-key")
+    private String accessKey;
 }

@@ -53,6 +53,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
     private static final Map<String, StepConfigurationInitializer> STEP_TYPES;
     protected static final String SERVICE_VERTEX = "vertex-configuration";
     protected static final String SERVICE_HUGGING_FACE = "hugging-face-configuration";
+    protected static final String SERVICE_VOYAGE = "voyage-configuration";
     protected static final String SERVICE_OPEN_AI = "open-ai-configuration";
     protected static final String SERVICE_BEDROCK = "bedrock-configuration";
     protected static final String SERVICE_OLLAMA = "ollama-configuration";
@@ -62,6 +63,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
                     SERVICE_VERTEX,
                     SERVICE_HUGGING_FACE,
                     SERVICE_OPEN_AI,
+                    SERVICE_VOYAGE,
                     SERVICE_BEDROCK,
                     SERVICE_OLLAMA);
 
@@ -255,6 +257,7 @@ public class GenAIToolKitFunctionAgentProvider extends AbstractAgentProvider {
             case SERVICE_VERTEX -> "vertex";
             case SERVICE_HUGGING_FACE -> "huggingface";
             case SERVICE_OPEN_AI -> "openai";
+            case SERVICE_VOYAGE -> "voyage";
             case SERVICE_BEDROCK -> "bedrock";
             case SERVICE_OLLAMA -> "ollama";
             default -> null;

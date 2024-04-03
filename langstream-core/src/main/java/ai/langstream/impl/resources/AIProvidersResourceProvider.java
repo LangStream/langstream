@@ -34,6 +34,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
 
     protected static final String OPEN_AI_CONFIGURATION = "open-ai-configuration";
     protected static final String HUGGING_FACE_CONFIGURATION = "hugging-face-configuration";
+    protected static final String VOYAGE_CONFIGURATION = "voyage-configuration";
     protected static final String VERTEX_CONFIGURATION = "vertex-configuration";
     protected static final String BEDROCK_CONFIGURATION = "bedrock-configuration";
 
@@ -42,6 +43,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             Set.of(
                     OPEN_AI_CONFIGURATION,
                     HUGGING_FACE_CONFIGURATION,
+                    VOYAGE_CONFIGURATION,
                     VERTEX_CONFIGURATION,
                     BEDROCK_CONFIGURATION,
                     OLLAMA_CONFIGURATION);
@@ -103,6 +105,9 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
             }
             case HUGGING_FACE_CONFIGURATION -> {
                 return HuggingFaceConfig.class;
+            }
+            case VOYAGE_CONFIGURATION -> {
+                return VoyageConfig.class;
             }
             case VERTEX_CONFIGURATION -> {
                 return VertexAIConfig.class;
@@ -233,6 +238,28 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                 description =
                         """
                             The access key to use for "api" provider.
+                        """)
+        @JsonProperty("access-key")
+        private String accessKey;
+    }
+
+    @Data
+    @ResourceConfig(name = "Voyage", description = "Connect to Voyage AI service.")
+    public static class VoyageConfig {
+
+        @JsonProperty("api-url")
+        @ConfigProperty(
+                description =
+                        """
+                        The URL of the Voyage API."
+                        """,
+                defaultValue = "https://api.voyageai.com/v1/embeddings")
+        private String apiUrl;
+
+        @ConfigProperty(
+                description =
+                        """
+                            The access key for the Voyage API.
                         """)
         @JsonProperty("access-key")
         private String accessKey;

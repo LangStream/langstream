@@ -67,6 +67,10 @@ class ResourceNodeProviderTest {
                         "open-ai-configuration",
                         Map.of("access-key", "the-api-key", "provider", "openai")),
                 Arguments.of(
+                        VALID,
+                        "voyage-configuration",
+                        Map.of("access-key", "the-api-key", "api-url", "theurl")),
+                Arguments.of(
                         NON_VALID,
                         "open-ai-configuration",
                         Map.of("access-key", "the-api-key", "provider", "azure")),

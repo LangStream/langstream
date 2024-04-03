@@ -3,3 +3,4 @@ ai.langstream.ai.agents.services.impl.VertexAIProvider
 ai.langstream.ai.agents.services.impl.HuggingFaceProvider
 ai.langstream.ai.agents.services.impl.BedrockServiceProvider
 ai.langstream.ai.agents.services.impl.OllamaProvider
+ai.langstream.ai.agents.services.impl.VoyageProvider

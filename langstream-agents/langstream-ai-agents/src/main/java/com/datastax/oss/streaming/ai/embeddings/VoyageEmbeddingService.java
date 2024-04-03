@@ -88,7 +88,10 @@ public class VoyageEmbeddingService implements EmbeddingsService {
         this.token = conf.accessKey;
         this.modelUrl = new URL(conf.vgUrl);
 
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient =
+                HttpClient.newBuilder()
+                        .version(HttpClient.Version.HTTP_1_1) // Force HTTP/1.1
+                        .build();
     }
 
     @Override

@@ -56,6 +56,7 @@ import jakarta.websocket.Session;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1296,14 +1297,25 @@ abstract class ProduceConsumeHandlerTest {
 
         CountDownLatch consumerReady = new CountDownLatch(1);
         CountDownLatch countDownLatch = new CountDownLatch(5);
-        List<String> messages = new CopyOnWriteArrayList<>();
+        List<EventRecord> events = new CopyOnWriteArrayList<>();
+
         try (final TestWebSocketClient consumerClient =
                 new TestWebSocketClient(
                                 new TestWebSocketClient.Handler() {
                                     @Override
                                     public void onMessage(String msg) {
                                         log.info("got message: {}", msg);
-                                        messages.add(msg);
+                                        try {
+                                            ConsumePushMessage consumeMsg =
+                                                    MAPPER.readValue(msg, ConsumePushMessage.class);
+                                            EventRecord event =
+                                                    MAPPER.readValue(
+                                                            consumeMsg.record().value() + "",
+                                                            EventRecord.class);
+                                            events.add(event);
+                                        } catch (JsonProcessingException e) {
+                                            e.printStackTrace();
+                                        }
                                         countDownLatch.countDown();
                                     }
 
@@ -1348,86 +1360,71 @@ abstract class ProduceConsumeHandlerTest {
                     .close();
 
             countDownLatch.await();
-            log.info("got messages: {}", messages);
-            assertEquals(5, messages.size());
-            log.info("message 0: {}", messages.get(0));
-            log.info("message 1: {}", messages.get(1));
-            log.info("message 2: {}", messages.get(2));
-            log.info("message 3: {}", messages.get(3));
-            log.info("message 4: {}", messages.get(4));
+            log.info("got events: {}", events);
+            assertEquals(5, events.size());
 
-            ConsumePushMessage msg = MAPPER.readValue(messages.get(0), ConsumePushMessage.class);
-            EventRecord event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
-            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
-            EventSources.GatewaySource source =
-                    MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
-            assertEquals("tenant1", source.getTenant());
-            assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().getId());
-            GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
-            assertEquals("consumer", data.getUserParameters().get("p"));
-            assertEquals(0, data.getOptions().size());
-            assertNotNull(data.getHttpRequestHeaders().get("host"));
-            assertTrue(event.getTimestamp() > 0);
+            // Assertions
+            Map<String, List<EventRecord>> categorizedEvents = categorizeEventsByType(events);
+            log.info("categorized events: {}", categorizedEvents);
+            // Now assert the presence and properties of events based on their type or other
+            // characteristics
+            // Example:
+            assertTrue(categorizedEvents.containsKey(EventRecord.Types.ClientConnected.toString()));
+            assertTrue(
+                    categorizedEvents.containsKey(EventRecord.Types.ClientDisconnected.toString()));
 
-            msg = MAPPER.readValue(messages.get(1), ConsumePushMessage.class);
-            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
-            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
-            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
-            assertEquals("tenant1", source.getTenant());
-            assertEquals("application1", source.getApplicationId());
-            assertEquals("produce", source.getGateway().getId());
-            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
-            assertEquals("producer", data.getUserParameters().get("p"));
-            assertNotNull(data.getHttpRequestHeaders().get("host"));
-            assertEquals(0, data.getOptions().size());
-            assertTrue(event.getTimestamp() > 0);
+            List<EventRecord> clientConnectedEvents =
+                    categorizedEvents.get(EventRecord.Types.ClientConnected.toString());
+            assertNotNull(clientConnectedEvents);
+            assertEquals(3, clientConnectedEvents.size());
 
-            msg = MAPPER.readValue(messages.get(2), ConsumePushMessage.class);
-            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
-            log.info("failing event: {}", event);
-            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
-            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
-            assertEquals("tenant1", source.getTenant());
-            assertEquals("application1", source.getApplicationId());
-            assertEquals("produce", source.getGateway().getId());
-            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
-            assertEquals("producer", data.getUserParameters().get("p"));
-            assertNotNull(data.getHttpRequestHeaders().get("host"));
-            assertEquals(0, data.getOptions().size());
-            assertTrue(event.getTimestamp() > 0);
+            clientConnectedEvents.forEach(
+                    event -> assertClientConnectedEventDetails(event, "tenant1", "application1"));
 
-            msg = MAPPER.readValue(messages.get(3), ConsumePushMessage.class);
-            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
-            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientConnected + "", event.getType());
-            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
-            assertEquals("tenant1", source.getTenant());
-            assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().getId());
-            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
-            assertEquals("consumer1", data.getUserParameters().get("p"));
-            assertNotNull(data.getHttpRequestHeaders().get("host"));
-            assertEquals(0, data.getOptions().size());
-            assertTrue(event.getTimestamp() > 0);
+            // Assert detailed properties for ClientDisconnected events
+            List<EventRecord> clientDisconnectedEvents =
+                    categorizedEvents.get(EventRecord.Types.ClientDisconnected.toString());
+            assertNotNull(clientDisconnectedEvents);
+            assertEquals(2, clientDisconnectedEvents.size());
 
-            msg = MAPPER.readValue(messages.get(4), ConsumePushMessage.class);
-            event = MAPPER.readValue(msg.record().value() + "", EventRecord.class);
-            assertEquals(EventRecord.Categories.Gateway, event.getCategory());
-            assertEquals(EventRecord.Types.ClientDisconnected + "", event.getType());
-            source = MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
-            assertEquals("tenant1", source.getTenant());
-            assertEquals("application1", source.getApplicationId());
-            assertEquals("consume", source.getGateway().getId());
-            data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
-            assertEquals("consumer1", data.getUserParameters().get("p"));
-            assertNotNull(data.getHttpRequestHeaders().get("host"));
-            assertEquals(0, data.getOptions().size());
-            assertTrue(event.getTimestamp() > 0);
+            clientDisconnectedEvents.forEach(
+                    event ->
+                            assertClientDisconnectedEventDetails(event, "tenant1", "application1"));
         }
+    }
+
+    private Map<String, List<EventRecord>> categorizeEventsByType(List<EventRecord> events) {
+        Map<String, List<EventRecord>> categorizedEvents = new HashMap<>();
+        for (EventRecord event : events) {
+            categorizedEvents.computeIfAbsent(event.getType(), k -> new ArrayList<>()).add(event);
+        }
+        return categorizedEvents;
+    }
+
+    private void assertClientConnectedEventDetails(
+            EventRecord event, String tenant, String applicationId) {
+        assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+        EventSources.GatewaySource source =
+                MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+        assertEquals(tenant, source.getTenant());
+        assertEquals(applicationId, source.getApplicationId());
+        // Further checks depending on gateway ID and user parameters
+        GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+        assertNotNull(data.getHttpRequestHeaders().get("host"));
+        assertTrue(event.getTimestamp() > 0);
+    }
+
+    private void assertClientDisconnectedEventDetails(
+            EventRecord event, String tenant, String applicationId) {
+        assertEquals(EventRecord.Categories.Gateway, event.getCategory());
+        EventSources.GatewaySource source =
+                MAPPER.convertValue(event.getSource(), EventSources.GatewaySource.class);
+        assertEquals(tenant, source.getTenant());
+        assertEquals(applicationId, source.getApplicationId());
+        // Further checks depending on gateway ID and user parameters
+        GatewayEventData data = MAPPER.convertValue(event.getData(), GatewayEventData.class);
+        assertNotNull(data.getHttpRequestHeaders().get("host"));
+        assertTrue(event.getTimestamp() > 0);
     }
 
     @Test

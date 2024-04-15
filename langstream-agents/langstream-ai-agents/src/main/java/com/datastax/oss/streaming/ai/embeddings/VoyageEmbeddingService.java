@@ -65,6 +65,8 @@ public class VoyageEmbeddingService implements EmbeddingsService {
 
     private final URL modelUrl;
 
+    private static final int MAX_RETRIES = 3;
+
     @Data
     @Builder
     public static class VoyagePojo {
@@ -152,7 +154,7 @@ public class VoyageEmbeddingService implements EmbeddingsService {
                         });
     }
 
-    private CompletableFuture<String> query(String jsonPayload) {
+    private CompletableFuture<String> query(String jsonPayload, int attempt) {
         HttpRequest request;
         try {
             request =
@@ -166,10 +168,8 @@ public class VoyageEmbeddingService implements EmbeddingsService {
             return CompletableFuture.failedFuture(e);
         }
 
-        CompletableFuture<HttpResponse<String>> responseHandle =
-                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-
-        return responseHandle
+        return httpClient
+                .sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(
                         response -> {
                             if (response.statusCode() != 200) {
@@ -185,17 +185,23 @@ public class VoyageEmbeddingService implements EmbeddingsService {
                         })
                 .exceptionally(
                         ex -> {
-                            log.error("Failed to process the model query", ex);
-                            log.error("Request URI: {}", request.uri());
-                            log.error("Payload: {}", jsonPayload);
-                            if (ex instanceof CompletionException && ex.getCause() != null) {
-                                Throwable cause = ex.getCause();
-                                log.error(
-                                        "Underlying exception: {} {}",
-                                        cause.getClass(),
-                                        cause.getMessage());
+                            Throwable cause =
+                                    (ex instanceof CompletionException) ? ex.getCause() : ex;
+                            if (cause instanceof java.net.SocketException
+                                    && attempt < MAX_RETRIES) {
+                                log.error("Connection reset. Retrying... Attempt: {}", attempt + 1);
+                                return query(jsonPayload, attempt + 1).join(); // Recursively retry
+                            } else {
+                                log.error("Failed to process the model query", ex);
+                                log.error("Request URI: {}", request.uri());
+                                log.error("Payload: {}", jsonPayload);
+                                throw new RuntimeException(
+                                        "Failed to process the model query", cause);
                             }
-                            throw new RuntimeException("Failed to process the model query", ex);
                         });
+    }
+
+    public CompletableFuture<String> query(String jsonPayload) {
+        return query(jsonPayload, 0);
     }
 }

@@ -187,9 +187,14 @@ public class VoyageEmbeddingService implements EmbeddingsService {
                         ex -> {
                             Throwable cause =
                                     (ex instanceof CompletionException) ? ex.getCause() : ex;
-                            if (cause instanceof java.net.SocketException
+                            if ((cause instanceof java.net.SocketException
+                                            || cause instanceof java.io.EOFException
+                                            || cause instanceof java.io.IOException)
                                     && attempt < MAX_RETRIES) {
-                                log.error("Connection reset. Retrying... Attempt: {}", attempt + 1);
+                                log.error(
+                                        "Network error ({}). Retrying... Attempt: {}",
+                                        cause.getClass().getSimpleName(),
+                                        attempt + 1);
                                 return query(jsonPayload, attempt + 1).join(); // Recursively retry
                             } else {
                                 log.error("Failed to process the model query", ex);

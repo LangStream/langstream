@@ -154,6 +154,15 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                             Url for Azure OpenAI API. Required only if provider is "azure".
                         """)
         private String url;
+
+        @ConfigProperty(
+                description =
+                        """
+                            Timeout in seconds for the API call.
+                        """,
+                defaultValue = "3")
+        @JsonProperty("timeout-in-seconds")
+        private Integer timeoutInSeconds;
     }
 
     @Data

@@ -26,4 +26,7 @@ public class OpenAIConfig {
     private String accessKey;
 
     @JsonProperty OpenAIProvider provider = OpenAIProvider.OPENAI;
+
+    @JsonProperty(value = "timeout-in-seconds", required = false, defaultValue = "3")
+    private Integer timeoutInSeconds = 3;
 }

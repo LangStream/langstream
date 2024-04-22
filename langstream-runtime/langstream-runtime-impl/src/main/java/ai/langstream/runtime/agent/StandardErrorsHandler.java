@@ -29,6 +29,8 @@ class StandardErrorsHandler implements ErrorsHandler {
 
     private final int retries;
     private final String onFailureAction;
+    // Add base delay in milliseconds
+    private static final long BASE_DELAY = 50;
 
     private final AtomicInteger failures = new AtomicInteger(0);
 
@@ -38,6 +40,12 @@ class StandardErrorsHandler implements ErrorsHandler {
         }
         this.retries = Integer.parseInt(configuration.getOrDefault("retries", "0").toString());
         this.onFailureAction = configuration.getOrDefault("onFailure", FAIL).toString();
+    }
+
+    // Method to calculate backoff time
+    public long getBackoffTime() {
+        int attempt = failures.get();
+        return (long) (BASE_DELAY * Math.pow(2, attempt - 1));
     }
 
     @Override

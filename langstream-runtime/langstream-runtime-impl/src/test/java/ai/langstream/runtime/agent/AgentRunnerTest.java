@@ -29,6 +29,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -142,6 +143,24 @@ class AgentRunnerTest {
     }
 
     @Test
+    void someGoodSomeFailedWithRetry() throws Exception {
+        SimpleSource source =
+                new SimpleSource(
+                        List.of(
+                                SimpleRecord.of("key", "process-me"),
+                                SimpleRecord.of("key", "fail-me")));
+        AgentSink sink = new SimpleSink();
+        FailingAgentProcessor processor = new FailingAgentProcessor(Set.of("fail-me"), 3);
+        StandardErrorsHandler errorHandler =
+                new StandardErrorsHandler(Map.of("retries", 5, "onFailure", "fail"));
+        AgentContext context = createMockAgentContext();
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
+        processor.expectExecutions(5);
+        source.expectUncommitted(0);
+    }
+
+    @Test
     void someGoodSomeFailedWithSkipAndBatching() throws Exception {
         SimpleSource source =
                 new SimpleSource(
@@ -177,6 +196,26 @@ class AgentRunnerTest {
                 source, processor, sink, context, errorHandler, source::hasMoreRecords);
         // all the records are processed in one batch
         processor.expectExecutions(2);
+        source.expectUncommitted(0);
+    }
+
+    @Test
+    void someFailedSomeGoodWithRetryAndBatching() throws Exception {
+        SimpleSource source =
+                new SimpleSource(
+                        2,
+                        List.of(
+                                SimpleRecord.of("key", "fail-me"),
+                                SimpleRecord.of("key", "process-me")));
+        AgentSink sink = new SimpleSink();
+        FailingAgentProcessor processor = new FailingAgentProcessor(Set.of("fail-me"), 2);
+        StandardErrorsHandler errorHandler =
+                new StandardErrorsHandler(Map.of("retries", 3, "onFailure", "fail"));
+        AgentContext context = createMockAgentContext();
+        AgentRunner.runMainLoop(
+                source, processor, sink, context, errorHandler, source::hasMoreRecords);
+        // all the records are processed in one batch
+        processor.expectExecutions(4);
         source.expectUncommitted(0);
     }
 
@@ -231,6 +270,44 @@ class AgentRunnerTest {
 
         synchronized void expectUncommitted(int count) {
             assertEquals(count, uncommitted.size());
+        }
+    }
+
+    public class FailingAgentProcessor extends SingleRecordAgentProcessor {
+        private final Set<String> failOnContent;
+        private final int maxFailures; // Maximum number of times to fail before succeeding
+        private final Map<String, Integer> failureCounts = new HashMap<>();
+        private int executionCount;
+
+        public FailingAgentProcessor(Set<String> failOnContent, int maxFailures) {
+            this.failOnContent = failOnContent;
+            this.maxFailures = maxFailures;
+        }
+
+        @Override
+        public List<Record> processRecord(Record record) {
+            log.info("Processing {}", record.value());
+            executionCount++;
+            String recordValue = (String) record.value();
+
+            // Update failure count for this record
+            int currentFailures = failureCounts.getOrDefault(recordValue, 0);
+            failureCounts.put(recordValue, currentFailures + 1);
+
+            // Check if the record should fail this time
+            if (failOnContent.contains(recordValue) && currentFailures < maxFailures) {
+                log.info(
+                        "Record {} failed intentionally, attempt {}", recordValue, currentFailures);
+                throw new RuntimeException("Failed on " + recordValue);
+            }
+
+            // If it has failed the maximum times, or it's not set to fail, it processes
+            // successfully
+            return List.of(record);
+        }
+
+        void expectExecutions(int count) {
+            assertEquals(count, executionCount);
         }
     }
 

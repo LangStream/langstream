@@ -882,11 +882,13 @@ public class AgentRunner {
                                                     sourceRecord, List.of(), null));
                                 }
                                 case RETRY -> {
+                                    long backoffTime =
+                                            ((StandardErrorsHandler) errorsHandler)
+                                                    .getBackoffTime();
                                     log.error(
-                                            "Retryable error while processing the records, retrying",
-                                            error);
-                                    // retry the single record (this leads to out-of-order
-                                    // processing)
+                                            "Retryable error while processing the records, retrying in {} ms",
+                                            backoffTime);
+                                    Thread.sleep(backoffTime);
                                     runProcessorAgent(
                                             processor,
                                             List.of(sourceRecord),

@@ -6,3 +6,4 @@ jdbc-table
 solr-collection
 opensearch-index
 astra-collection
+couchbase-bucket

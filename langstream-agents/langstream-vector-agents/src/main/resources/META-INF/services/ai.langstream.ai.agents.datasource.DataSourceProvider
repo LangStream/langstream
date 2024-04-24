@@ -3,3 +3,4 @@ ai.langstream.agents.vector.milvus.MilvusDataSource
 ai.langstream.agents.vector.solr.SolrDataSource
 ai.langstream.agents.vector.opensearch.OpenSearchDataSource
 ai.langstream.agents.vector.astra.AstraVectorDBDataSourceProvider
+ai.langstream.agents.vector.couchbase.CouchbaseDataSource

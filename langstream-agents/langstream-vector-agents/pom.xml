@@ -72,6 +72,11 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.couchbase.client</groupId>
+      <artifactId>java-client</artifactId>
+      <version>3.6.1</version>
+    </dependency>
+    <dependency>
       <!-- Pinecone connector -->
       <groupId>io.pinecone</groupId>
       <artifactId>pinecone-client</artifactId>

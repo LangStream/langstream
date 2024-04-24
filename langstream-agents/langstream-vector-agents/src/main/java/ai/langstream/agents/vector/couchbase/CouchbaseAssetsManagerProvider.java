@@ -9,6 +9,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.query.QueryResult;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,29 +67,39 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
         @Override
         public void deployAsset() throws Exception {
-            List<Map<String, Object>> statements =
-                    ConfigurationUtils.getMaps("create-statements", assetDefinition.getConfig());
+            Object rawStatements = assetDefinition.getConfig().get("create-statements");
+            if (rawStatements instanceof List) {
+                List<?> listStatements = (List<?>) rawStatements;
+                List<Map<String, Object>> statements =
+                        listStatements.stream()
+                                .filter(item -> item instanceof Map)
+                                .map(item -> (Map<String, Object>) item)
+                                .collect(Collectors.toList());
 
-            if (statements.isEmpty()) {
-                log.info("No create-statements found in configuration.");
-                return; // Early return if there are no statements to process.
-            }
-
-            for (Map<String, Object> statement : statements) {
-                String n1ql = (String) statement.get("n1ql");
-                if (n1ql == null || n1ql.trim().isEmpty()) {
-                    log.warn("Skipping a statement due to missing 'n1ql' key or empty value.");
-                    continue;
+                if (statements.isEmpty()) {
+                    log.info("No create-statements found in configuration.");
+                    return;
                 }
 
-                try {
-                    QueryResult result = cluster.query(n1ql);
-                    log.info("Query executed with result: {}", result.allRows());
-                } catch (Exception e) {
-                    log.error("Failed to execute N1QL statement: " + n1ql, e);
-                    // Depending on your error handling policy, you might want to continue or abort
-                    // here.
+                for (Map<String, Object> statement : statements) {
+                    String n1ql = (String) statement.get("n1ql");
+                    if (n1ql == null || n1ql.trim().isEmpty()) {
+                        log.warn("Skipping a statement due to missing 'n1ql' key or empty value.");
+                        continue;
+                    }
+
+                    try {
+                        QueryResult result = cluster.query(n1ql);
+                        result.rowsAsObject()
+                                .forEach(row -> log.info("Query executed with row: {}", row));
+                    } catch (Exception e) {
+                        log.error("Failed to execute N1QL statement: " + n1ql, e);
+                    }
                 }
+            } else {
+                log.error(
+                        "Expected 'create-statements' to be a list of maps, but found: {}",
+                        rawStatements != null ? rawStatements.getClass().getSimpleName() : "null");
             }
         }
 

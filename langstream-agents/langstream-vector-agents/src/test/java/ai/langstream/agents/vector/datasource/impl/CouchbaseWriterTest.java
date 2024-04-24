@@ -8,6 +8,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.kv.UpsertOptions;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +55,7 @@ public class CouchbaseWriterTest {
                                 """
                                 .formatted(vectorAsString));
         collection.upsert(
-                "doc1", record, UpsertOptions.upsertOptions().expiry(Duration.ofSeconds(3600)));
+                "doc1", record, UpsertOptions.upsertOptions().expiry(Duration.ofHours(1)));
 
         GetResult getResult = collection.get("doc1");
         assertEquals("doc1", getResult.contentAsObject().getString("name"));
@@ -70,8 +71,8 @@ public class CouchbaseWriterTest {
                                 }
                                 """
                                 .formatted(vector2AsString));
-        collection.upsert("doc1", recordUpdated, UpsertOptions.upsertOptions().expiry(3600));
-
+        collection.upsert(
+                "doc1", recordUpdated, UpsertOptions.upsertOptions().expiry(Duration.ofHours(1)));
         GetResult getResultUpdated = collection.get("doc1");
         assertEquals("doc1", getResultUpdated.contentAsObject().getString("name"));
         assertEquals(

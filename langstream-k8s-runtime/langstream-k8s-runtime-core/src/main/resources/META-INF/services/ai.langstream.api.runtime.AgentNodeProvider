@@ -13,3 +13,5 @@ ai.langstream.runtime.impl.k8s.agents.FlowControlAgentsProvider
 ai.langstream.runtime.impl.k8s.agents.FlareControllerAgentProvider
 ai.langstream.runtime.impl.k8s.agents.HttpRequestAgentProvider
 ai.langstream.runtime.impl.k8s.agents.CamelSourceAgentProvider
+ai.langstream.runtime.impl.k8s.agents.PulsarDLQSourceAgentProvider
+

@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.agent;
 
+import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Record;
@@ -51,7 +52,11 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
     public void permanentFailure(Record record, Exception error) {
         // DLQ
         log.error("Permanent failure on record {}", record, error);
-        deadLetterQueueProducer.write(record).join();
+        MutableRecord recordWithError = MutableRecord.recordToMutableRecord(record, false);
+        recordWithError.setProperty("error-msg", error.getMessage());
+        Record finalRecord = MutableRecord.mutableRecordToRecord(recordWithError).get();
+        log.info("Writing to DLQ: {}", finalRecord);
+        deadLetterQueueProducer.write(finalRecord).join();
     }
 
     @Override

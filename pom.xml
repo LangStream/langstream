@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright DataStax, Inc.
@@ -30,7 +30,7 @@
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <pulsar.version>3.0.0</pulsar.version>
+    <pulsar.version>3.0.3</pulsar.version>
     <kafka.version>3.5.0</kafka.version>
     <confluent.avro>7.4.0</confluent.avro>
     <!-- Must match version in pulsar -->

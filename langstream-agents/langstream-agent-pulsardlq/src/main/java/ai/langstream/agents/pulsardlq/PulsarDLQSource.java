@@ -39,6 +39,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
     private String dlqSuffix;
     private PulsarClient pulsarClient;
     private Consumer<byte[]> dlqTopicsConsumer;
+    private boolean includePartitioned;
 
     private static class SimpleHeader implements Header {
         private final String key;
@@ -132,17 +133,28 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         namespace = ConfigurationUtils.getString("namespace", "", configuration);
         subscription = ConfigurationUtils.getString("subscription", "", configuration);
         dlqSuffix = ConfigurationUtils.getString("dlq-suffix", "-DLQ", configuration);
+        includePartitioned =
+                ConfigurationUtils.getBoolean("include-partitioned", false, configuration);
         log.info("Initializing PulsarDLQSource with pulsarUrl: {}", pulsarUrl);
         log.info("Namespace: {}", namespace);
         log.info("Subscription: {}", subscription);
         log.info("DLQ Suffix: {}", dlqSuffix);
+        log.info("Include Partitioned: {}", includePartitioned);
     }
 
     @Override
     public void start() throws Exception {
         pulsarClient = PulsarClient.builder().serviceUrl(pulsarUrl).build();
-        Pattern dlqTopicsInNamespace =
-                Pattern.compile("persistent://" + namespace + "/.*" + dlqSuffix);
+        // The maximum lenth of the regex is 50 characters
+        // Uisng the persistent:// prefix generally works better, but
+        // it can push the partitioned pattern over the 50 character limit, so
+        // we drop it for partitioned topics
+        String patternString = "persistent://" + namespace + "/.*" + dlqSuffix;
+        if (includePartitioned) {
+            patternString = namespace + "/.*" + dlqSuffix + "(-p.+-\\d+)?";
+        }
+
+        Pattern dlqTopicsInNamespace = Pattern.compile(patternString);
 
         dlqTopicsConsumer =
                 pulsarClient

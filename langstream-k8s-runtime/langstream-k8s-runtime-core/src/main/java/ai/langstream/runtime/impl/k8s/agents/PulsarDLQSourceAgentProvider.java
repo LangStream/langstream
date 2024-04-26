@@ -92,5 +92,14 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                 required = true)
         @JsonProperty("dlq-suffix")
         private String dlqSuffix;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Include partitioned topics in the DLQ topics.
+                        """,
+                defaultValue = "false")
+        @JsonProperty("include-partitioned")
+        private boolean includePartitioned;
     }
 }

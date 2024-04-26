@@ -68,7 +68,8 @@ public class PulsarDLQSourceTest {
                         pulsarContainer.getBrokerUrl(),
                         "public/default",
                         "dlq-subscription",
-                        "-DLQ");
+                        "-DLQ",
+                        false);
 
         Producer producer =
                 pulsarContainer
@@ -162,6 +163,81 @@ public class PulsarDLQSourceTest {
     }
 
     @Test
+    void testReadDLQPartitioned() throws Exception {
+
+        pulsarContainer
+                .getAdmin()
+                .topics()
+                .createPartitionedTopic("public/default/partitioned-topic-DLQ", 3);
+
+        AgentSource agentSource =
+                buildAgentSource(
+                        pulsarContainer.getBrokerUrl(),
+                        "public/default",
+                        "dlq-subscription",
+                        "-DLQ",
+                        true);
+
+        Producer producer =
+                pulsarContainer
+                        .getClient()
+                        .newProducer()
+                        .topic("persistent://public/default/partitioned-topic-DLQ")
+                        .create();
+
+        TypedMessageBuilder<byte[]> messageBuilder =
+                producer.newMessage()
+                        .key("message-key") // e
+                        .value("test-message-1".getBytes());
+
+        // Adding properties to the message
+        messageBuilder.property("property1", "value1");
+        messageBuilder.property("property2", "value2");
+
+        // Send the message
+        messageBuilder.send();
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            List<Record> read = agentSource.read();
+                            assertEquals(1, read.size());
+                            // Verify the message
+                            assertEquals(
+                                    "test-message-1",
+                                    new String(
+                                            (byte[]) read.get(0).value(), StandardCharsets.UTF_8));
+                            // Verify the key
+                            assertEquals("message-key", read.get(0).key());
+                            // Verify the properties
+                            assertEquals(
+                                    "value1", read.get(0).getHeader("property1").valueAsString());
+                            assertEquals(
+                                    "value2", read.get(0).getHeader("property2").valueAsString());
+                            // Verify the origin is the DLQ topic
+                            String expectedPrefix =
+                                    "persistent://public/default/partitioned-topic-DLQ";
+                            String actualOrigin = read.get(0).origin();
+
+                            assertTrue(
+                                    actualOrigin.startsWith(expectedPrefix),
+                                    "The origin does not start with the expected prefix.");
+                            // Commiting the message means it gets acknowledged and removed from the
+                            // DLQ
+                            agentSource.commit(read);
+                        });
+
+        agentSource.close();
+
+        producer.close();
+
+        pulsarContainer
+                .getAdmin()
+                .topics()
+                .deletePartitionedTopic("public/default/partitioned-topic-DLQ");
+    }
+
+    @Test
     void testReadMultipleDLQ() throws Exception {
         pulsarContainer
                 .getAdmin()
@@ -173,7 +249,8 @@ public class PulsarDLQSourceTest {
                         pulsarContainer.getBrokerUrl(),
                         "public/default",
                         "dlq-subscription",
-                        "-deadletter");
+                        "-deadletter",
+                        false);
 
         Producer producer =
                 pulsarContainer
@@ -296,7 +373,12 @@ public class PulsarDLQSourceTest {
     }
 
     private AgentSource buildAgentSource(
-            String url, String namespace, String subscription, String dlqSuffix) throws Exception {
+            String url,
+            String namespace,
+            String subscription,
+            String dlqSuffix,
+            Boolean includePartitioned)
+            throws Exception {
         AgentSource agentSource =
                 (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("pulsardlq-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
@@ -304,6 +386,7 @@ public class PulsarDLQSourceTest {
         configs.put("namespace", namespace);
         configs.put("subscription", subscription);
         configs.put("dlq-suffix", dlqSuffix);
+        configs.put("include-partitioned", includePartitioned);
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agentSource.init(configs);

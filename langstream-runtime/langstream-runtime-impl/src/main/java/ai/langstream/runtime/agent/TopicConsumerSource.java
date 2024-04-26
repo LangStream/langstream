@@ -53,7 +53,14 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
         // DLQ
         log.error("Permanent failure on record {}", record, error);
         MutableRecord recordWithError = MutableRecord.recordToMutableRecord(record, false);
+        String sourceTopic = record.origin();
+        Throwable cause = error.getCause();
         recordWithError.setProperty("error-msg", error.getMessage());
+        recordWithError.setProperty("error-class", error.getClass().getName());
+        recordWithError.setProperty("source-topic", sourceTopic);
+        if (cause != null) {
+            recordWithError.setProperty("cause-msg", cause.getMessage());
+        }
         Record finalRecord = MutableRecord.mutableRecordToRecord(recordWithError).get();
         log.info("Writing to DLQ: {}", finalRecord);
         deadLetterQueueProducer.write(finalRecord).join();

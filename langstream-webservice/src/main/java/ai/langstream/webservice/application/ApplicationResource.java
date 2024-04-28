@@ -181,7 +181,7 @@ public class ApplicationResource {
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "force", required = false) Boolean force)
+            @RequestParam(value = "force", required = false, defaultValue = "false") Boolean force)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =

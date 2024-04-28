@@ -122,6 +122,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 description = "Secrets file path")
         private String secretFilePath;
 
+        @CommandLine.Option(
+                names = {"--force"},
+                description = "Skip validation and force update. Use with caution.")
+        private boolean force;
+
         @Override
         String applicationId() {
             return name;

@@ -172,17 +172,19 @@ public class ApplicationService {
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            Boolean force) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
-                tenant, applicationId, applicationInstance, codeArchiveReference);
+                tenant, applicationId, applicationInstance, codeArchiveReference, force);
     }
 
     private void validateDeployMergeAndUpdate(
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            Boolean force) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
@@ -191,7 +193,8 @@ public class ApplicationService {
         final Application newApplication = applicationInstance.getApplication();
         if (!applicationInstance.isHasInstanceDefinition()
                 && !applicationInstance.isHasSecretDefinition()
-                && !applicationInstance.isHasAppDefinition()) {
+                && !applicationInstance.isHasAppDefinition()
+                && !force) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No changes detected");
         }
         if (!applicationInstance.isHasInstanceDefinition()) {
@@ -212,7 +215,9 @@ public class ApplicationService {
             newApplication.setResources(existing.getInstance().getResources());
         }
         final ExecutionPlan newPlan = validateExecutionPlan(applicationId, newApplication);
-        validateUpdate(tenant, existing, existingSecrets, newPlan);
+        if (!force) {
+            validateUpdate(tenant, existing, existingSecrets, newPlan);
+        }
         if (codeArchiveReference == null) {
             codeArchiveReference = existing.getCodeArchiveReference();
         }

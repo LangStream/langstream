@@ -59,7 +59,7 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                         The URL of the Pulsar cluster to connect to.
                         """,
                 defaultValue = "pulsar://localhost:6650",
-                required = true)
+                required = false)
         @JsonProperty("pulsar-url")
         private String pulsarUrl;
 
@@ -69,7 +69,7 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                         Namespace to listen for DLQ topics.
                         """,
                 defaultValue = "public/default",
-                required = true)
+                required = false)
         @JsonProperty("namespace")
         private String namespace;
 
@@ -79,7 +79,7 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                         Subscription name to use for the DLQ topics.
                         """,
                 defaultValue = "langstream-dlq-subscription",
-                required = true)
+                required = false)
         @JsonProperty("subscription")
         private String subscription;
 
@@ -89,7 +89,7 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                         Suffix to use for DLQ topics.
                         """,
                 defaultValue = "-DLQ",
-                required = true)
+                required = false)
         @JsonProperty("dlq-suffix")
         private String dlqSuffix;
 

@@ -180,7 +180,8 @@ public class ApplicationResource {
             @NotBlank @PathVariable("id") String applicationId,
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
-            @RequestParam Optional<String> secrets)
+            @RequestParam Optional<String> secrets,
+            @RequestParam(value = "force", required = false) Boolean force)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -189,7 +190,8 @@ public class ApplicationResource {
                 tenant,
                 applicationId,
                 parsedApplication.getApplication(),
-                parsedApplication.getCodeArchiveReference());
+                parsedApplication.getCodeArchiveReference(),
+                force);
     }
 
     @Data

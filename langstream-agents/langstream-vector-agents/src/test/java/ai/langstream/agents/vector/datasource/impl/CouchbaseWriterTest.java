@@ -42,7 +42,7 @@ public class CouchbaseWriterTest {
 
     // Explicitly declare the image as a compatible substitute
     private DockerImageName couchbaseImage =
-            DockerImageName.parse("couchbase/server:6.6.0")
+            DockerImageName.parse("couchbase/server:7.6.1")
                     .asCompatibleSubstituteFor("couchbase/server");
 
     // Initialize the Couchbase container
@@ -71,6 +71,8 @@ public class CouchbaseWriterTest {
         Map<String, Object> content = new HashMap<>();
         content.put("field1", "value1");
         content.put("field2", 123);
+        // add a vector field
+        content.put("vector", new double[] {1.0, 2.0, 3.0});
         Record record =
                 new Record() {
                     @Override
@@ -110,6 +112,9 @@ public class CouchbaseWriterTest {
         System.out.println(result.contentAsObject());
         assertEquals("value1", result.contentAsObject().get("field1").toString());
         assertEquals(123, (Integer) result.contentAsObject().get("field2"));
+
+        // add a pause to allow the test to complete
+        // Thread.sleep(10000000);
 
         // Ensure the cluster connection is closed after the test
         writer.close();

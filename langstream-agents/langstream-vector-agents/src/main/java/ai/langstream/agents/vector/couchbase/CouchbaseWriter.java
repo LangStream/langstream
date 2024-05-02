@@ -18,9 +18,13 @@ package ai.langstream.agents.vector.couchbase;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
+import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.Collection;
+import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.kv.UpsertOptions;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -41,16 +45,33 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
     public static class CouchbaseDatabaseWriter implements VectorDatabaseWriter, AutoCloseable {
 
         private final Cluster cluster;
-        private final Collection collection;
+        public final Collection collection;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String connectionString = (String) datasourceConfig.get("connectionString");
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
             String bucketName = (String) datasourceConfig.get("bucketName");
+            String scopeName = (String) datasourceConfig.getOrDefault("scopeName", "_default");
+            String collectionName =
+                    (String) datasourceConfig.getOrDefault("collectionName", "_default");
 
-            cluster = Cluster.connect(connectionString, username, password);
-            collection = cluster.bucket(bucketName).defaultCollection();
+            // Create a cluster with the WAN profile
+            ClusterOptions clusterOptions =
+                    ClusterOptions.clusterOptions(username, password)
+                            .environment(
+                                    env -> {
+                                        env.applyProfile("wan-development");
+                                    });
+
+            cluster = Cluster.connect(connectionString, clusterOptions);
+
+            // Get the bucket, scope, and collection
+            Bucket bucket = cluster.bucket(bucketName);
+            bucket.waitUntilReady(Duration.ofSeconds(10));
+
+            Scope scope = bucket.scope(scopeName);
+            collection = scope.collection(collectionName);
         }
 
         @Override
@@ -68,11 +89,7 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             return CompletableFuture.runAsync(
                     () -> {
                         try {
-                            // Assume key() returns a String which will be used as the document ID.
                             String docId = record.key().toString();
-                            // Assume value() returns a Map<String, Object> or similar;
-                            // this may require casting or converting depending on the actual return
-                            // type.
                             Map<String, Object> content;
                             if (record.value() instanceof Map) {
                                 content = (Map<String, Object>) record.value();

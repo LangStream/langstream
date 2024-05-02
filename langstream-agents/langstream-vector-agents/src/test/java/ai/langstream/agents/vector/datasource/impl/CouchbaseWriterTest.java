@@ -15,20 +15,24 @@
  */
 package ai.langstream.agents.vector.datasource.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import ai.langstream.agents.vector.couchbase.CouchbaseWriter;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.Collection;
+// Add missing import statement
+import com.couchbase.client.java.kv.GetResult;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
@@ -36,12 +40,21 @@ public class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
 
+    // Explicitly declare the image as a compatible substitute
+    private DockerImageName couchbaseImage =
+            DockerImageName.parse("couchbase/server:6.6.0")
+                    .asCompatibleSubstituteFor("couchbase/server");
+
+    // Initialize the Couchbase container
     @Container
     private CouchbaseContainer container =
-            new CouchbaseContainer("couchbase/server").withBucket(bucketDefinition);
+            new CouchbaseContainer(couchbaseImage)
+                    .withBucket(bucketDefinition)
+                    .waitingFor(Wait.forHttp("/pools").withStartupTimeout(Duration.ofMinutes(10)))
+                    .withExposedPorts(11210);
 
     @Test
-    public void testUpsertAndRetrieve() throws ExecutionException, InterruptedException {
+    public void testUpsertAndRetrieve() throws Exception {
         // Set up CouchbaseWriter
         Map<String, Object> dataSourceConfig = new HashMap<>();
         dataSourceConfig.put("connectionString", container.getConnectionString());
@@ -53,6 +66,7 @@ public class CouchbaseWriterTest {
                 new CouchbaseWriter().createImplementation(dataSourceConfig);
 
         // Create a sample record
+
         String docId = "test-doc";
         Map<String, Object> content = new HashMap<>();
         content.put("field1", "value1");
@@ -91,19 +105,13 @@ public class CouchbaseWriterTest {
         // Upsert the record
         writer.upsert(record, null).get();
 
-        // Retrieve the record from the Couchbase collection
-        Collection collection =
-                Cluster.connect(
-                                container.getConnectionString(),
-                                container.getUsername(),
-                                container.getPassword())
-                        .bucket("bucket-name")
-                        .defaultCollection();
-        try {
-            writer.close();
-        } catch (Exception e) {
-            // Handle the exception
-            e.printStackTrace();
-        }
+        // Retrieve and verify the document
+        GetResult result = writer.collection.get(docId);
+        System.out.println(result.contentAsObject());
+        assertEquals("value1", result.contentAsObject().get("field1").toString());
+        assertEquals(123, (Integer) result.contentAsObject().get("field2"));
+
+        // Ensure the cluster connection is closed after the test
+        writer.close();
     }
 }

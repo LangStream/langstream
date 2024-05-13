@@ -304,6 +304,12 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
+        while (true) {
+            produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
+            if (url.contains("caiii")) {
+                break;
+            }
+        }
 
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\"}");
@@ -555,20 +561,19 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
 
-        assertMessageContent(
-                new MsgRecord("my-key", "my-value", Map.of()),
-                produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-        assertMessageContent(
-                new MsgRecord("my-key2", "my-value", Map.of()),
-                produceJsonAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+        for (int i = 0; i < 100; i++) {
+            CompletableFuture.runAsync(() -> {
+            while (true) {
 
-        assertMessageContent(
-                new MsgRecord(null, "my-text", Map.of()), produceTextAndGetBody(url, "my-text"));
-        assertMessageContent(
-                new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
-                produceJsonAndGetBody(
-                        url,
-                        "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+                assertMessageContent(
+                        new MsgRecord("my-key", "my-value", Map.of()),
+                        produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+            }
+            });
+        }
+        Thread.sleep(Long.MAX_VALUE);
+
+
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)

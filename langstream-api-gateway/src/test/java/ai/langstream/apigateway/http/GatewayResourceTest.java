@@ -554,6 +554,21 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
 
+        assertMessageContent(
+                new MsgRecord("my-key", "my-value", Map.of()),
+                produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of()),
+                produceJsonAndGetBody(url, "{\"key\": \"my-key2\", \"value\": \"my-value\"}"));
+
+        assertMessageContent(
+                new MsgRecord(null, "my-text", Map.of()), produceTextAndGetBody(url, "my-text"));
+        assertMessageContent(
+                new MsgRecord("my-key2", "my-value", Map.of("header1", "value1")),
+                produceJsonAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+
         List<CompletableFuture<Void>> futures1 = new ArrayList<>();
         for (int i = 0; i < 30; i++) {
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {

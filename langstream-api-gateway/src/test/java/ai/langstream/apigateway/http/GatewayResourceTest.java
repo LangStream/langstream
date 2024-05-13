@@ -304,13 +304,6 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
-        while (true) {
-            produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
-            if (url.contains("caiii")) {
-                break;
-            }
-        }
-
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
@@ -561,19 +554,18 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
 
-        for (int i = 0; i < 100; i++) {
-            CompletableFuture.runAsync(() -> {
-            while (true) {
-
-                assertMessageContent(
-                        new MsgRecord("my-key", "my-value", Map.of()),
-                        produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-            }
+        List<CompletableFuture<Void>> futures1 = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                for (int j = 0; j < 10; j++) {
+                    assertMessageContent(
+                            new MsgRecord("my-key", "my-value", Map.of()),
+                            produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+                }
             });
+            futures1.add(future);
         }
-        Thread.sleep(Long.MAX_VALUE);
-
-
+        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[]{})).get(2, TimeUnit.MINUTES);
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)

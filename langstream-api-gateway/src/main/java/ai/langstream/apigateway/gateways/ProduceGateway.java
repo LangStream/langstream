@@ -18,6 +18,7 @@ package ai.langstream.apigateway.gateways;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -33,7 +34,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -126,6 +130,43 @@ public class ProduceGateway implements AutoCloseable {
                 topicProducerCache.getOrCreate(key, () -> setupProducer(topic, streamingCluster));
     }
 
+    @AllArgsConstructor
+    static class TopicProducerAndRuntime implements TopicProducer {
+        private TopicProducer producer;
+        private TopicConnectionsRuntime runtime;
+
+        @Override
+        public void start() {
+            producer.start();
+        }
+
+        @Override
+        public void close() {
+            producer.close();
+            runtime.close();
+        }
+
+        @Override
+        public CompletableFuture<?> write(Record record) {
+            return producer.write(record);
+        }
+
+        @Override
+        public Object getNativeProducer() {
+            return producer.getNativeProducer();
+        }
+
+        @Override
+        public Object getInfo() {
+            return producer.getInfo();
+        }
+
+        @Override
+        public long getTotalIn() {
+            return producer.getTotalIn();
+        }
+    }
+
     protected TopicProducer setupProducer(String topic, StreamingCluster streamingCluster) {
 
         final TopicConnectionsRuntime topicConnectionsRuntime =
@@ -140,7 +181,7 @@ public class ProduceGateway implements AutoCloseable {
                         null, streamingCluster, Map.of("topic", topic));
         topicProducer.start();
         log.debug("[{}] Started producer on topic {}", logRef, topic);
-        return topicProducer;
+        return new TopicProducerAndRuntime(topicProducer, topicConnectionsRuntime);
     }
 
     public void produceMessage(String payload) throws ProduceException {

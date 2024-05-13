@@ -81,6 +81,8 @@ public class ConsumeGateway implements AutoCloseable {
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
 
+    private volatile TopicConnectionsRuntime topicConnectionsRuntime;
+
     private volatile TopicReader reader;
     private volatile boolean interrupted;
     private volatile String logRef;
@@ -108,7 +110,7 @@ public class ConsumeGateway implements AutoCloseable {
 
         final StreamingCluster streamingCluster =
                 requestContext.application().getInstance().streamingCluster();
-        final TopicConnectionsRuntime topicConnectionsRuntime =
+        topicConnectionsRuntime =
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(streamingCluster)
                         .asTopicConnectionsRuntime();
@@ -218,6 +220,13 @@ public class ConsumeGateway implements AutoCloseable {
                 reader.close();
             } catch (Exception e) {
                 log.warn("error closing reader", e);
+            }
+        }
+        if (topicConnectionsRuntime != null) {
+            try {
+                topicConnectionsRuntime.close();
+            } catch (Exception e) {
+                log.warn("error closing runtime", e);
             }
         }
     }

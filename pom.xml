@@ -90,9 +90,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git@github.com:LangStream/langstream.git</connection>
-    <developerConnection>scm:git:git@github.com:LangStream/langstream.git</developerConnection>
-    <url>https://github.com/LangStream/langstream</url>
+    <connection>scm:git:git@github.com:vectorize-io/langstream.git</connection>
+    <developerConnection>scm:git:git@github.com:vectorize-io/langstream.git</developerConnection>
+    <url>https://github.com/vectorize-io/langstream</url>
     <tag>HEAD</tag>
   </scm>
 

@@ -46,7 +46,7 @@ echo "                   |___/                                    ";
 
 get_latest_release_tarball_url() {
 
-   curl -Ss https://api.github.com/repos/LangStream/langstream/releases/latest | jq -r '.assets[] | select((.name | contains("langstream-cli")) and (.name | contains(".zip"))) | .browser_download_url'
+   curl -Ss https://api.github.com/repos/vectorize-io/langstream/releases/latest | jq -r '.assets[] | select((.name | contains("langstream-cli")) and (.name | contains(".zip"))) | .browser_download_url'
 }
 
 

@@ -19,7 +19,6 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.azure.ai.openai.OpenAIAsyncClient;
-import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.credential.KeyCredential;
@@ -130,11 +129,13 @@ public class TransformFunctionUtil {
                             .build();
             openAIClientBuilder.pipeline(httpPipeline);
         } else {
-            ConnectionProvider provider = ConnectionProvider.builder("openai-connection-provider")
-                    .maxIdleTime(Duration.ofSeconds(20))
-                    .maxLifeTime(Duration.ofSeconds(60))
-                    .pendingAcquireTimeout(Duration.ofSeconds(60))
-                    .evictInBackground(Duration.ofSeconds(120)).build();
+            ConnectionProvider provider =
+                    ConnectionProvider.builder("openai-connection-provider")
+                            .maxIdleTime(Duration.ofSeconds(20))
+                            .maxLifeTime(Duration.ofSeconds(60))
+                            .pendingAcquireTimeout(Duration.ofSeconds(60))
+                            .evictInBackground(Duration.ofSeconds(120))
+                            .build();
             httpClientBuilder.connectionProvider(provider);
             // Apply the custom-configured HTTP client for non-testing scenarios
             openAIClientBuilder.httpClient(httpClientBuilder.build());

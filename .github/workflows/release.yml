@@ -62,3 +62,9 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "langstream-cli/target/langstream-*.zip,helm/crds/*.yml,langstream-webservice/target/api.json"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generateReleaseNotes: true
+          prerelease: false

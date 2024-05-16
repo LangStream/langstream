@@ -21,6 +21,10 @@ public interface MetricsReporter {
                 public Counter counter(String name, String help) {
                     return Counter.NOOP;
                 }
+
+                public Gauge gauge(String name, String help) {
+                    return Gauge.NOOP;
+                }
             };
 
     default MetricsReporter withAgentName(String agentName) {
@@ -28,6 +32,8 @@ public interface MetricsReporter {
     }
 
     Counter counter(String name, String help);
+
+    Gauge gauge(String name, String help);
 
     default MetricsReporter withPodName(String podName) {
         return this;
@@ -40,5 +46,13 @@ public interface MetricsReporter {
         void count(long value);
 
         long value();
+    }
+
+    interface Gauge {
+        Gauge NOOP = new SimpleGauge();
+
+        void set(double value);
+
+        double value();
     }
 }

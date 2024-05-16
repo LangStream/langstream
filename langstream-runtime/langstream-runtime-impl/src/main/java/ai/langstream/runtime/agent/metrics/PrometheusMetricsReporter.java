@@ -31,6 +31,7 @@ public class PrometheusMetricsReporter implements MetricsReporter {
 
     private static final Map<String, io.prometheus.client.Counter> counters =
             new ConcurrentHashMap<>();
+    private static final Map<String, io.prometheus.client.Gauge> gauges = new ConcurrentHashMap<>();
 
     public PrometheusMetricsReporter(String agentName, String podName) {
         this.agentName = agentName;
@@ -87,6 +88,45 @@ public class PrometheusMetricsReporter implements MetricsReporter {
             @Override
             public long value() {
                 return (long) counterWithLabel.get();
+            }
+        };
+    }
+
+    public Gauge gauge(String name, String help) {
+        io.prometheus.client.Gauge gauge =
+                gauges.computeIfAbsent(
+                        name,
+                        k -> {
+                            if (podName.isEmpty()) {
+                                return io.prometheus.client.Gauge.build()
+                                        .name(sanitizeMetricName(name))
+                                        .labelNames("agent_id")
+                                        .help(help)
+                                        .register();
+                            } else {
+                                return io.prometheus.client.Gauge.build()
+                                        .name(sanitizeMetricName(name))
+                                        .labelNames("agent_id", "pod")
+                                        .help(help)
+                                        .register();
+                            }
+                        });
+
+        io.prometheus.client.Gauge.Child gaugeWithLabel;
+        if (podName.isEmpty()) {
+            gaugeWithLabel = gauge.labels(agentName);
+        } else {
+            gaugeWithLabel = gauge.labels(agentName, podName);
+        }
+        return new Gauge() {
+            @Override
+            public void set(double value) {
+                gaugeWithLabel.set(value);
+            }
+
+            @Override
+            public double value() {
+                return gaugeWithLabel.get();
             }
         };
     }

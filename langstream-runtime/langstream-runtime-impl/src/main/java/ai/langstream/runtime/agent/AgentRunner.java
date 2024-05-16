@@ -420,8 +420,16 @@ public class AgentRunner {
                         mainService.join();
                         log.info("Service ended");
                     } else {
+                        MetricsReporter.Gauge working =
+                                agentContext
+                                        .getMetricsReporter()
+                                        .gauge(
+                                                "current_working",
+                                                "Number of records being processed by the agent");
+
                         PendingRecordsCounterSource pendingRecordsCounterSource =
-                                new PendingRecordsCounterSource(source, sink.handlesCommit());
+                                new PendingRecordsCounterSource(
+                                        source, sink.handlesCommit(), working);
 
                         statsScheduler.scheduleAtFixedRate(
                                 pendingRecordsCounterSource::dumpStats, 30, 30, TimeUnit.SECONDS);
@@ -477,10 +485,13 @@ public class AgentRunner {
         private final Set<Record> pendingRecords = ConcurrentHashMap.newKeySet();
         private final AtomicLong totalSourceRecords = new AtomicLong();
         private final boolean sinkHandlesCommits;
+        private final MetricsReporter.Gauge working;
 
-        public PendingRecordsCounterSource(AgentSource wrapped, boolean sinkHandlesCommits) {
+        public PendingRecordsCounterSource(
+                AgentSource wrapped, boolean sinkHandlesCommits, MetricsReporter.Gauge working) {
             this.wrapped = wrapped;
             this.sinkHandlesCommits = sinkHandlesCommits;
+            this.working = working;
         }
 
         @Override
@@ -603,6 +614,7 @@ public class AgentRunner {
 
         public void dumpStats() {
             Object currentRecords = sinkHandlesCommits ? "N/A" : pendingRecords.size();
+            working.set(pendingRecords.size());
             Runtime instance = Runtime.getRuntime();
 
             BufferPoolMXBean directMemory =

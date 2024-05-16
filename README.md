@@ -38,19 +38,15 @@ Get the LangStream VS Code extension [here](https://marketplace.visualstudio.com
 There are multiple ways to install the CLI.
 
 - MacOS:
-  - Homebrew
-  ```
-  brew install LangStream/langstream/langstream
-  ```
   - Binary with curl
   ```
-  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  curl -Ls "https://raw.githubusercontent.com/vectorize-io/langstream/main/bin/get-cli.sh" | bash
   ```  
 
 - Unix:
   - Binary with curl
   ```
-  curl -Ls "https://raw.githubusercontent.com/LangStream/langstream/main/bin/get-cli.sh" | bash
+  curl -Ls "https://raw.githubusercontent.com/vectorize-io/langstream/main/bin/get-cli.sh" | bash
   ```  
 
 Verify the binary is available:

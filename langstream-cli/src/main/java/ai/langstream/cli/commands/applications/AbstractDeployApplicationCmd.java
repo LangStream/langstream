@@ -64,6 +64,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                         "Output format for dry-run mode. Formats are: yaml, json. Default value is yaml.")
         private Formats format = Formats.yaml;
 
+        @CommandLine.Option(
+                names = {"--auto-upgrade"},
+                description = "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
+        private boolean autoUpgrade;
+
         @Override
         String applicationId() {
             return name;
@@ -93,6 +98,15 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         boolean isDryRun() {
             return dryRun;
         }
+        @Override
+        boolean isAutoUpgrade() {
+            return autoUpgrade;
+        }
+
+        @Override
+        boolean isForceRestart() {
+            return false;
+        }
 
         @Override
         Formats format() {
@@ -121,6 +135,17 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 names = {"-s", "--secrets"},
                 description = "Secrets file path")
         private String secretFilePath;
+
+        @CommandLine.Option(
+                names = {"--auto-upgrade"},
+                description = "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
+        private boolean autoUpgrade;
+
+        @CommandLine.Option(
+                names = {"--force-restart"},
+                description = "Whether to make force restart all the executors of the application")
+        private boolean forceRestart;
+
 
         @Override
         String applicationId() {
@@ -153,6 +178,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
+        boolean isAutoUpgrade() {
+            return autoUpgrade;
+        }
+
+        @Override
+        boolean isForceRestart() {
+            return forceRestart;
+        }
+
+        @Override
         Formats format() {
             return null;
         }
@@ -169,6 +204,10 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     abstract boolean isUpdate();
 
     abstract boolean isDryRun();
+
+    abstract boolean isAutoUpgrade();
+
+    abstract boolean isForceRestart();
 
     abstract Formats format();
 
@@ -229,7 +268,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         if (isUpdate()) {
             log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
-            getClient().applications().update(applicationId, bodyPublisher);
+            getClient().applications().update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart());
             log(String.format("application %s updated", applicationId));
         } else {
             final boolean dryRun = isDryRun();
@@ -242,7 +281,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
             }
             final String response =
-                    getClient().applications().deploy(applicationId, bodyPublisher, dryRun);
+                    getClient().applications().deploy(applicationId, bodyPublisher, dryRun, isAutoUpgrade());
             if (dryRun) {
                 final Formats format = format();
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);

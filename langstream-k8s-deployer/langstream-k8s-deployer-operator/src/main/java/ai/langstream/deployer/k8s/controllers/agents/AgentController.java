@@ -152,15 +152,22 @@ public class AgentController extends BaseController<AgentCustomResource>
                     // this is an update for the statefulset.
                     // It's required to not keep the same deployer configuration of the current
                     // version
+
+                    boolean updateRuntimeImage = primary.getSpec().isUpdateRuntimeImage();
+                    boolean updateRuntimeImagePullPolicy = primary.getSpec().isUpdateRuntimeImagePullPolicy();
+                    boolean updateAgentResources = primary.getSpec().isUpdateAgentResources();
+                    boolean updatePodTemplate = primary.getSpec().isUpdateAgentPodTemplate();
+
                     final LastAppliedConfigForStatefulset lastAppliedConfig =
                             SerializationUtil.readJson(
                                     status.getLastConfigApplied(),
                                     LastAppliedConfigForStatefulset.class);
-                    builder.agentResourceUnitConfiguration(
-                                    lastAppliedConfig.getAgentResourceUnitConfiguration())
-                            .image(lastAppliedConfig.getImage())
-                            .imagePullPolicy(lastAppliedConfig.getImagePullPolicy())
-                            .podTemplate(lastAppliedConfig.getPodTemplate());
+                    builder
+                            .agentResourceUnitConfiguration(
+                                    updateAgentResources ? configuration.getAgentResources(): lastAppliedConfig.getAgentResourceUnitConfiguration())
+                            .image(updateRuntimeImage ? configuration.getRuntimeImage(): lastAppliedConfig.getImage())
+                            .imagePullPolicy(updateRuntimeImagePullPolicy ? configuration.getRuntimeImagePullPolicy() : lastAppliedConfig.getImagePullPolicy())
+                            .podTemplate(updatePodTemplate ? configuration.getAgentPodTemplate(): lastAppliedConfig.getPodTemplate());
                 } else {
                     isUpdate = false;
                     builder.agentResourceUnitConfiguration(configuration.getAgentResources())

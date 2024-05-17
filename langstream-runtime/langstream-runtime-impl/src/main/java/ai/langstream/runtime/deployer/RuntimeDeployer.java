@@ -64,9 +64,18 @@ public class RuntimeDeployer {
         appInstance.setSecrets(secrets);
 
         final String tenant = configuration.getTenant();
+        RuntimeDeployerConfiguration.DeployFlags deployFlags = configuration.getDeployFlags();
+        if (deployFlags == null) {
+            deployFlags = new RuntimeDeployerConfiguration.DeployFlags();
+        }
 
         final DeployContextImpl deployContext =
-                new DeployContextImpl(clusterConfiguration, token, tenant);
+                new DeployContextImpl(clusterConfiguration, token, tenant,
+                        deployFlags.isUpdateRuntimeImage(),
+                        deployFlags.isUpdateRuntimeImagePullPolicy(),
+                        deployFlags.isUpdateAgentResources(),
+                        deployFlags.isUpdateAgentPodTemplate(),
+                        deployFlags.getSeed());
         try (ApplicationDeployer deployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
@@ -114,14 +123,54 @@ public class RuntimeDeployer {
     private static class DeployContextImpl implements DeployContext {
 
         private final AdminClient adminClient;
+        private final boolean autoUpgradeRuntimeImage;
+        private final boolean autoUpgradeRuntimeImagePullPolicy;
+        private final boolean autoUpgradeAgentResources;
+        private final boolean autoUpgradeAgentPodTemplate;
+        private final long seed;
 
         public DeployContextImpl(
-                ClusterConfiguration clusterConfiguration, String token, String tenant) {
+                ClusterConfiguration clusterConfiguration, String token, String tenant,
+                boolean autoUpgradeRuntimeImage,
+                boolean autoUpgradeRuntimeImagePullPolicy,
+                boolean autoUpgradeAgentResources,
+                boolean autoUpgradeAgentPodTemplate,
+                long seed) {
             if (clusterConfiguration == null) {
                 adminClient = null;
             } else {
                 adminClient = createAdminClient(clusterConfiguration, token, tenant);
             }
+            this.autoUpgradeRuntimeImage = autoUpgradeRuntimeImage;
+            this.autoUpgradeRuntimeImagePullPolicy = autoUpgradeRuntimeImagePullPolicy;
+            this.autoUpgradeAgentResources = autoUpgradeAgentResources;
+            this.autoUpgradeAgentPodTemplate = autoUpgradeAgentPodTemplate;
+            this.seed = seed;
+        }
+
+        @Override
+        public boolean isAutoUpgradeRuntimeImage() {
+            return autoUpgradeRuntimeImage;
+        }
+
+        @Override
+        public boolean isAutoUpgradeRuntimeImagePullPolicy() {
+            return autoUpgradeRuntimeImagePullPolicy;
+        }
+
+        @Override
+        public boolean isAutoUpgradeAgentResources() {
+            return autoUpgradeAgentResources;
+        }
+
+        @Override
+        public boolean isAutoUpgradeAgentPodTemplate() {
+            return autoUpgradeAgentPodTemplate;
+        }
+
+        @Override
+        public long getApplicationSeed() {
+            return seed;
         }
 
         @Override

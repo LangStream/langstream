@@ -29,6 +29,26 @@ public interface DeployContext extends AutoCloseable {
         throw new UnsupportedOperationException();
     }
 
+    default boolean isAutoUpgradeRuntimeImage() {
+        return false;
+    }
+
+    default boolean isAutoUpgradeRuntimeImagePullPolicy() {
+        return false;
+    }
+
+    default boolean isAutoUpgradeAgentResources() {
+        return false;
+    }
+
+    default boolean isAutoUpgradeAgentPodTemplate() {
+        return false;
+    }
+
+    default long getApplicationSeed() {
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     default void close() {}
 }

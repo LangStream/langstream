@@ -26,6 +26,7 @@ import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
@@ -84,6 +85,8 @@ public class AppResourcesFactory {
         final String applicationId = applicationCustomResource.getMetadata().getName();
         final ApplicationSpec spec = applicationCustomResource.getSpec();
         final String tenant = spec.getTenant();
+        final ApplicationSpecOptions applicationSpecOptions =
+                ApplicationSpec.deserializeOptions(spec.getOptions());
 
         final String clusterRuntimeConfigVolumeName = "cluster-runtime-config";
         final String appConfigVolumeName = "app-config";
@@ -92,9 +95,21 @@ public class AppResourcesFactory {
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
 
+        RuntimeDeployerConfiguration.DeployFlags deployFlags =
+                new RuntimeDeployerConfiguration.DeployFlags();
+        deployFlags.setUpdateRuntimeImage(applicationSpecOptions.isAutoUpgradeRuntimeImage());
+        deployFlags.setUpdateRuntimeImagePullPolicy(
+                applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
+        deployFlags.setUpdateAgentResources(applicationSpecOptions.isAutoUpgradeAgentResources());
+        deployFlags.setUpdateAgentPodTemplate(applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
+        deployFlags.setSeed(applicationSpecOptions.getSeed());
         final RuntimeDeployerConfiguration config =
                 new RuntimeDeployerConfiguration(
-                        applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
+                        applicationId,
+                        tenant,
+                        spec.getApplication(),
+                        spec.getCodeArchiveId(),
+                        deployFlags);
 
         Map<String, Object> initContainerConfigs = new LinkedHashMap<>();
         initContainerConfigs.put(appConfigVolumeName, config);

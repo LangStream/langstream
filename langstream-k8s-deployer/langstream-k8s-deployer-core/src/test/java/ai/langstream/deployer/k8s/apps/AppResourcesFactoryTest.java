@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -539,6 +540,67 @@ class AppResourcesFactoryTest {
         final Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals("busybox:v1", container.getImage());
         assertEquals("Never", container.getImagePullPolicy());
+    }
+
+
+    @Test
+    void testNoUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"updateRuntimeImage": false, "updateRuntimeImagePullPolicy": false, "updateAgentResources": false, "updateAgentPodTemplate": false}'
+                """);
+
+        Job job =
+                AppResourcesFactory.generateDeployerJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build());
+        final Container container = job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
+        System.out.println("args=" + container.getArgs().get(0));
+        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"updateRuntimeImage\":false,\"updateRuntimeImagePullPolicy\":false,\"updateAgentResources\":false,\"updateAgentPodTemplate\":false}"));
+    }
+
+    @Test
+    void testUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"updateRuntimeImage": true, "updateRuntimeImagePullPolicy": true, "updateAgentResources": true, "updateAgentPodTemplate": true}'
+                """);
+
+        Job job =
+                AppResourcesFactory.generateDeployerJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build());
+        final Container container = job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
+        System.out.println("args=" + container.getArgs().get(0));
+        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"updateRuntimeImage\":true,\"updateRuntimeImagePullPolicy\":true,\"updateAgentResources\":true,\"updateAgentPodTemplate\":true}"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

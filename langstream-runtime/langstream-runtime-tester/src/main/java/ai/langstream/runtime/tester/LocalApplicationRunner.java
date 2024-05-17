@@ -145,7 +145,7 @@ public class LocalApplicationRunner
         applicationDeployer.deploy(tenant, implementation, null);
 
         applicationStore.put(
-                tenant, appId, applicationInstance, "no-code-archive-reference", implementation);
+                tenant, appId, applicationInstance, "no-code-archive-reference", implementation, false);
 
         return new ApplicationRuntime(
                 tenant, appId, applicationInstance, implementation, secrets, applicationDeployer);

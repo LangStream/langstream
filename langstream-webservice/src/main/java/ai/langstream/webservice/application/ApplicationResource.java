@@ -144,7 +144,8 @@ public class ApplicationResource {
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "dry-run", required = false) boolean dryRun)
+            @RequestParam(value = "dry-run", required = false) boolean dryRun,
+            @RequestParam(value = "auto-upgrade", required = false) boolean autoUpgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -166,7 +167,8 @@ public class ApplicationResource {
                     tenant,
                     applicationId,
                     parsedApplication.getApplication(),
-                    parsedApplication.getCodeArchiveReference());
+                    parsedApplication.getCodeArchiveReference(),
+                    autoUpgrade);
             application = parsedApplication.getApplication().getApplication();
         }
         return new ApplicationDescription.ApplicationDefinition(application);
@@ -180,7 +182,9 @@ public class ApplicationResource {
             @NotBlank @PathVariable("id") String applicationId,
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
-            @RequestParam Optional<String> secrets)
+            @RequestParam Optional<String> secrets,
+            @RequestParam(value = "force-restart", required = false) boolean forceRestart,
+            @RequestParam(value = "auto-upgrade", required = false) boolean autoUpgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -189,7 +193,9 @@ public class ApplicationResource {
                 tenant,
                 applicationId,
                 parsedApplication.getApplication(),
-                parsedApplication.getCodeArchiveReference());
+                parsedApplication.getCodeArchiveReference(),
+                autoUpgrade,
+                forceRestart);
     }
 
     @Data

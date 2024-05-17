@@ -141,7 +141,7 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=false", TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -226,7 +226,7 @@ class AppsCmdTest extends CommandTestBase {
         final String instance = createTempFile("instance: {}");
 
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=false", TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("instance").withBody(equalTo("instance: {}")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
@@ -244,7 +244,7 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=false", TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -272,7 +272,7 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=false", TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -286,10 +286,30 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
+    public void testUpdateAppWithUpgradeExecutors() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=true", TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps", "update", "my-app", "-app", langstream.toFile().getAbsolutePath(), "--upgrade-executors");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
     public void testUpdateSecrets() throws Exception {
         final String secrets = createTempFile("secrets: []");
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app?upgrade-executors=false", TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("secrets").withBody(equalTo("secrets: []")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));

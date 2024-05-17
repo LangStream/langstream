@@ -75,7 +75,8 @@ public class ApplicationService {
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade) {
         checkTenant(tenant);
         if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
@@ -92,7 +93,9 @@ public class ApplicationService {
                 applicationId,
                 applicationInstance.getApplication(),
                 codeArchiveReference,
-                executionPlan);
+                executionPlan,
+                autoUpgrade,
+                false);
     }
 
     void checkResourceUsage(String tenant, String applicationId, ExecutionPlan executionPlan) {
@@ -150,17 +153,21 @@ public class ApplicationService {
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade,
+            boolean forceRestart) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
-                tenant, applicationId, applicationInstance, codeArchiveReference);
+                tenant, applicationId, applicationInstance, codeArchiveReference, autoUpgrade, forceRestart);
     }
 
     private void validateDeployMergeAndUpdate(
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade,
+            boolean forceRestart) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
@@ -194,7 +201,14 @@ public class ApplicationService {
         if (codeArchiveReference == null) {
             codeArchiveReference = existing.getCodeArchiveReference();
         }
-        applicationStore.put(tenant, applicationId, newApplication, codeArchiveReference, newPlan);
+        applicationStore.put(
+                tenant,
+                applicationId,
+                newApplication,
+                codeArchiveReference,
+                newPlan,
+                autoUpgrade,
+                forceRestart);
     }
 
     ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {

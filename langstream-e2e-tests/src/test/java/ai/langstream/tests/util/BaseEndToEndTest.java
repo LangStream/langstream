@@ -1113,7 +1113,6 @@ public class BaseEndToEndTest implements TestWatcher {
                 tenant, false, applicationId, appDirName, env, expectedNumExecutors, false);
     }
 
-
     protected static void updateLocalApplicationAndAwaitReady(
             String tenant,
             String applicationId,
@@ -1196,7 +1195,8 @@ public class BaseEndToEndTest implements TestWatcher {
             String appDirName,
             File instanceFile,
             Map<String, String> env) {
-        return deployLocalApplication(tenant, isUpdate, applicationId, appDirName, instanceFile, env, false);
+        return deployLocalApplication(
+                tenant, isUpdate, applicationId, appDirName, instanceFile, env, false);
     }
 
     @SneakyThrows

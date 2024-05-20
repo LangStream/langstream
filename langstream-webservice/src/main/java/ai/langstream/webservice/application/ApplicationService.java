@@ -158,7 +158,12 @@ public class ApplicationService {
             boolean forceRestart) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
-                tenant, applicationId, applicationInstance, codeArchiveReference, autoUpgrade, forceRestart);
+                tenant,
+                applicationId,
+                applicationInstance,
+                codeArchiveReference,
+                autoUpgrade,
+                forceRestart);
     }
 
     private void validateDeployMergeAndUpdate(

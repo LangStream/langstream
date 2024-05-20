@@ -100,7 +100,6 @@ class KubernetesApplicationStoreTest {
                 "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":0,\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}",
                 createdCr.getSpec().getOptions());
 
-
         store.put(tenant, "myapp", app, "code-1", null, true, true);
         createdCr =
                 k3s.getClient()
@@ -109,12 +108,17 @@ class KubernetesApplicationStoreTest {
                         .withName("myapp")
                         .get();
         assertEquals(
-                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":%s,\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}".formatted(
-                        ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions()).getSeed() + ""
-                ),
+                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":%s,\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}"
+                        .formatted(
+                                ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions())
+                                                .getSeed()
+                                        + ""),
                 createdCr.getSpec().getOptions());
 
-        assertNotEquals("0", ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions()).getSeed() + "");
+        assertNotEquals(
+                "0",
+                ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions()).getSeed()
+                        + "");
 
         assertNotNull(store.get(tenant, "myapp", false));
         store.delete(tenant, "myapp", false);

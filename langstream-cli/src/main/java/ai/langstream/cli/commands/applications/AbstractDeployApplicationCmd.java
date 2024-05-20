@@ -66,7 +66,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         @CommandLine.Option(
                 names = {"--auto-upgrade"},
-                description = "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
+                description =
+                        "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
         private boolean autoUpgrade;
 
         @Override
@@ -98,6 +99,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         boolean isDryRun() {
             return dryRun;
         }
+
         @Override
         boolean isAutoUpgrade() {
             return autoUpgrade;
@@ -138,14 +140,14 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         @CommandLine.Option(
                 names = {"--auto-upgrade"},
-                description = "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
+                description =
+                        "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
         private boolean autoUpgrade;
 
         @CommandLine.Option(
                 names = {"--force-restart"},
                 description = "Whether to make force restart all the executors of the application")
         private boolean forceRestart;
-
 
         @Override
         String applicationId() {
@@ -268,7 +270,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         if (isUpdate()) {
             log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
-            getClient().applications().update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart());
+            getClient()
+                    .applications()
+                    .update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart());
             log(String.format("application %s updated", applicationId));
         } else {
             final boolean dryRun = isDryRun();
@@ -281,7 +285,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
             }
             final String response =
-                    getClient().applications().deploy(applicationId, bodyPublisher, dryRun, isAutoUpgrade());
+                    getClient()
+                            .applications()
+                            .deploy(applicationId, bodyPublisher, dryRun, isAutoUpgrade());
             if (dryRun) {
                 final Formats format = format();
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);

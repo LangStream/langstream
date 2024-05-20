@@ -249,9 +249,16 @@ public class AdminClient implements AutoCloseable {
         @Override
         @SneakyThrows
         public String deploy(
-                String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun,
+                String application,
+                MultiPartBodyPublisher multiPartBodyPublisher,
+                boolean dryRun,
                 boolean autoUpgrade) {
-            final String path = tenantAppPath("/" + application) + "?dry-run=" + dryRun + "&auto-upgrade=" + autoUpgrade;
+            final String path =
+                    tenantAppPath("/" + application)
+                            + "?dry-run="
+                            + dryRun
+                            + "&auto-upgrade="
+                            + autoUpgrade;
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",
@@ -281,11 +288,17 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher,
-                           boolean autoUpgrade,
-                           boolean forceRestart) {
-            final String path = tenantAppPath("/" + application) + "?auto-upgrade="
-                    + autoUpgrade + "&force-restart=" + forceRestart;
+        public void update(
+                String application,
+                MultiPartBodyPublisher multiPartBodyPublisher,
+                boolean autoUpgrade,
+                boolean forceRestart) {
+            final String path =
+                    tenantAppPath("/" + application)
+                            + "?auto-upgrade="
+                            + autoUpgrade
+                            + "&force-restart="
+                            + forceRestart;
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",

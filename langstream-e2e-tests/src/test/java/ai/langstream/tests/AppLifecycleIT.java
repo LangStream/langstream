@@ -64,7 +64,6 @@ public class AppLifecycleIT extends BaseEndToEndTest {
         awaitApplicationCleanup(tenant, applicationId);
     }
 
-
     @Test
     public void testUpdateForceRestart() throws Exception {
         installLangStreamCluster(true);

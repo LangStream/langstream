@@ -145,7 +145,10 @@ public class KubernetesApplicationStore implements ApplicationStore {
             boolean forceRestart) {
         final ApplicationCustomResource existing =
                 getApplicationCustomResource(tenant, applicationId);
-        final ApplicationSpecOptions existingOptions = existing != null ? ApplicationSpec.deserializeOptions(existing.getSpec().getOptions()) : null;
+        final ApplicationSpecOptions existingOptions =
+                existing != null
+                        ? ApplicationSpec.deserializeOptions(existing.getSpec().getOptions())
+                        : null;
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(

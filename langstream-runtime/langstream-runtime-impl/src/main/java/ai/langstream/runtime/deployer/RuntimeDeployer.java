@@ -70,7 +70,10 @@ public class RuntimeDeployer {
         }
 
         final DeployContextImpl deployContext =
-                new DeployContextImpl(clusterConfiguration, token, tenant,
+                new DeployContextImpl(
+                        clusterConfiguration,
+                        token,
+                        tenant,
                         deployFlags.isAutoUpgradeRuntimeImage(),
                         deployFlags.isAutoUpgradeRuntimeImagePullPolicy(),
                         deployFlags.isAutoUpgradeAgentResources(),
@@ -130,7 +133,9 @@ public class RuntimeDeployer {
         private final long seed;
 
         public DeployContextImpl(
-                ClusterConfiguration clusterConfiguration, String token, String tenant,
+                ClusterConfiguration clusterConfiguration,
+                String token,
+                String tenant,
                 boolean autoUpgradeRuntimeImage,
                 boolean autoUpgradeRuntimeImagePullPolicy,
                 boolean autoUpgradeAgentResources,

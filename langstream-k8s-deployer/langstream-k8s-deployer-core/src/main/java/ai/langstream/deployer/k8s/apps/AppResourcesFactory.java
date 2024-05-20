@@ -100,8 +100,10 @@ public class AppResourcesFactory {
         deployFlags.setAutoUpgradeRuntimeImage(applicationSpecOptions.isAutoUpgradeRuntimeImage());
         deployFlags.setAutoUpgradeRuntimeImagePullPolicy(
                 applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
-        deployFlags.setAutoUpgradeAgentResources(applicationSpecOptions.isAutoUpgradeAgentResources());
-        deployFlags.setAutoUpgradeAgentPodTemplate(applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
+        deployFlags.setAutoUpgradeAgentResources(
+                applicationSpecOptions.isAutoUpgradeAgentResources());
+        deployFlags.setAutoUpgradeAgentPodTemplate(
+                applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
         deployFlags.setSeed(applicationSpecOptions.getSeed());
         final RuntimeDeployerConfiguration config =
                 new RuntimeDeployerConfiguration(

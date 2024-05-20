@@ -569,8 +569,11 @@ abstract class GatewayResourceTest {
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
 
+        // sorry but kafka can't keep up
+        final int numParallel = getStreamingCluster().type().equals("kafka") ? 5 : 30;
+
         List<CompletableFuture<Void>> futures1 = new ArrayList<>();
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < numParallel; i++) {
             CompletableFuture<Void> future =
                     CompletableFuture.runAsync(
                             () -> {

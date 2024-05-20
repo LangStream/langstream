@@ -20,10 +20,9 @@ import ai.langstream.apigateway.MetricsNames;
 import ai.langstream.apigateway.config.TopicProperties;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
+import java.util.function.Supplier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.function.Supplier;
 
 @Configuration
 public class TopicProducerCacheFactory {
@@ -39,12 +38,13 @@ public class TopicProducerCacheFactory {
         } else {
             return new TopicProducerCache() {
                 @Override
-                public TopicProducer getOrCreate(Key key, Supplier<TopicProducer> topicProducerSupplier) {
+                public TopicProducer getOrCreate(
+                        Key key, Supplier<TopicProducer> topicProducerSupplier) {
                     return topicProducerSupplier.get();
                 }
+
                 @Override
-                public void close() {
-                }
+                public void close() {}
             };
         }
     }

@@ -23,11 +23,7 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.runtime.*;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.impl.common.DefaultAgentNode;
@@ -57,6 +53,7 @@ public class ApplicationService {
                     .registry(new ClusterRuntimeRegistry())
                     .pluginsRegistry(new PluginsRegistry())
                     .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                    .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                     .build();
 
     private final GlobalMetadataService globalMetadataService;

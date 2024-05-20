@@ -309,7 +309,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         ApplicationDeployer deployer =
                 getDeployer(
-                        new DeployContext() {
+                        new DeployContext.NoOpDeployContext() {
                             @Override
                             public ApplicationCodeInfo getApplicationCodeInfo(
                                     String tenant, String applicationId, String codeArchiveId) {

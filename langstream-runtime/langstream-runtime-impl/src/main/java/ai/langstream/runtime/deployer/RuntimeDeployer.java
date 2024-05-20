@@ -110,6 +110,7 @@ public class RuntimeDeployer {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                         .pluginsRegistry(new PluginsRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build()) {
 
             log.info("Deleting application {}", applicationId);

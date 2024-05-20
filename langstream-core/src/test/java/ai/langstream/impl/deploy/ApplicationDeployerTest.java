@@ -25,11 +25,7 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeAndLoader;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.*;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
 import ai.langstream.impl.parser.ModelBuilder;
 import java.util.Map;
@@ -82,6 +78,7 @@ class ApplicationDeployerTest {
                 ApplicationDeployer.builder()
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(registry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .topicConnectionsRuntimeRegistry(
                                 new TopicConnectionsRuntimeRegistry() {
                                     @Override

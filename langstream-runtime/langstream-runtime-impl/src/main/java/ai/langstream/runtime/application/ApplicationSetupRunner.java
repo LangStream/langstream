@@ -22,6 +22,7 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -124,6 +125,7 @@ public class ApplicationSetupRunner {
                 .pluginsRegistry(new PluginsRegistry())
                 .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                 .assetManagerRegistry(assetManagerRegistry)
+                .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                 .build();
     }
 

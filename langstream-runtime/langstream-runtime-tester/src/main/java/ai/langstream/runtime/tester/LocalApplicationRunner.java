@@ -19,10 +19,7 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.runtime.*;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
@@ -101,6 +98,7 @@ public class LocalApplicationRunner
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
     }
 

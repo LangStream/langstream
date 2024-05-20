@@ -153,10 +153,10 @@ public class AgentController extends BaseController<AgentCustomResource>
                     // It's required to not keep the same deployer configuration of the current
                     // version
 
-                    boolean updateRuntimeImage = primary.getSpec().isUpdateRuntimeImage();
-                    boolean updateRuntimeImagePullPolicy = primary.getSpec().isUpdateRuntimeImagePullPolicy();
-                    boolean updateAgentResources = primary.getSpec().isUpdateAgentResources();
-                    boolean updatePodTemplate = primary.getSpec().isUpdateAgentPodTemplate();
+                    boolean autoUpgradeRuntimeImage = primary.getSpec().isAutoUpgradeRuntimeImage();
+                    boolean autoUpgradeRuntimeImagePullPolicy = primary.getSpec().isAutoUpgradeRuntimeImagePullPolicy();
+                    boolean autoUpgradeAgentResources = primary.getSpec().isAutoUpgradeAgentResources();
+                    boolean updatePodTemplate = primary.getSpec().isAutoUpgradeAgentPodTemplate();
 
                     final LastAppliedConfigForStatefulset lastAppliedConfig =
                             SerializationUtil.readJson(
@@ -164,9 +164,9 @@ public class AgentController extends BaseController<AgentCustomResource>
                                     LastAppliedConfigForStatefulset.class);
                     builder
                             .agentResourceUnitConfiguration(
-                                    updateAgentResources ? configuration.getAgentResources(): lastAppliedConfig.getAgentResourceUnitConfiguration())
-                            .image(updateRuntimeImage ? configuration.getRuntimeImage(): lastAppliedConfig.getImage())
-                            .imagePullPolicy(updateRuntimeImagePullPolicy ? configuration.getRuntimeImagePullPolicy() : lastAppliedConfig.getImagePullPolicy())
+                                    autoUpgradeAgentResources ? configuration.getAgentResources(): lastAppliedConfig.getAgentResourceUnitConfiguration())
+                            .image(autoUpgradeRuntimeImage ? configuration.getRuntimeImage(): lastAppliedConfig.getImage())
+                            .imagePullPolicy(autoUpgradeRuntimeImagePullPolicy ? configuration.getRuntimeImagePullPolicy() : lastAppliedConfig.getImagePullPolicy())
                             .podTemplate(updatePodTemplate ? configuration.getAgentPodTemplate(): lastAppliedConfig.getPodTemplate());
                 } else {
                     isUpdate = false;

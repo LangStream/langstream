@@ -557,7 +557,7 @@ class AppResourcesFactoryTest {
                     application: "{app: true}"
                     tenant: my-tenant
                     codeArchiveId: "iiii"
-                    options: '{"updateRuntimeImage": false, "updateRuntimeImagePullPolicy": false, "updateAgentResources": false, "updateAgentPodTemplate": false}'
+                    options: '{"autoUpgradeRuntimeImage": false, "autoUpgradeRuntimeImagePullPolicy": false, "autoUpgradeAgentResources": false, "autoUpgradeAgentPodTemplate": false}'
                 """);
 
         Job job =
@@ -570,7 +570,7 @@ class AppResourcesFactoryTest {
                                 .build());
         final Container container = job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
         System.out.println("args=" + container.getArgs().get(0));
-        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"updateRuntimeImage\":false,\"updateRuntimeImagePullPolicy\":false,\"updateAgentResources\":false,\"updateAgentPodTemplate\":false}"));
+        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"autoUpgradeRuntimeImage\":false,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false}"));
     }
 
     @Test
@@ -587,7 +587,7 @@ class AppResourcesFactoryTest {
                     application: "{app: true}"
                     tenant: my-tenant
                     codeArchiveId: "iiii"
-                    options: '{"updateRuntimeImage": true, "updateRuntimeImagePullPolicy": true, "updateAgentResources": true, "updateAgentPodTemplate": true}'
+                    options: '{"autoUpgradeRuntimeImage": true, "autoUpgradeRuntimeImagePullPolicy": true, "autoUpgradeAgentResources": true, "autoUpgradeAgentPodTemplate": true}'
                 """);
 
         Job job =
@@ -600,7 +600,7 @@ class AppResourcesFactoryTest {
                                 .build());
         final Container container = job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
         System.out.println("args=" + container.getArgs().get(0));
-        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"updateRuntimeImage\":true,\"updateRuntimeImagePullPolicy\":true,\"updateAgentResources\":true,\"updateAgentPodTemplate\":true}"));
+        assertTrue(container.getArgs().get(0).contains("\"deployFlags\":{\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

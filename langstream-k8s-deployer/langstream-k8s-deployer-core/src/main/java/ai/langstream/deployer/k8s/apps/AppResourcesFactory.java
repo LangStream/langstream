@@ -97,11 +97,11 @@ public class AppResourcesFactory {
 
         RuntimeDeployerConfiguration.DeployFlags deployFlags =
                 new RuntimeDeployerConfiguration.DeployFlags();
-        deployFlags.setUpdateRuntimeImage(applicationSpecOptions.isAutoUpgradeRuntimeImage());
-        deployFlags.setUpdateRuntimeImagePullPolicy(
+        deployFlags.setAutoUpgradeRuntimeImage(applicationSpecOptions.isAutoUpgradeRuntimeImage());
+        deployFlags.setAutoUpgradeRuntimeImagePullPolicy(
                 applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
-        deployFlags.setUpdateAgentResources(applicationSpecOptions.isAutoUpgradeAgentResources());
-        deployFlags.setUpdateAgentPodTemplate(applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
+        deployFlags.setAutoUpgradeAgentResources(applicationSpecOptions.isAutoUpgradeAgentResources());
+        deployFlags.setAutoUpgradeAgentPodTemplate(applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
         deployFlags.setSeed(applicationSpecOptions.getSeed());
         final RuntimeDeployerConfiguration config =
                 new RuntimeDeployerConfiguration(

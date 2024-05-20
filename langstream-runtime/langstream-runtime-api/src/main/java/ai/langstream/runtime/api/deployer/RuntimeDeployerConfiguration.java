@@ -36,10 +36,10 @@ public class RuntimeDeployerConfiguration {
      * Flags specifically used for this deploy operation.
      */
     public static class DeployFlags {
-        private boolean updateRuntimeImage;
-        private boolean updateRuntimeImagePullPolicy;
-        private boolean updateAgentResources;
-        private boolean updateAgentPodTemplate;
+        private boolean autoUpgradeRuntimeImage;
+        private boolean autoUpgradeRuntimeImagePullPolicy;
+        private boolean autoUpgradeAgentResources;
+        private boolean autoUpgradeAgentPodTemplate;
         private long seed;
     }
 }

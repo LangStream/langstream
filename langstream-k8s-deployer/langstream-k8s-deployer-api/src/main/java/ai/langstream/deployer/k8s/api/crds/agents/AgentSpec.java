@@ -38,10 +38,10 @@ public class AgentSpec extends NamespacedSpec {
 
     public record Options(
             List<Disk> disks,
-            boolean updateRuntimeImage,
-            boolean updateRuntimeImagePullPolicy,
-            boolean updateAgentResources,
-            boolean updateAgentPodTemplate,
+            boolean autoUpgradeRuntimeImage,
+            boolean autoUpgradeRuntimeImagePullPolicy,
+            boolean autoUpgradeAgentResources,
+            boolean autoUpgradeAgentPodTemplate,
             long applicationSeed) {}
 
     private static final ObjectMapper MAPPER =
@@ -83,39 +83,39 @@ public class AgentSpec extends NamespacedSpec {
     }
 
     @JsonIgnore
-    public boolean isUpdateRuntimeImage() {
+    public boolean isAutoUpgradeRuntimeImage() {
         final Options options = parseOptions();
         if (options == null) {
             return false;
         }
-        return options.updateRuntimeImage();
+        return options.autoUpgradeRuntimeImage();
     }
 
     @JsonIgnore
-    public boolean isUpdateRuntimeImagePullPolicy() {
+    public boolean isAutoUpgradeRuntimeImagePullPolicy() {
         final Options options = parseOptions();
         if (options == null) {
             return false;
         }
-        return options.updateRuntimeImagePullPolicy();
+        return options.autoUpgradeRuntimeImagePullPolicy();
     }
 
     @JsonIgnore
-    public boolean isUpdateAgentPodTemplate() {
+    public boolean isAutoUpgradeAgentPodTemplate() {
         final Options options = parseOptions();
         if (options == null) {
             return false;
         }
-        return options.updateAgentPodTemplate();
+        return options.autoUpgradeAgentPodTemplate();
     }
 
     @JsonIgnore
-    public boolean isUpdateAgentResources() {
+    public boolean isAutoUpgradeAgentResources() {
         final Options options = parseOptions();
         if (options == null) {
             return false;
         }
-        return options.updateAgentResources();
+        return options.autoUpgradeAgentResources();
     }
 
     @JsonIgnore

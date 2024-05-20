@@ -282,16 +282,12 @@ public class AgentResourcesFactory {
         final Map<String, String> labels =
                 getAgentLabels(spec.getAgentId(), spec.getApplicationId());
 
-        Map<String, String> stsAnnotations = new HashMap<>();
-        stsAnnotations.put("ai.langstream/application-seed", spec.getApplicationSeed() + "");
-
         final String name = agentCustomResource.getMetadata().getName();
         return new StatefulSetBuilder()
                 .withNewMetadata()
                 .withName(name)
                 .withNamespace(agentCustomResource.getMetadata().getNamespace())
                 .withLabels(labels)
-                .withAnnotations(stsAnnotations)
                 .withOwnerReferences(KubeUtil.getOwnerReferenceForResource(agentCustomResource))
                 .endMetadata()
                 .withNewSpec()
@@ -465,6 +461,7 @@ public class AgentResourcesFactory {
     private static Map<String, String> getPodAnnotations(AgentSpec spec, PodTemplate podTemplate) {
         final Map<String, String> annotations = new HashMap<>();
         annotations.put("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum());
+        annotations.put("ai.langstream/application-seed", spec.getApplicationSeed() + "");
         if (podTemplate != null && podTemplate.annotations() != null) {
             annotations.putAll(podTemplate.annotations());
         }

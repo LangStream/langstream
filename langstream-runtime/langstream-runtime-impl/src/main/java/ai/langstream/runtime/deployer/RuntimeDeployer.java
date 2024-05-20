@@ -71,10 +71,10 @@ public class RuntimeDeployer {
 
         final DeployContextImpl deployContext =
                 new DeployContextImpl(clusterConfiguration, token, tenant,
-                        deployFlags.isUpdateRuntimeImage(),
-                        deployFlags.isUpdateRuntimeImagePullPolicy(),
-                        deployFlags.isUpdateAgentResources(),
-                        deployFlags.isUpdateAgentPodTemplate(),
+                        deployFlags.isAutoUpgradeRuntimeImage(),
+                        deployFlags.isAutoUpgradeRuntimeImagePullPolicy(),
+                        deployFlags.isAutoUpgradeAgentResources(),
+                        deployFlags.isAutoUpgradeAgentPodTemplate(),
                         deployFlags.getSeed());
         try (ApplicationDeployer deployer =
                 ApplicationDeployer.builder()

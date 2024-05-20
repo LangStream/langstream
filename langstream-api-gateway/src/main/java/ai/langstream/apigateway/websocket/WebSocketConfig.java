@@ -97,7 +97,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @PreDestroy
     public void onDestroy() {
-        consumeThreadPool.shutdown();
+        log.info("Shutting down WebSocket");
+        consumeThreadPool.shutdownNow();
         clusterRuntimeRegistry.close();
     }
 }

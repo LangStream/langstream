@@ -55,9 +55,11 @@ public class AppControllerIT {
             new OperatorExtension(
                     Map.of(
                             "DEPLOYER_AGENT_RESOURCES",
-                                    "{defaultMaxTotalResourceUnitsPerTenant: 3}",
-                            "DEPLOYER_RUNTIME_IMAGE", "bash",
-                            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY", "IfNotPresent"));
+                            "{defaultMaxTotalResourceUnitsPerTenant: 3}",
+                            "DEPLOYER_RUNTIME_IMAGE",
+                            "bash",
+                            "DEPLOYER_RUNTIME_IMAGE_PULL_POLICY",
+                            "IfNotPresent"));
 
     static AtomicInteger counter = new AtomicInteger(0);
 
@@ -75,17 +77,17 @@ public class AppControllerIT {
         final ApplicationCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Application
-                metadata:
-                  name: %s
-                  namespace: %s
-                spec:
-                    image: bash
-                    imagePullPolicy: IfNotPresent
-                    application: '{"modules": {}}'
-                    tenant: %s
-                """
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Application
+                                metadata:
+                                  name: %s
+                                  namespace: %s
+                                spec:
+                                    image: bash
+                                    imagePullPolicy: IfNotPresent
+                                    application: '{"modules": {}}'
+                                    tenant: %s
+                                """
                                 .formatted(applicationId, namespace, tenant));
         final KubernetesClient client = deployment.getClient();
         deployment
@@ -444,9 +446,7 @@ public class AppControllerIT {
         assertEquals("bash", initContainer.getCommand().get(0));
         assertEquals("-c", initContainer.getCommand().get(1));
         assertEquals(
-                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
-                        + "{}}\",\"codeStorageArchiveId\":null}' > /app-config/config && echo '{}' > "
-                        + "/cluster-runtime-config/config",
+                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeStorageArchiveId\":null,\"deployFlags\":{\"autoUpgradeRuntimeImage\":false,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
                 initContainer.getArgs().get(0));
     }
 

@@ -61,7 +61,7 @@ class KubernetesClusterRuntimeDockerTest {
     static KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     private ApplicationDeployer getDeployer() {
-        return getDeployer(null);
+        return getDeployer(DeployContext.NO_DEPLOY_CONTEXT);
     }
 
     private ApplicationDeployer getDeployer(DeployContext deployContext) {

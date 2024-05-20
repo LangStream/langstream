@@ -23,11 +23,7 @@ import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.runtime.*;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.impl.common.DefaultAgentNode;
@@ -57,6 +53,7 @@ public class ApplicationService {
                     .registry(new ClusterRuntimeRegistry())
                     .pluginsRegistry(new PluginsRegistry())
                     .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                    .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                     .build();
 
     private final GlobalMetadataService globalMetadataService;
@@ -75,7 +72,8 @@ public class ApplicationService {
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade) {
         checkTenant(tenant);
         if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
@@ -92,7 +90,9 @@ public class ApplicationService {
                 applicationId,
                 applicationInstance.getApplication(),
                 codeArchiveReference,
-                executionPlan);
+                executionPlan,
+                autoUpgrade,
+                false);
     }
 
     void checkResourceUsage(String tenant, String applicationId, ExecutionPlan executionPlan) {
@@ -150,17 +150,26 @@ public class ApplicationService {
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade,
+            boolean forceRestart) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
-                tenant, applicationId, applicationInstance, codeArchiveReference);
+                tenant,
+                applicationId,
+                applicationInstance,
+                codeArchiveReference,
+                autoUpgrade,
+                forceRestart);
     }
 
     private void validateDeployMergeAndUpdate(
             String tenant,
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
-            String codeArchiveReference) {
+            String codeArchiveReference,
+            boolean autoUpgrade,
+            boolean forceRestart) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
@@ -194,7 +203,14 @@ public class ApplicationService {
         if (codeArchiveReference == null) {
             codeArchiveReference = existing.getCodeArchiveReference();
         }
-        applicationStore.put(tenant, applicationId, newApplication, codeArchiveReference, newPlan);
+        applicationStore.put(
+                tenant,
+                applicationId,
+                newApplication,
+                codeArchiveReference,
+                newPlan,
+                autoUpgrade,
+                forceRestart);
     }
 
     ExecutionPlan validateExecutionPlan(String applicationId, Application applicationInstance) {

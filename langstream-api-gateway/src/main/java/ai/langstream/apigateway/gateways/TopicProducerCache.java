@@ -18,7 +18,7 @@ package ai.langstream.apigateway.gateways;
 import ai.langstream.api.runner.topics.TopicProducer;
 import java.util.function.Supplier;
 
-public interface TopicProducerCache {
+public interface TopicProducerCache extends AutoCloseable {
     record Key(
             String tenant,
             String application,
@@ -27,4 +27,7 @@ public interface TopicProducerCache {
             String configString) {}
 
     TopicProducer getOrCreate(Key key, Supplier<TopicProducer> topicProducerSupplier);
+
+    @Override
+    void close();
 }

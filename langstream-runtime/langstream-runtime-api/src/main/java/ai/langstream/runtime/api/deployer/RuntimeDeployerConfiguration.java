@@ -27,4 +27,19 @@ public class RuntimeDeployerConfiguration {
     private String tenant;
     private String application;
     private String codeStorageArchiveId;
+    private DeployFlags deployFlags;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    /*
+     * Flags specifically used for this deploy operation.
+     */
+    public static class DeployFlags {
+        private boolean autoUpgradeRuntimeImage;
+        private boolean autoUpgradeRuntimeImagePullPolicy;
+        private boolean autoUpgradeAgentResources;
+        private boolean autoUpgradeAgentPodTemplate;
+        private long seed;
+    }
 }

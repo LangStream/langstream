@@ -107,7 +107,11 @@ class KafkaReaderWrapper implements TopicReader {
     @Override
     public void close() {
         if (consumer != null) {
-            consumer.close();
+            try {
+                consumer.close();
+            } catch (org.apache.kafka.common.errors.InterruptException e) {
+                log.warn("Interrupted while closing Kafka consumer", e);
+            }
         }
     }
 

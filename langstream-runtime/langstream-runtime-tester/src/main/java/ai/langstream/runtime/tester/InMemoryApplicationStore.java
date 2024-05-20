@@ -86,7 +86,9 @@ public class InMemoryApplicationStore implements ApplicationStore {
             String applicationId,
             Application applicationInstance,
             String codeArchiveReference,
-            ExecutionPlan executionPlan) {
+            ExecutionPlan executionPlan,
+            boolean autoUpgrade,
+            boolean forceRestart) {
         APPLICATIONS.put(
                 getKey(tenant, applicationId),
                 new LocalApplication(

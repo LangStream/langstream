@@ -109,7 +109,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 executionPlan,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                deployContext);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
@@ -229,7 +230,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             List<Secret> secrets,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
             collectAgentCustomResourceAndSecret(
                     tenant,
@@ -238,7 +240,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentImplementation,
                     streamingClusterRuntime,
                     applicationInstance,
-                    codeStorageArchiveId);
+                    codeStorageArchiveId,
+                    deployContext);
         }
     }
 
@@ -250,7 +253,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             AgentNode agent,
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         if (log.isDebugEnabled()) {
             log.debug(
                     "Building configuration for Agent {}, codeStorageArchiveId {}",
@@ -340,7 +344,15 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
 
         agentSpec.setResources(
                 new AgentSpec.Resources(resourcesSpec.parallelism(), resourcesSpec.size()));
-        agentSpec.serializeAndSetOptions(new AgentSpec.Options(disks));
+        AgentSpec.Options options =
+                new AgentSpec.Options(
+                        disks,
+                        deployContext.isAutoUpgradeRuntimeImage(),
+                        deployContext.isAutoUpgradeRuntimeImagePullPolicy(),
+                        deployContext.isAutoUpgradeAgentResources(),
+                        deployContext.isAutoUpgradeAgentPodTemplate(),
+                        deployContext.getApplicationSeed());
+        agentSpec.serializeAndSetOptions(options);
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         byte[] hash = DIGEST.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
@@ -393,7 +405,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 applicationInstance,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                deployContext);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {

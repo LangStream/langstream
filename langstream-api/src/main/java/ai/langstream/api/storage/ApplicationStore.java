@@ -41,7 +41,9 @@ public interface ApplicationStore extends GenericStore {
             String applicationId,
             Application applicationInstance,
             String codeArchiveReference,
-            ExecutionPlan executionPlan);
+            ExecutionPlan executionPlan,
+            boolean autoUpgrade,
+            boolean forceRestart);
 
     StoredApplication get(String tenant, String applicationId, boolean queryPods);
 

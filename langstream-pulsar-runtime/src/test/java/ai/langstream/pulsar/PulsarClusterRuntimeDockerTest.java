@@ -25,6 +25,7 @@ import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -73,6 +74,7 @@ class PulsarClusterRuntimeDockerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build()) {
 
             Module module = applicationInstance.getModule("module-1");

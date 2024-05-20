@@ -25,9 +25,16 @@ public interface Applications {
     String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher);
 
     String deploy(
-            String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun);
+            String application,
+            MultiPartBodyPublisher multiPartBodyPublisher,
+            boolean dryRun,
+            boolean autoUpgrade);
 
-    void update(String application, MultiPartBodyPublisher multiPartBodyPublisher);
+    void update(
+            String application,
+            MultiPartBodyPublisher multiPartBodyPublisher,
+            boolean autoUpgrade,
+            boolean forceRestart);
 
     void delete(String application, boolean force);
 

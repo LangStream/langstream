@@ -31,6 +31,7 @@ import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Objects;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -44,7 +45,7 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
-    private DeployContext deployContext;
+    @Builder.Default private DeployContext deployContext = DeployContext.NO_DEPLOY_CONTEXT;
     @Getter private TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private AssetManagerRegistry assetManagerRegistry;
 
@@ -145,6 +146,7 @@ public final class ApplicationDeployer implements AutoCloseable {
      */
     public Object deploy(
             String tenant, ExecutionPlan physicalApplicationInstance, String codeStorageArchiveId) {
+        Objects.requireNonNull(deployContext, "Deploy context is not set");
         Application applicationInstance = physicalApplicationInstance.getApplication();
         ComputeClusterRuntime clusterRuntime =
                 registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());
@@ -167,6 +169,7 @@ public final class ApplicationDeployer implements AutoCloseable {
      * @param codeStorageArchiveId the code storage archive id
      */
     public void delete(String tenant, ExecutionPlan executionPlan, String codeStorageArchiveId) {
+        Objects.requireNonNull(deployContext, "Deploy context is not set");
         Application applicationInstance = executionPlan.getApplication();
         ComputeClusterRuntime clusterRuntime =
                 registry.getClusterRuntime(applicationInstance.getInstance().computeCluster());

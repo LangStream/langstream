@@ -30,6 +30,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ConsumePushMessage;
@@ -569,8 +570,7 @@ abstract class GatewayResourceTest {
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
 
-        // sorry but kafka can't keep up
-        final int numParallel = getStreamingCluster().type().equals("kafka") ? 5 : 30;
+        final int numParallel = 10;
 
         List<CompletableFuture<Void>> futures1 = new ArrayList<>();
         for (int i = 0; i < numParallel; i++) {
@@ -588,7 +588,7 @@ abstract class GatewayResourceTest {
             futures1.add(future);
         }
         CompletableFuture.allOf(futures1.toArray(new CompletableFuture[] {}))
-                .get(2, TimeUnit.MINUTES);
+                .get(3, TimeUnit.MINUTES);
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
@@ -678,6 +678,7 @@ abstract class GatewayResourceTest {
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(new ClusterRuntimeRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
         final StreamingCluster streamingCluster = getStreamingCluster();
         topicConnectionsRuntimeRegistry

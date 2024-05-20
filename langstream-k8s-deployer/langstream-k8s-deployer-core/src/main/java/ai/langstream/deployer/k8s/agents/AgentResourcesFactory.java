@@ -461,6 +461,7 @@ public class AgentResourcesFactory {
     private static Map<String, String> getPodAnnotations(AgentSpec spec, PodTemplate podTemplate) {
         final Map<String, String> annotations = new HashMap<>();
         annotations.put("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum());
+        annotations.put("ai.langstream/application-seed", spec.getApplicationSeed() + "");
         if (podTemplate != null && podTemplate.annotations() != null) {
             annotations.putAll(podTemplate.annotations());
         }

@@ -135,4 +135,9 @@ public class LRUTopicProducerCache implements TopicProducerCache {
             throw new RuntimeException(ex);
         }
     }
+
+    @Override
+    public void close() {
+        cache.invalidateAll();
+    }
 }

@@ -76,6 +76,15 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                 Map.of("SECRET1_VK", "super secret value - changed"),
                 1);
 
+        // test force-restart
+        updateLocalApplicationAndAwaitReady(
+                tenant,
+                applicationId,
+                "python-processor",
+                Map.of("SECRET1_VK", "super secret value - changed"),
+                1,
+                true);
+
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s2"
                         .formatted(applicationId)

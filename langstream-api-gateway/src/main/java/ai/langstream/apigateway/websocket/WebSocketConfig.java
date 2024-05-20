@@ -100,5 +100,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
         log.info("Shutting down WebSocket");
         consumeThreadPool.shutdownNow();
         clusterRuntimeRegistry.close();
+        topicProducerCache.close();
     }
 }

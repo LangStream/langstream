@@ -166,7 +166,7 @@ public abstract class AbstractApplicationRunner {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
-                        .deployContext(new DeployContext() {})
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
                         .build();

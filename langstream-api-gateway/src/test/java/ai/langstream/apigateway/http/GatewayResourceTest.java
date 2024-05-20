@@ -571,16 +571,21 @@ abstract class GatewayResourceTest {
 
         List<CompletableFuture<Void>> futures1 = new ArrayList<>();
         for (int i = 0; i < 30; i++) {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                for (int j = 0; j < 10; j++) {
-                    assertMessageContent(
-                            new MsgRecord("my-key", "my-value", Map.of()),
-                            produceJsonAndGetBody(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-                }
-            });
+            CompletableFuture<Void> future =
+                    CompletableFuture.runAsync(
+                            () -> {
+                                for (int j = 0; j < 10; j++) {
+                                    assertMessageContent(
+                                            new MsgRecord("my-key", "my-value", Map.of()),
+                                            produceJsonAndGetBody(
+                                                    url,
+                                                    "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+                                }
+                            });
             futures1.add(future);
         }
-        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[]{})).get(2, TimeUnit.MINUTES);
+        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[] {}))
+                .get(2, TimeUnit.MINUTES);
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)

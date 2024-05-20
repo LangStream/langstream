@@ -45,7 +45,7 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
-    private DeployContext deployContext;
+    @Builder.Default private DeployContext deployContext = DeployContext.NO_DEPLOY_CONTEXT;
     @Getter private TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private AssetManagerRegistry assetManagerRegistry;
 

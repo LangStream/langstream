@@ -1147,7 +1147,13 @@ public class BaseEndToEndTest implements TestWatcher {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         final String podUids =
                 deployLocalApplication(
-                        tenant, isUpdate, applicationId, appDirName, instanceFile, env);
+                        tenant,
+                        isUpdate,
+                        applicationId,
+                        appDirName,
+                        instanceFile,
+                        env,
+                        forceRestart);
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()

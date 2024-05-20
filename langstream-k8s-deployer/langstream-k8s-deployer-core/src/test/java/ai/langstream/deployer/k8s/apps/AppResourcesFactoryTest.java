@@ -115,7 +115,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"autoUpgradeRuntimeImage\\":false,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -214,7 +214,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"autoUpgradeRuntimeImage\\":false,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -575,7 +575,7 @@ class AppResourcesFactoryTest {
                         .getArgs()
                         .get(0)
                         .contains(
-                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":false,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false}"));
+                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":false,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
     }
 
     @Test
@@ -611,7 +611,7 @@ class AppResourcesFactoryTest {
                         .getArgs()
                         .get(0)
                         .contains(
-                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}"));
+                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true,\"seed\":0}"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

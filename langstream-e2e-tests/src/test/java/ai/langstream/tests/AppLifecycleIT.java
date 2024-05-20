@@ -63,4 +63,39 @@ public class AppLifecycleIT extends BaseEndToEndTest {
                 "bin/langstream apps delete -f %s".formatted(applicationId).split(" "));
         awaitApplicationCleanup(tenant, applicationId);
     }
+
+
+    @Test
+    public void testUpdateForceRestart() throws Exception {
+        installLangStreamCluster(true);
+        final String tenant = "ten-" + System.currentTimeMillis();
+        setupTenant(tenant);
+        final String applicationId = "my-test-app";
+
+        final Map<String, Map<String, Object>> instanceContent =
+                Map.of(
+                        "instance",
+                        Map.of(
+                                "streamingCluster",
+                                Map.of(
+                                        "type",
+                                        "kafka",
+                                        "configuration",
+                                        Map.of("bootstrapServers", "wrong:9092")),
+                                "computeCluster",
+                                Map.of("type", "kubernetes")));
+
+        final File instanceFile = Files.createTempFile("ls-test", ".yaml").toFile();
+        YAML_MAPPER.writeValue(instanceFile, instanceContent);
+
+        deployLocalApplication(
+                tenant, false, applicationId, "python-processor", instanceFile, Map.of());
+        awaitApplicationInStatus(applicationId, "ERROR_DEPLOYING");
+        executeCommandOnClient(
+                "bin/langstream apps delete %s ".formatted(applicationId).split(" "));
+        awaitApplicationInStatus(applicationId, "ERROR_DELETING");
+        executeCommandOnClient(
+                "bin/langstream apps delete -f %s".formatted(applicationId).split(" "));
+        awaitApplicationCleanup(tenant, applicationId);
+    }
 }

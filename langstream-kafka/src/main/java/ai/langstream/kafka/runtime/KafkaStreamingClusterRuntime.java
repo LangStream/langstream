@@ -19,7 +19,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,7 +39,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Topic createTopicImplementation(
-            TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
+            TopicDefinition topicDefinition, StreamingCluster streamingCluster) {
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
         Map<String, Object> options = topicDefinition.getOptions();

@@ -54,7 +54,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ApplicationService {
     private final ApplicationDeployer deployer =
             ApplicationDeployer.builder()
-                    .registry(new ClusterRuntimeRegistry()) // TODO: add config
+                    .registry(new ClusterRuntimeRegistry())
                     .pluginsRegistry(new PluginsRegistry())
                     .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                     .build();

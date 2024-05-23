@@ -17,12 +17,16 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
@@ -82,6 +86,7 @@ public class ProduceGateway implements AutoCloseable {
     }
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
     private TopicProducer producer;
     private List<Header> commonHeaders;
@@ -89,8 +94,10 @@ public class ProduceGateway implements AutoCloseable {
 
     public ProduceGateway(
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
             TopicProducerCache topicProducerCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.topicProducerCache = topicProducerCache;
     }
 
@@ -116,6 +123,15 @@ public class ProduceGateway implements AutoCloseable {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+
+        TopicDefinition topicDefinition = requestContext.application().resolveTopic(topic);
+        StreamingClusterRuntime streamingClusterRuntime =
+                clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, streamingCluster);
+        final String resolvedTopicName = topicImplementation.topicName();
+
         // we need to cache the producer per topic and per config, since an application update could
         // change the configuration
         final TopicProducerCache.Key key =
@@ -123,10 +139,11 @@ public class ProduceGateway implements AutoCloseable {
                         requestContext.tenant(),
                         requestContext.applicationId(),
                         requestContext.gateway().getId(),
-                        topic,
+                        resolvedTopicName,
                         configString);
         producer =
-                topicProducerCache.getOrCreate(key, () -> setupProducer(topic, streamingCluster));
+                topicProducerCache.getOrCreate(
+                        key, () -> setupProducer(resolvedTopicName, streamingCluster));
     }
 
     @AllArgsConstructor

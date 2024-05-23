@@ -16,6 +16,7 @@
 package ai.langstream.apigateway.websocket;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
@@ -49,6 +50,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final TopicProducerCache topicProducerCache;
     private final ExecutorService consumeThreadPool =
@@ -64,12 +66,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                 applicationStore,
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
+                                clusterRuntimeRegistry,
                                 topicProducerCache),
                         CONSUME_PATH)
                 .addHandler(
                         new ProduceHandler(
                                 applicationStore,
                                 topicConnectionsRuntimeRegistry,
+                                clusterRuntimeRegistry,
                                 topicProducerCache),
                         PRODUCE_PATH)
                 .addHandler(
@@ -77,6 +81,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                 applicationStore,
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
+                                clusterRuntimeRegistry,
                                 topicProducerCache),
                         CHAT_PATH)
                 .setAllowedOrigins("*")
@@ -93,5 +98,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @PreDestroy
     public void onDestroy() {
         consumeThreadPool.shutdown();
+        clusterRuntimeRegistry.close();
     }
 }

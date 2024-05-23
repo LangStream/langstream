@@ -23,12 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
@@ -593,7 +588,8 @@ abstract class GatewayResourceTest {
                 .get(2, TimeUnit.MINUTES);
     }
 
-    private void startTopicExchange(String fromTopic, String toTopic) throws Exception {
+    private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
+            throws Exception {
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
                         () -> {
@@ -606,6 +602,8 @@ abstract class GatewayResourceTest {
                                             .getTopicConnectionsRuntime(streamingCluster)
                                             .asTopicConnectionsRuntime();
                             runtime.init(streamingCluster);
+                            final String fromTopic = resolveTopicName(logicalFromTopic);
+                            final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
                                     runtime.createConsumer(
                                             null,
@@ -685,5 +683,9 @@ abstract class GatewayResourceTest {
                 .deploy(
                         deployer.createImplementation(
                                 "app", store.get("t", "app", false).getInstance()));
+    }
+
+    protected String resolveTopicName(String topic) {
+        return topic;
     }
 }

@@ -18,16 +18,54 @@ package ai.langstream.apigateway.websocket.handlers;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.function.Consumer;
+import lombok.SneakyThrows;
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
-public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
+public class PulsarTenantProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
 
     @RegisterExtension
-    static PulsarContainerExtension pulsarContainer = new PulsarContainerExtension();
+    static PulsarContainerExtension pulsarContainer =
+            new PulsarContainerExtension()
+                    .withEnv(
+                            Map.of(
+                                    "PULSAR_PREFIX_forceDeleteTenantAllowed",
+                                    "true",
+                                    "PULSAR_PREFIX_forceDeleteNamespaceAllowed",
+                                    "true"))
+                    .withOnContainerReady(
+                            new Consumer<PulsarContainerExtension>() {
+                                @Override
+                                @SneakyThrows
+                                public void accept(
+                                        PulsarContainerExtension pulsarContainerExtension) {
+                                    try (PulsarAdmin admin =
+                                            PulsarAdmin.builder()
+                                                    .serviceHttpUrl(
+                                                            pulsarContainerExtension
+                                                                    .getHttpServiceUrl())
+                                                    .build(); ) {
+
+                                        TenantInfo info =
+                                                TenantInfo.builder()
+                                                        .allowedClusters(
+                                                                new HashSet<>(
+                                                                        admin.clusters()
+                                                                                .getClusters()))
+                                                        .build();
+                                        admin.tenants().createTenant("mytenant", info);
+                                        admin.namespaces().createNamespace("mytenant/mynamespace");
+                                        admin.tenants().deleteTenant("public", true);
+                                    }
+                                }
+                            });
 
     @Override
     protected StreamingCluster getStreamingCluster() {
@@ -39,9 +77,9 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                         "service",
                         Map.of("serviceUrl", pulsarContainer.getBrokerUrl()),
                         "default-tenant",
-                        "public",
+                        "mytenant",
                         "default-namespace",
-                        "default"));
+                        "mynamespace"));
     }
 
     @TestConfiguration
@@ -60,8 +98,8 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           default-tenant: "public"
-                           default-namespace: "default"
+                           default-tenant: "mytenant"
+                           default-namespace: "mynamespace"
                        computeCluster:
                          type: "none"
                      """

@@ -77,7 +77,6 @@ import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
-import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -121,26 +120,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            // Get the topic from the copy of the configuration without removing it
-            String topic = (String) copy.get("topic");
-            // Check if the topic is already fully qualified in form tenant/namespace/topic
-            // If so, do nothing. If not, get the tenant and namespace from the cluster
-            // configuration
-            if (!topic.contains("/")) {
-                // Add tenant and namespace to get the fully qualified topic name
-                String tenant = "public";
-                String namespace = "default";
-                if (streamingCluster.configuration() != null) {
-                    Map<String, Object> clusterConfiguration = streamingCluster.configuration();
-                    tenant = (String) clusterConfiguration.getOrDefault("default-tenant", tenant);
-                    namespace =
-                            (String)
-                                    clusterConfiguration.getOrDefault(
-                                            "default-namespace", namespace);
-                }
-                copy.put("topic", "%s/%s/%s".formatted(tenant, namespace, topic));
-            }
-
             return new PulsarTopicReader(copy, initialPosition);
         }
 
@@ -151,25 +130,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             copy.remove("deadLetterTopicProducer");
-            // Get the topic from the copy of the configuration without removing it
-            String topic = (String) copy.get("topic");
-            // Check if the topic is already fully qualified in form tenant/namespace/topic
-            // If so, do nothing. If not, get the tenant and namespace from the cluster
-            // configuration
-            if (!topic.contains("/")) {
-                // Add tenant and namespace to get the fully qualified topic name
-                String tenant = "public";
-                String namespace = "default";
-                if (streamingCluster.configuration() != null) {
-                    Map<String, Object> clusterConfiguration = streamingCluster.configuration();
-                    tenant = (String) clusterConfiguration.getOrDefault("default-tenant", tenant);
-                    namespace =
-                            (String)
-                                    clusterConfiguration.getOrDefault(
-                                            "default-namespace", namespace);
-                }
-                copy.put("topic", "%s/%s/%s".formatted(tenant, namespace, topic));
-            }
             return new PulsarTopicConsumer(copy);
         }
 
@@ -179,25 +139,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
-            // Get the topic from the copy of the configuration without removing it
-            String topic = (String) copy.get("topic");
-            // Check if the topic is already fully qualified in form tenant/namespace/topic
-            // If so, do nothing. If not, get the tenant and namespace from the cluster
-            // configuration
-            if (!topic.contains("/")) {
-                // Add tenant and namespace to get the fully qualified topic name
-                String tenant = "public";
-                String namespace = "default";
-                if (streamingCluster.configuration() != null) {
-                    Map<String, Object> clusterConfiguration = streamingCluster.configuration();
-                    tenant = (String) clusterConfiguration.getOrDefault("default-tenant", tenant);
-                    namespace =
-                            (String)
-                                    clusterConfiguration.getOrDefault(
-                                            "default-namespace", namespace);
-                }
-                copy.put("topic", "%s/%s/%s".formatted(tenant, namespace, topic));
-            }
             return new PulsarTopicProducer<>(copy);
         }
 
@@ -280,18 +221,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                             + topic.name().namespace()
                             + "/"
                             + topic.name().name();
-            // Check if tenant exists
-            if (!admin.tenants().getTenants().contains(topic.name().tenant())) {
-                log.info("Creating tenant {}", topic.name().tenant());
-                // Clone tenant roles and allowed clusters from the public tenant
-                TenantInfo publicTenantInfo = admin.tenants().getTenantInfo("public");
-                admin.tenants().createTenant(topic.name().tenant(), publicTenantInfo);
-            }
-            // Check if namespace exists
-            if (!admin.namespaces().getNamespaces(topic.name().tenant()).contains(namespace)) {
-                log.info("Creating namespace {}", namespace);
-                admin.namespaces().createNamespace(namespace);
-            }
             log.info("Listing topics in namespace {}", namespace);
             List<String> existing;
             if (topic.partitions() <= 0) {
@@ -518,7 +447,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             @Override
             public void start() throws Exception {
-                // Add tenant and namespace to get the fully qualified topic name
                 String topic = (String) configuration.remove("topic");
                 reader =
                         client.newReader(Schema.AUTO_CONSUME())
@@ -605,7 +533,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
-                // Add tenant and namespace to get the fully qualified topic name
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
@@ -693,9 +620,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @SneakyThrows
             public void start() {
                 topic = (String) configuration.remove("topic");
-                log.info("Starting producer for topic {}", topic);
-                // If the producer has a specified schema, we intialize it here
-                // Otherwise, we will infer the schema from the first message in the write method
                 if (configuration.containsKey("valueSchema")) {
                     SchemaDefinition valueSchemaDefinition =
                             mapper.convertValue(

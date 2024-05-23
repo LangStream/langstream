@@ -19,6 +19,7 @@ import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
@@ -78,6 +79,7 @@ public class GatewayResource {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
     private final ApplicationStore applicationStore;
     private final GatewayRequestHandler gatewayRequestHandler;
@@ -121,6 +123,7 @@ public class GatewayResource {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
+                        clusterRuntimeRegistry,
                         topicProducerCache)) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
@@ -259,12 +262,14 @@ public class GatewayResource {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
+                        clusterRuntimeRegistry,
                         topicProducerCache); ) {
 
             final ConsumeGateway consumeGateway =
                     new ConsumeGateway(
                             topicConnectionsRuntimeRegistryProvider
-                                    .getTopicConnectionsRuntimeRegistry());
+                                    .getTopicConnectionsRuntimeRegistry(),
+                            clusterRuntimeRegistry);
             completableFuture.thenRunAsync(
                     () -> {
                         if (consumeGateway != null) {

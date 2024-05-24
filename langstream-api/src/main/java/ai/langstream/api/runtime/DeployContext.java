@@ -15,19 +15,61 @@
  */
 package ai.langstream.api.runtime;
 
-import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 
 public interface DeployContext extends AutoCloseable {
 
-    default ApplicationCodeInfo getApplicationCodeInfo(
-            String tenant, String applicationId, String codeArchiveId) {
-        throw new UnsupportedOperationException();
+    DeployContext NO_DEPLOY_CONTEXT = new NoOpDeployContext();
+
+    class NoOpDeployContext implements DeployContext {
+
+        @Override
+        public ApplicationCodeInfo getApplicationCodeInfo(
+                String tenant, String applicationId, String codeArchiveId) {
+            return null;
+        }
+
+        @Override
+        public boolean isAutoUpgradeRuntimeImage() {
+            return false;
+        }
+
+        @Override
+        public boolean isAutoUpgradeRuntimeImagePullPolicy() {
+            return false;
+        }
+
+        @Override
+        public boolean isAutoUpgradeAgentResources() {
+            return false;
+        }
+
+        @Override
+        public boolean isAutoUpgradeAgentPodTemplate() {
+            return false;
+        }
+
+        @Override
+        public long getApplicationSeed() {
+            return -1L;
+        }
+
+        @Override
+        public void close() {}
     }
 
-    default AssetManagerRegistry getAssetManagerRegistry() {
-        throw new UnsupportedOperationException();
-    }
+    ApplicationCodeInfo getApplicationCodeInfo(
+            String tenant, String applicationId, String codeArchiveId);
+
+    boolean isAutoUpgradeRuntimeImage();
+
+    boolean isAutoUpgradeRuntimeImagePullPolicy();
+
+    boolean isAutoUpgradeAgentResources();
+
+    boolean isAutoUpgradeAgentPodTemplate();
+
+    long getApplicationSeed();
 
     @Override
     default void close() {}

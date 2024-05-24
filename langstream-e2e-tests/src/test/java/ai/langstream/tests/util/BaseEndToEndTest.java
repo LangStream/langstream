@@ -121,6 +121,12 @@ public class BaseEndToEndTest implements TestWatcher {
                     "langstream.tests.apps.resources.mem",
                     "256");
 
+    private static final String LANGSTREAM_APPS_STORAGE_CLASS =
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_STORAGE_CLASS",
+                    "langstream.tests.apps.storage.class",
+                    "standard");
+
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -690,7 +696,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 cpuPerUnit: %s
                                 memPerUnit: %s
                                 storageClassesMapping:
-                                    default: standard
+                                    default: %s
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -732,6 +738,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 imagePullPolicy,
                                 LANGSTREAM_APPS_RESOURCES_CPU,
                                 LANGSTREAM_APPS_RESOURCES_MEM,
+                                LANGSTREAM_APPS_STORAGE_CLASS,
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,
@@ -1110,7 +1117,17 @@ public class BaseEndToEndTest implements TestWatcher {
             Map<String, String> env,
             int expectedNumExecutors) {
         deployLocalApplicationAndAwaitReady(
-                tenant, false, applicationId, appDirName, env, expectedNumExecutors);
+                tenant, false, applicationId, appDirName, env, expectedNumExecutors, false);
+    }
+
+    protected static void updateLocalApplicationAndAwaitReady(
+            String tenant,
+            String applicationId,
+            String appDirName,
+            Map<String, String> env,
+            int expectedNumExecutors) {
+        updateLocalApplicationAndAwaitReady(
+                tenant, applicationId, appDirName, env, expectedNumExecutors, false);
     }
 
     @SneakyThrows
@@ -1119,9 +1136,10 @@ public class BaseEndToEndTest implements TestWatcher {
             String applicationId,
             String appDirName,
             Map<String, String> env,
-            int expectedNumExecutors) {
+            int expectedNumExecutors,
+            boolean forceRestart) {
         deployLocalApplicationAndAwaitReady(
-                tenant, true, applicationId, appDirName, env, expectedNumExecutors);
+                tenant, true, applicationId, appDirName, env, expectedNumExecutors, forceRestart);
     }
 
     @SneakyThrows
@@ -1131,11 +1149,18 @@ public class BaseEndToEndTest implements TestWatcher {
             String applicationId,
             String appDirName,
             Map<String, String> env,
-            int expectedNumExecutors) {
+            int expectedNumExecutors,
+            boolean forceRestart) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         final String podUids =
                 deployLocalApplication(
-                        tenant, isUpdate, applicationId, appDirName, instanceFile, env);
+                        tenant,
+                        isUpdate,
+                        applicationId,
+                        appDirName,
+                        instanceFile,
+                        env,
+                        forceRestart);
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()
@@ -1183,6 +1208,19 @@ public class BaseEndToEndTest implements TestWatcher {
             String appDirName,
             File instanceFile,
             Map<String, String> env) {
+        return deployLocalApplication(
+                tenant, isUpdate, applicationId, appDirName, instanceFile, env, false);
+    }
+
+    @SneakyThrows
+    protected static String deployLocalApplication(
+            String tenant,
+            boolean isUpdate,
+            String applicationId,
+            String appDirName,
+            File instanceFile,
+            Map<String, String> env,
+            boolean forceRestart) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         String testAppsBaseDir = "src/test/resources/apps";
         String testSecretBaseDir = "src/test/resources/secrets";
@@ -1232,9 +1270,10 @@ public class BaseEndToEndTest implements TestWatcher {
         } else {
             podUids = "";
         }
+        final String forceRestartFlag = isUpdate && forceRestart ? "--force-restart" : "";
         final String command =
-                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
-                        .formatted(isUpdate ? "update" : "deploy", applicationId);
+                "bin/langstream apps %s %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(isUpdate ? "update" : "deploy", applicationId, forceRestartFlag);
         String logs = executeCommandOnClient((beforeCmd + command).split(" "));
         log.info("Logs after deploy: {}", logs);
         return podUids;

@@ -116,7 +116,7 @@ class KubernetesClusterRuntimeTest {
             String oldCode,
             boolean expectKeep) {
         final DeployContext deployContext =
-                new DeployContext() {
+                new DeployContext.NoOpDeployContext() {
                     @Override
                     public ApplicationCodeInfo getApplicationCodeInfo(
                             String tenant, String applicationId, String codeArchiveId) {

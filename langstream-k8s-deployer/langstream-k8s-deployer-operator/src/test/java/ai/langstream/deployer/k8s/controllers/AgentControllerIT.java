@@ -20,13 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.langstream.api.model.AgentLifecycleStatus;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -129,6 +128,186 @@ public class AgentControllerIT {
         int args = 0;
         assertEquals("agent-runtime", container.getArgs().get(args++));
         assertEquals("/app-config/config", container.getArgs().get(args++));
+    }
+
+    private static StatefulSet findStatefulSetWithPodAnnotation(
+            String namespace, String annotation, String value) {
+        return deployment
+                .getClient()
+                .apps()
+                .statefulSets()
+                .inNamespace(namespace)
+                .list()
+                .getItems()
+                .stream()
+                .filter(
+                        sts ->
+                                value.equals(
+                                        sts.getSpec()
+                                                .getTemplate()
+                                                .getMetadata()
+                                                .getAnnotations()
+                                                .get(annotation)))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Test
+    void testAgentControllerUpdateAgent() throws Exception {
+        final KubernetesClient client = deployment.getClient();
+        final String tenant = genTenant();
+        final String namespace = "langstream-" + tenant;
+        createNamespace(client, namespace);
+
+        final String agentCustomResourceName =
+                AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
+
+        createAgentSecret(client, tenant, agentCustomResourceName, namespace);
+
+        final AgentCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: %s
+                spec:
+                    applicationId: my-app
+                    agentId: agent-id
+                    agentConfigSecretRef: %s
+                    agentConfigSecretRefChecksum: xx
+                    tenant: %s
+                """
+                                .formatted(
+                                        agentCustomResourceName, agentCustomResourceName, tenant));
+
+        client.resource(resource).inNamespace(namespace).create();
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            assertEquals(
+                                    1,
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(namespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                            assertEquals(
+                                    AgentLifecycleStatus.Status.DEPLOYING,
+                                    client.resource(resource)
+                                            .inNamespace(namespace)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            StatefulSet p =
+                                    findStatefulSetWithPodAnnotation(
+                                            namespace, "ai.langstream/config-checksum", "xx");
+                            assertNotNull(p);
+                        });
+
+        StatefulSet sts =
+                findStatefulSetWithPodAnnotation(namespace, "ai.langstream/config-checksum", "xx");
+        assertEquals(
+                "busybox", sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+        DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v2");
+        try {
+            deployment.restartDeployerOperator();
+
+            AgentCustomResource resource2 =
+                    client.resources(AgentCustomResource.class)
+                            .inNamespace(namespace)
+                            .withName(agentCustomResourceName)
+                            .get();
+            resource2.getSpec().setAgentConfigSecretRefChecksum("xx2");
+            client.resource(resource2).inNamespace(namespace).update();
+
+            Awaitility.await()
+                    .atMost(30, TimeUnit.SECONDS)
+                    .untilAsserted(
+                            () -> {
+                                StatefulSet p =
+                                        findStatefulSetWithPodAnnotation(
+                                                namespace, "ai.langstream/config-checksum", "xx2");
+                                assertNotNull(p);
+                            });
+            sts =
+                    findStatefulSetWithPodAnnotation(
+                            namespace, "ai.langstream/config-checksum", "xx2");
+            assertEquals(
+                    "busybox",
+                    sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+            resource2 =
+                    client.resources(AgentCustomResource.class)
+                            .inNamespace(namespace)
+                            .withName(agentCustomResourceName)
+                            .get();
+            resource2.getSpec().setAgentConfigSecretRefChecksum("xx3");
+            resource2
+                    .getSpec()
+                    .setOptions(
+                            "{\"autoUpgradeRuntimeImage\": true, \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true}");
+
+            client.resource(resource2).inNamespace(namespace).update();
+
+            Awaitility.await()
+                    .atMost(30, TimeUnit.SECONDS)
+                    .untilAsserted(
+                            () -> {
+                                StatefulSet p =
+                                        findStatefulSetWithPodAnnotation(
+                                                namespace, "ai.langstream/config-checksum", "xx3");
+                                assertNotNull(p);
+                            });
+            sts =
+                    findStatefulSetWithPodAnnotation(
+                            namespace, "ai.langstream/config-checksum", "xx3");
+            assertEquals(
+                    "busybox:v2",
+                    sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+            DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v3");
+            deployment.restartDeployerOperator();
+
+            resource2 =
+                    client.resources(AgentCustomResource.class)
+                            .inNamespace(namespace)
+                            .withName(agentCustomResourceName)
+                            .get();
+            resource2
+                    .getSpec()
+                    .setOptions(
+                            "{\"autoUpgradeRuntimeImage\": true, \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true,\"applicationSeed\": 123}");
+
+            client.resource(resource2).inNamespace(namespace).update();
+
+            Awaitility.await()
+                    .untilAsserted(
+                            () -> {
+                                StatefulSet p =
+                                        findStatefulSetWithPodAnnotation(
+                                                namespace, "ai.langstream/application-seed", "123");
+                                assertNotNull(p);
+                            });
+            sts =
+                    findStatefulSetWithPodAnnotation(
+                            namespace, "ai.langstream/config-checksum", "xx3");
+            assertEquals(
+                    "busybox:v3",
+                    sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+        } finally {
+            DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox");
+        }
     }
 
     static AtomicInteger counter = new AtomicInteger(0);
@@ -276,6 +455,19 @@ public class AgentControllerIT {
                                 .withName(namespace)
                                 .endMetadata()
                                 .build())
+                .serverSideApply();
+
+        deployment
+                .getClient()
+                .resource(
+                        new ServiceAccountBuilder()
+                                .withNewMetadata()
+                                .withName(
+                                        CRDConstants.computeRuntimeServiceAccountForTenant(
+                                                namespace.replace("langstream-", "")))
+                                .endMetadata()
+                                .build())
+                .inNamespace(namespace)
                 .serverSideApply();
     }
 }

@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
@@ -114,7 +115,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"autoUpgradeRuntimeImage\\":false,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -213,7 +214,7 @@ class AppResourcesFactoryTest {
                                   name: cluster-config
                               initContainers:
                               - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
+                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"autoUpgradeRuntimeImage\\":false,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
                                 command:
                                 - bash
                                 - -c
@@ -539,6 +540,78 @@ class AppResourcesFactoryTest {
         final Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals("busybox:v1", container.getImage());
         assertEquals("Never", container.getImagePullPolicy());
+    }
+
+    @Test
+    void testNoUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"autoUpgradeRuntimeImage": false, "autoUpgradeRuntimeImagePullPolicy": false, "autoUpgradeAgentResources": false, "autoUpgradeAgentPodTemplate": false}'
+                """);
+
+        Job job =
+                AppResourcesFactory.generateDeployerJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build());
+        final Container container =
+                job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
+        System.out.println("args=" + container.getArgs().get(0));
+        assertTrue(
+                container
+                        .getArgs()
+                        .get(0)
+                        .contains(
+                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":false,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
+    }
+
+    @Test
+    void testUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"autoUpgradeRuntimeImage": true, "autoUpgradeRuntimeImagePullPolicy": true, "autoUpgradeAgentResources": true, "autoUpgradeAgentPodTemplate": true}'
+                """);
+
+        Job job =
+                AppResourcesFactory.generateDeployerJob(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build());
+        final Container container =
+                job.getSpec().getTemplate().getSpec().getInitContainers().get(0);
+        System.out.println("args=" + container.getArgs().get(0));
+        assertTrue(
+                container
+                        .getArgs()
+                        .get(0)
+                        .contains(
+                                "\"deployFlags\":{\"autoUpgradeRuntimeImage\":true,\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true,\"seed\":0}"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

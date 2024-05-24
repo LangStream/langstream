@@ -53,6 +53,7 @@ class AgentResourcesFactoryTest {
                     tenant: my-tenant
                     applicationId: the-'app
                     agentId: my-agent
+                    options: '{"autoUpgradeRuntimeImage": true}'
                 """);
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
@@ -91,6 +92,7 @@ class AgentResourcesFactoryTest {
                           template:
                             metadata:
                               annotations:
+                                ai.langstream/application-seed: 0
                                 ai.langstream/config-checksum: xx
                               labels:
                                 app: langstream-runtime

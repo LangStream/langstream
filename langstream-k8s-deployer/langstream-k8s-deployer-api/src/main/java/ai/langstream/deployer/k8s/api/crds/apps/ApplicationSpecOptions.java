@@ -29,4 +29,9 @@ public class ApplicationSpecOptions {
 
     private DeleteMode deleteMode = DeleteMode.CLEANUP_REQUIRED;
     private boolean markedForDeletion;
+    private long seed;
+    private boolean autoUpgradeRuntimeImage;
+    private boolean autoUpgradeRuntimeImagePullPolicy;
+    private boolean autoUpgradeAgentResources;
+    private boolean autoUpgradeAgentPodTemplate;
 }

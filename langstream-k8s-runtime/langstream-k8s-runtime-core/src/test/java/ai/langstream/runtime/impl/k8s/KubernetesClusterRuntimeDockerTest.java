@@ -61,7 +61,7 @@ class KubernetesClusterRuntimeDockerTest {
     static KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     private ApplicationDeployer getDeployer() {
-        return getDeployer(null);
+        return getDeployer(DeployContext.NO_DEPLOY_CONTEXT);
     }
 
     private ApplicationDeployer getDeployer(DeployContext deployContext) {
@@ -309,7 +309,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         ApplicationDeployer deployer =
                 getDeployer(
-                        new DeployContext() {
+                        new DeployContext.NoOpDeployContext() {
                             @Override
                             public ApplicationCodeInfo getApplicationCodeInfo(
                                     String tenant, String applicationId, String codeArchiveId) {

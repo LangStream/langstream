@@ -270,13 +270,7 @@ public class GatewayResource {
                             topicConnectionsRuntimeRegistryProvider
                                     .getTopicConnectionsRuntimeRegistry(),
                             clusterRuntimeRegistry);
-            completableFuture.thenRunAsync(
-                    () -> {
-                        if (consumeGateway != null) {
-                            consumeGateway.close();
-                        }
-                    },
-                    consumeThreadPool);
+            completableFuture.thenRunAsync(consumeGateway::close, consumeThreadPool);
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
@@ -297,7 +291,7 @@ public class GatewayResource {
                 final AtomicBoolean stop = new AtomicBoolean(false);
                 consumeGateway.startReadingAsync(
                         consumeThreadPool,
-                        () -> stop.get(),
+                        stop::get,
                         record -> {
                             stop.set(true);
                             completableFuture.complete(ResponseEntity.ok(record));

@@ -199,7 +199,9 @@ class ApplicationServiceResourceLimitTest {
                 String applicationId,
                 Application applicationInstance,
                 String codeArchiveReference,
-                ExecutionPlan executionPlan) {
+                ExecutionPlan executionPlan,
+                boolean autoUpgrade,
+                boolean forceRestart) {
             throw new UnsupportedOperationException();
         }
 

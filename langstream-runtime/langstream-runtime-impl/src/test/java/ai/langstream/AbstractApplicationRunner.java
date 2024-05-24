@@ -22,6 +22,7 @@ import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
@@ -165,6 +166,7 @@ public abstract class AbstractApplicationRunner {
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
                         .build();

@@ -139,17 +139,21 @@ public class KubernetesApplicationStore implements ApplicationStore {
             String applicationId,
             Application applicationInstance,
             String codeArchiveId,
-            ExecutionPlan executionPlan) {
+            ExecutionPlan executionPlan,
+            boolean autoUpgrade,
+            boolean forceRestart) {
         final ApplicationCustomResource existing =
                 getApplicationCustomResource(tenant, applicationId);
+        final ApplicationSpecOptions existingOptions =
+                existing != null
+                        ? ApplicationSpec.deserializeOptions(existing.getSpec().getOptions())
+                        : null;
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(
                         "Application " + applicationId + " is marked for deletion.");
             }
-            final ApplicationSpecOptions options =
-                    ApplicationSpec.deserializeOptions(existing.getSpec().getOptions());
-            if (options.isMarkedForDeletion()) {
+            if (existingOptions.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(
                         "Application " + applicationId + " is marked for deletion.");
             }
@@ -167,6 +171,22 @@ public class KubernetesApplicationStore implements ApplicationStore {
         spec.setTenant(tenant);
         spec.setApplication(ApplicationSpec.serializeApplication(serializedApp));
         spec.setCodeArchiveId(codeArchiveId);
+        ApplicationSpecOptions specOptions = new ApplicationSpecOptions();
+        specOptions.setAutoUpgradeRuntimeImage(autoUpgrade);
+        specOptions.setAutoUpgradeRuntimeImagePullPolicy(autoUpgrade);
+        specOptions.setAutoUpgradeAgentResources(autoUpgrade);
+        specOptions.setAutoUpgradeAgentPodTemplate(autoUpgrade);
+        if (forceRestart) {
+            specOptions.setSeed(System.nanoTime());
+        } else {
+            // very important to not overwrite the seed if we are not forcing a restart
+            if (existingOptions != null) {
+                specOptions.setSeed(existingOptions.getSeed());
+            } else {
+                specOptions.setSeed(0L);
+            }
+        }
+        spec.setOptions(ApplicationSpec.serializeOptions(specOptions));
 
         log.info(
                 "Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);

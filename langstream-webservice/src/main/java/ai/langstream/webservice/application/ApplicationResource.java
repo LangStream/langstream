@@ -144,7 +144,8 @@ public class ApplicationResource {
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "dry-run", required = false) boolean dryRun)
+            @RequestParam(value = "dry-run", required = false) boolean dryRun,
+            @RequestParam(value = "auto-upgrade", required = false) boolean autoUpgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -166,7 +167,8 @@ public class ApplicationResource {
                     tenant,
                     applicationId,
                     parsedApplication.getApplication(),
-                    parsedApplication.getCodeArchiveReference());
+                    parsedApplication.getCodeArchiveReference(),
+                    autoUpgrade);
             application = parsedApplication.getApplication().getApplication();
         }
         return new ApplicationDescription.ApplicationDefinition(application);
@@ -181,7 +183,12 @@ public class ApplicationResource {
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "force", required = false, defaultValue = "false") Boolean force)
+            @RequestParam(value = "skip-validation", required = false, defaultValue = "false")
+                    boolean skipValidation,
+            @RequestParam(value = "force-restart", required = false, defaultValue = "false")
+                    boolean forceRestart,
+            @RequestParam(value = "auto-upgrade", required = false, defaultValue = "false")
+                    boolean autoUpgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -191,7 +198,9 @@ public class ApplicationResource {
                 applicationId,
                 parsedApplication.getApplication(),
                 parsedApplication.getCodeArchiveReference(),
-                force);
+                skipValidation,
+                autoUpgrade,
+                forceRestart);
     }
 
     @Data

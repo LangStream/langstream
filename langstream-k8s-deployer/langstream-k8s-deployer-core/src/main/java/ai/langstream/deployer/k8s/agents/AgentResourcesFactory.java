@@ -583,7 +583,12 @@ public class AgentResourcesFactory {
                                         memCpuUnits
                                                 * agentResourceUnitConfiguration.getMemPerUnit())));
 
-        return new ResourceRequirementsBuilder().withRequests(quantities).build();
+        ResourceRequirementsBuilder resourceRequirementsBuilder =
+                new ResourceRequirementsBuilder().withRequests(quantities);
+        if (agentResourceUnitConfiguration.isUseResourcesLimit()) {
+            resourceRequirementsBuilder.withLimits(quantities);
+        }
+        return resourceRequirementsBuilder.build();
     }
 
     public static Map<String, String> getAgentLabels(String agentId, String applicationId) {

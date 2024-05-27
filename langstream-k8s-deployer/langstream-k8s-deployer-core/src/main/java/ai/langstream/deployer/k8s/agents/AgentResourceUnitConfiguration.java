@@ -34,6 +34,7 @@ public class AgentResourceUnitConfiguration {
     private int maxInstanceUnits = 8;
 
     private int defaultMaxTotalResourceUnitsPerTenant = 0;
+    private boolean useResourcesLimit = false;
 
     private boolean enableLivenessProbe = true;
     private int livenessProbeInitialDelaySeconds = 10;

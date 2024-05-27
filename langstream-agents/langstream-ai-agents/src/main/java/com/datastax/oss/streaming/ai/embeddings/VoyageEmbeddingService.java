@@ -18,9 +18,7 @@ package com.datastax.oss.streaming.ai.embeddings;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -63,7 +61,7 @@ public class VoyageEmbeddingService implements EmbeddingsService {
     private final String token;
     private final HttpClient httpClient;
 
-    private final URL modelUrl;
+    private final URI modelUrl;
 
     private static final int MAX_RETRIES = 3;
 
@@ -86,13 +84,13 @@ public class VoyageEmbeddingService implements EmbeddingsService {
         public String encodingFormat;
     }
 
-    public VoyageEmbeddingService(VoyageApiConfig conf) throws MalformedURLException {
+    public VoyageEmbeddingService(VoyageApiConfig conf) {
         this.conf = conf;
         this.model = conf.model;
         this.token = conf.accessKey;
-        this.modelUrl = new URL(conf.vgUrl);
+        this.modelUrl = URI.create(conf.vgUrl);
 
-        this.httpClient = HttpClient.newBuilder().build();
+        this.httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
     }
 
     @Override
@@ -111,9 +109,9 @@ public class VoyageEmbeddingService implements EmbeddingsService {
         }
 
         VoyagePojo pojo = pojoBuilder.build();
-        String jsonContent;
+        byte[] jsonContent;
         try {
-            jsonContent = om.writeValueAsString(pojo);
+            jsonContent = om.writeValueAsBytes(pojo);
         } catch (Exception e) {
             log.error("Failed to serialize request", e);
             return CompletableFuture.failedFuture(e);
@@ -154,20 +152,13 @@ public class VoyageEmbeddingService implements EmbeddingsService {
                         });
     }
 
-    private CompletableFuture<String> query(String jsonPayload, int attempt) {
-        HttpRequest request;
-        try {
-            request =
-                    HttpRequest.newBuilder()
-                            .uri(modelUrl.toURI())
-                            .header("Authorization", "Bearer " + token)
-                            .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                            .build();
-        } catch (URISyntaxException e) {
-            log.error("Invalid URI: {}", modelUrl, e);
-            return CompletableFuture.failedFuture(e);
-        }
-
+    private CompletableFuture<String> query(byte[] jsonPayload, int attempt) {
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(modelUrl)
+                        .header("Authorization", "Bearer " + token)
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(jsonPayload))
+                        .build();
         return httpClient
                 .sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(
@@ -206,7 +197,7 @@ public class VoyageEmbeddingService implements EmbeddingsService {
                         });
     }
 
-    public CompletableFuture<String> query(String jsonPayload) {
+    public CompletableFuture<String> query(byte[] jsonPayload) {
         return query(jsonPayload, 0);
     }
 }

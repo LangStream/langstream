@@ -132,9 +132,6 @@ class AgentResourcesFactoryTest {
                                   periodSeconds: 30
                                   timeoutSeconds: 5
                                 resources:
-                                  limits:
-                                    cpu: 0.500000
-                                    memory: 512M
                                   requests:
                                     cpu: 0.500000
                                     memory: 512M

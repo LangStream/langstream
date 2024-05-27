@@ -20,12 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-// disabled, just for experiments/usage demo
 @Slf4j
+@Disabled("just for experiments/usage demo")
 public class VoyageEmbeddingServiceTest {
     private String voyageApiKey = "xxxxxxxxxx"; // replace with your own API key
 
-    @Disabled
     @Test
     public void testVoyage2() throws Exception {
         VoyageEmbeddingService.VoyageApiConfig conf =
@@ -42,7 +41,6 @@ public class VoyageEmbeddingServiceTest {
         }
     }
 
-    @Disabled
     @Test
     public void testVoyageLarge2() throws Exception {
         VoyageEmbeddingService.VoyageApiConfig conf =

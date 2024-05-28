@@ -28,6 +28,7 @@ import ai.langstream.tests.util.k8s.LocalK3sContainer;
 import ai.langstream.tests.util.k8s.RunningHostCluster;
 import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
 import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
+import ai.langstream.tests.util.pulsar.LocalPulsarStandaloneProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Container;
@@ -105,7 +106,7 @@ public class BaseEndToEndTest implements TestWatcher {
             SystemOrEnv.getProperty("LANGSTREAM_TESTS_K8S", "langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
             SystemOrEnv.getProperty(
-                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
+                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-pulsar");
     private static final String LANGSTREAM_CODESTORAGE =
             SystemOrEnv.getProperty(
                     "LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
@@ -505,6 +506,8 @@ public class BaseEndToEndTest implements TestWatcher {
                 return new LocalRedPandaClusterProvider(client);
             case "remote-kafka":
                 return new RemoteKafkaProvider();
+            case "local-pulsar":
+                return new LocalPulsarStandaloneProvider(client);
             default:
                 throw new IllegalArgumentException(
                         "Unknown LANGSTREAM_STREAMING: " + LANGSTREAM_STREAMING);
@@ -794,7 +797,7 @@ public class BaseEndToEndTest implements TestWatcher {
                         });
     }
 
-    private static boolean checkPodReadiness(Pod pod) {
+    public static boolean checkPodReadiness(Pod pod) {
         final boolean ready = Readiness.getInstance().isReady(pod);
         if (!ready) {
             String podLogs;

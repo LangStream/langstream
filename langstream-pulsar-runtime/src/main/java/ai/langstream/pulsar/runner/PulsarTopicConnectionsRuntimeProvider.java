@@ -37,6 +37,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
+import ai.langstream.pulsar.PulsarName;
 import ai.langstream.pulsar.PulsarTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -48,11 +49,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -74,6 +71,7 @@ import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.KeyValueSchema;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
@@ -120,6 +118,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
             Map<String, Object> copy = new HashMap<>(configuration);
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicReader(copy, initialPosition);
         }
 
@@ -130,6 +129,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
             copy.remove("deadLetterTopicProducer");
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicConsumer(copy);
         }
 
@@ -139,7 +139,24 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
             Map<String, Object> copy = new HashMap<>(configuration);
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicProducer<>(copy);
+        }
+
+        private static void applyFullQualifiedTopicName(
+                StreamingCluster streamingCluster, Map<String, Object> copy) {
+            String topic = (String) copy.get("topic");
+            if (topic != null && !topic.contains("/")) {
+                PulsarClusterRuntimeConfiguration runtimeConfiguration =
+                        getPulsarClusterRuntimeConfiguration(streamingCluster);
+                topic =
+                        new PulsarName(
+                                        runtimeConfiguration.defaultTenant(),
+                                        runtimeConfiguration.defaultNamespace(),
+                                        topic)
+                                .toPulsarName();
+                copy.put("topic", topic);
+            }
         }
 
         @Override
@@ -215,12 +232,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 throws PulsarAdminException {
             String createMode = topic.createMode();
             String namespace = topic.name().tenant() + "/" + topic.name().namespace();
-            String topicName =
-                    topic.name().tenant()
-                            + "/"
-                            + topic.name().namespace()
-                            + "/"
-                            + topic.name().name();
+            String topicName = topic.name().toPulsarName();
             log.info("Listing topics in namespace {}", namespace);
             List<String> existing;
             if (topic.partitions() <= 0) {
@@ -588,7 +600,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             private final Map<String, Object> configuration;
             private final AtomicLong totalIn = new AtomicLong();
-            String topic;
+            volatile String topic;
             volatile Producer<K> producer;
             volatile Schema<K> schema;
 
@@ -619,28 +631,53 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
-                topic = (String) configuration.remove("topic");
-                if (configuration.containsKey("valueSchema")) {
-                    SchemaDefinition valueSchemaDefinition =
-                            mapper.convertValue(
-                                    configuration.remove("valueSchema"), SchemaDefinition.class);
-                    Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
-                    if (configuration.containsKey("keySchema")) {
-                        SchemaDefinition keySchemaDefinition =
-                                mapper.convertValue(
-                                        configuration.remove("keySchema"), SchemaDefinition.class);
-                        Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
-                        schema =
-                                (Schema<K>)
-                                        Schema.KeyValue(
-                                                keySchema,
-                                                valueSchema,
-                                                KeyValueEncodingType.SEPARATED);
+                synchronized (this) {
+                    if (topic != null) {
+                        return;
+                    }
+                    String localTopic = (String) configuration.remove("topic");
+                    Objects.requireNonNull(localTopic, "topic is required");
+                    Optional<SchemaInfo> existingSchema =
+                            ((PulsarClientImpl) client)
+                                    .getSchema(localTopic)
+                                    .get(30, TimeUnit.SECONDS);
+                    if (existingSchema.isPresent()) {
+                        log.info("Found existing schema from topic {}", localTopic);
+                        schema = (Schema<K>) Schema.getSchema(existingSchema.get());
+                        configuration.remove("valueSchema");
+                        configuration.remove("keySchema");
                     } else {
-                        schema = (Schema<K>) valueSchema;
+                        if (configuration.containsKey("valueSchema")) {
+                            log.info("Using schema from topic definition {}", localTopic);
+                            SchemaDefinition valueSchemaDefinition =
+                                    mapper.convertValue(
+                                            configuration.remove("valueSchema"),
+                                            SchemaDefinition.class);
+                            Schema<?> valueSchema =
+                                    Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                            if (configuration.containsKey("keySchema")) {
+                                SchemaDefinition keySchemaDefinition =
+                                        mapper.convertValue(
+                                                configuration.remove("keySchema"),
+                                                SchemaDefinition.class);
+                                Schema<?> keySchema =
+                                        Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                                schema =
+                                        (Schema<K>)
+                                                Schema.KeyValue(
+                                                        keySchema,
+                                                        valueSchema,
+                                                        KeyValueEncodingType.SEPARATED);
+                            } else {
+                                schema = (Schema<K>) valueSchema;
+                            }
+                        }
                     }
                     log.info("Schema is {}", schema);
-                    initializeProducer();
+                    topic = localTopic;
+                    if (schema != null) {
+                        initializeProducer();
+                    }
                 }
             }
 
@@ -657,7 +694,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
             }
 
-            private Schema<?> getSchema(Class<?> klass) {
+            private static Schema<?> getSchema(Class<?> klass) {
                 Schema<?> schema = BASE_SCHEMAS.get(klass);
                 if (schema == null) {
                     throw new IllegalArgumentException("Cannot infer schema for " + klass);
@@ -675,42 +712,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 // and initialize the producer. For subsequent writes, the producer the schema
                 // is set so a new producer is not started
                 // Synchronize the initialization of the schema and producer
-                if (schema == null) {
+                if (schema == null || producer == null) {
                     synchronized (this) {
                         // Double-check idiom to avoid race conditions
-                        if (schema == null) {
+                        if (schema == null || producer == null) {
                             try {
-                                final Schema<?> valueSchema;
-                                if (r.value() != null) {
-                                    valueSchema = getSchema(r.value().getClass());
-                                } else {
-                                    valueSchema = Schema.BYTES;
-                                }
-                                if (r.key() != null) {
-                                    Schema<?> keySchema = getSchema(r.key().getClass());
-                                    schema =
-                                            (Schema<K>)
-                                                    Schema.KeyValue(
-                                                            keySchema,
-                                                            valueSchema,
-                                                            KeyValueEncodingType.SEPARATED);
-                                } else {
-                                    schema = (Schema<K>) valueSchema;
-                                }
-                                log.info("Inferred schema {}", schema);
-
-                            } catch (Exception e) {
-                                return CompletableFuture.failedFuture(e);
-                            }
-                        }
-                    }
-                }
-                if (producer == null) {
-                    synchronized (this) {
-                        if (producer == null) {
-                            try {
+                                inferSchemaFromRecord(r);
                                 initializeProducer();
-                            } catch (Exception e) {
+                            } catch (Throwable e) {
                                 return CompletableFuture.failedFuture(e);
                             }
                         }
@@ -745,6 +754,25 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
 
                 return message.sendAsync();
+            }
+
+            private void inferSchemaFromRecord(Record r) {
+                final Schema<?> valueSchema;
+                if (r.value() != null) {
+                    valueSchema = getSchema(r.value().getClass());
+                } else {
+                    valueSchema = Schema.BYTES;
+                }
+                if (r.key() != null) {
+                    Schema<?> keySchema = getSchema(r.key().getClass());
+                    schema =
+                            (Schema<K>)
+                                    Schema.KeyValue(
+                                            keySchema, valueSchema, KeyValueEncodingType.SEPARATED);
+                } else {
+                    schema = (Schema<K>) valueSchema;
+                }
+                log.info("Inferred schema from record {} -> {}", r, schema);
             }
 
             private Object convertValue(Object value, Schema<?> schema) {

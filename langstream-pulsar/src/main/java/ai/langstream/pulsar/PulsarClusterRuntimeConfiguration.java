@@ -34,7 +34,7 @@ public record PulsarClusterRuntimeConfiguration(
             defaultTenant = "public";
         }
         if (defaultNamespace == null) {
-            defaultNamespace = "public";
+            defaultNamespace = "default";
         }
     }
 }

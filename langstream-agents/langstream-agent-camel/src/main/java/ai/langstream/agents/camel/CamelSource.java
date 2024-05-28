@@ -21,6 +21,8 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,9 +37,6 @@ import org.apache.camel.Message;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.support.AsyncProcessorSupport;
-import org.jetbrains.annotations.Nullable;
-import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
 public class CamelSource extends AbstractAgentCode implements AgentSource {
@@ -153,7 +152,6 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
             return true;
         }
 
-        @Nullable
         private static Object safeObject(Object v) throws JsonProcessingException {
             Object converted;
             if (v == null) {

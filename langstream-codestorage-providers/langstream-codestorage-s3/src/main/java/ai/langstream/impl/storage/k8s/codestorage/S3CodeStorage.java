@@ -31,21 +31,18 @@ import io.minio.StatObjectResponse;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
-import io.minio.http.HttpUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
@@ -76,16 +73,21 @@ public class S3CodeStorage implements CodeStorage {
         log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
 
         httpClient =
-                HttpUtils.newDefaultHttpClient(
-                        DEFAULT_CONNECTION_TIMEOUT,
-                        DEFAULT_CONNECTION_TIMEOUT,
-                        DEFAULT_CONNECTION_TIMEOUT);
-        minioClient =
-                MinioClient.builder()
-                        .endpoint(endpoint)
-                        .httpClient(httpClient)
-                        .credentials(accessKey, secretKey)
+                new OkHttpClient.Builder()
+                        .connectTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                        .writeTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                        .readTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                        .protocols(List.of(Protocol.HTTP_1_1))
+                        .retryOnConnectionFailure(true)
                         .build();
+        MinioClient.Builder builder =
+                MinioClient.builder().endpoint(endpoint).httpClient(httpClient);
+        if (accessKey != null && secretKey != null) {
+            builder = builder.credentials(accessKey, secretKey);
+        } else {
+            log.warn("No accessKey or secretKey provided, using anonymous access");
+        }
+        minioClient = builder.build();
 
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
@@ -242,5 +244,9 @@ public class S3CodeStorage implements CodeStorage {
                 }
             }
         }
+    }
+
+    MinioClient getMinioClient() {
+        return minioClient;
     }
 }

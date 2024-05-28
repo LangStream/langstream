@@ -64,7 +64,7 @@
     <mockito-inline.version>5.2.0</mockito-inline.version>
     <awaitility.version>4.2.0</awaitility.version>
     <kubernetes-client.version>6.7.2</kubernetes-client.version>
-    <minio.version>8.5.4</minio.version>
+    <minio.version>8.5.9</minio.version>
     <bouncy-castle.version>1.70</bouncy-castle.version>
     <kindcontainer.version>1.4.1</kindcontainer.version>
     <wiremock.version>3.0.1</wiremock.version>

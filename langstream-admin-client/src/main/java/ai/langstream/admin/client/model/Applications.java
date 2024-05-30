@@ -28,12 +28,14 @@ public interface Applications {
             String application,
             MultiPartBodyPublisher multiPartBodyPublisher,
             boolean dryRun,
-            boolean autoUpgrade);
+            String runtimeVersion,
+            Boolean autoUpdateConfig);
 
     void update(
             String application,
             MultiPartBodyPublisher multiPartBodyPublisher,
-            boolean autoUpgrade,
+            String runtimeVersion,
+            Boolean autoUpdateConfig,
             boolean forceRestart,
             boolean skipValidation);
 

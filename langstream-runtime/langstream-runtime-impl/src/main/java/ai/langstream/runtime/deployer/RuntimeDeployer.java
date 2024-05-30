@@ -74,7 +74,7 @@ public class RuntimeDeployer {
                         clusterConfiguration,
                         token,
                         tenant,
-                        deployFlags.isAutoUpgradeRuntimeImage(),
+                        deployFlags.getRuntimeVersion(),
                         deployFlags.isAutoUpgradeRuntimeImagePullPolicy(),
                         deployFlags.isAutoUpgradeAgentResources(),
                         deployFlags.isAutoUpgradeAgentPodTemplate(),
@@ -127,7 +127,7 @@ public class RuntimeDeployer {
     private static class DeployContextImpl implements DeployContext {
 
         private final AdminClient adminClient;
-        private final boolean autoUpgradeRuntimeImage;
+        private final String runtimeVersion;
         private final boolean autoUpgradeRuntimeImagePullPolicy;
         private final boolean autoUpgradeAgentResources;
         private final boolean autoUpgradeAgentPodTemplate;
@@ -137,7 +137,7 @@ public class RuntimeDeployer {
                 ClusterConfiguration clusterConfiguration,
                 String token,
                 String tenant,
-                boolean autoUpgradeRuntimeImage,
+                String runtimeVersion,
                 boolean autoUpgradeRuntimeImagePullPolicy,
                 boolean autoUpgradeAgentResources,
                 boolean autoUpgradeAgentPodTemplate,
@@ -147,7 +147,7 @@ public class RuntimeDeployer {
             } else {
                 adminClient = createAdminClient(clusterConfiguration, token, tenant);
             }
-            this.autoUpgradeRuntimeImage = autoUpgradeRuntimeImage;
+            this.runtimeVersion = runtimeVersion;
             this.autoUpgradeRuntimeImagePullPolicy = autoUpgradeRuntimeImagePullPolicy;
             this.autoUpgradeAgentResources = autoUpgradeAgentResources;
             this.autoUpgradeAgentPodTemplate = autoUpgradeAgentPodTemplate;
@@ -155,8 +155,8 @@ public class RuntimeDeployer {
         }
 
         @Override
-        public boolean isAutoUpgradeRuntimeImage() {
-            return autoUpgradeRuntimeImage;
+        public String getRuntimeVersion() {
+            return runtimeVersion;
         }
 
         @Override

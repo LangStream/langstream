@@ -13,28 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.deployer.k8s.api.crds.apps;
+package ai.langstream.api.model;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-public class ApplicationSpecOptions {
+public class ApplicationDeploySpecs {
 
-    public static String RUNTIME_VERSION_NO_UPGRADE = "no-upgrade";
-    public static String RUNTIME_VERSION_AUTO_UPGRADE = "auto-upgrade";
-
-    public enum DeleteMode {
-        CLEANUP_REQUIRED,
-        CLEANUP_BEST_EFFORT;
-    }
-
-    private DeleteMode deleteMode = DeleteMode.CLEANUP_REQUIRED;
-    private boolean markedForDeletion;
-    private long seed;
     private String runtimeVersion;
-    private boolean autoUpgradeRuntimeImagePullPolicy;
-    private boolean autoUpgradeAgentResources;
-    private boolean autoUpgradeAgentPodTemplate;
+    private Boolean autoUpgradeRuntimeImagePullPolicy;
+    private Boolean autoUpgradeAgentResources;
+    private Boolean autoUpgradeAgentPodTemplate;
 }

@@ -15,11 +15,7 @@
  */
 package ai.langstream.impl.storage.k8s.apps;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.ApplicationStatus;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
@@ -140,7 +136,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
             Application applicationInstance,
             String codeArchiveId,
             ExecutionPlan executionPlan,
-            boolean autoUpgrade,
+            ApplicationDeploySpecs deploySpecs,
             boolean forceRestart) {
         final ApplicationCustomResource existing =
                 getApplicationCustomResource(tenant, applicationId);
@@ -172,10 +168,38 @@ public class KubernetesApplicationStore implements ApplicationStore {
         spec.setApplication(ApplicationSpec.serializeApplication(serializedApp));
         spec.setCodeArchiveId(codeArchiveId);
         ApplicationSpecOptions specOptions = new ApplicationSpecOptions();
-        specOptions.setAutoUpgradeRuntimeImage(autoUpgrade);
-        specOptions.setAutoUpgradeRuntimeImagePullPolicy(autoUpgrade);
-        specOptions.setAutoUpgradeAgentResources(autoUpgrade);
-        specOptions.setAutoUpgradeAgentPodTemplate(autoUpgrade);
+
+        specOptions.setRuntimeVersion(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getRuntimeVersion,
+                        existingOptions,
+                        ApplicationSpecOptions::getRuntimeVersion,
+                        null));
+        specOptions.setAutoUpgradeRuntimeImagePullPolicy(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentResources,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeRuntimeImagePullPolicy,
+                        false));
+
+        specOptions.setAutoUpgradeAgentResources(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentResources,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeAgentResources,
+                        false));
+
+        specOptions.setAutoUpgradeAgentPodTemplate(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentPodTemplate,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeAgentPodTemplate,
+                        false));
+
         if (forceRestart) {
             specOptions.setSeed(System.nanoTime());
         } else {
@@ -212,6 +236,25 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                                         applicationInstance.getSecrets()))))
                         .build();
         client.resource(secret).inNamespace(namespace).serverSideApply();
+    }
+
+    private static <T> T deploySpecsOrExistingOrDefault(
+            ApplicationDeploySpecs specs,
+            Function<ApplicationDeploySpecs, T> fromSpecs,
+            ApplicationSpecOptions existing,
+            Function<ApplicationSpecOptions, T> fromExisting,
+            T defaultValue) {
+        T value = null;
+        if (specs != null) {
+            value = fromSpecs.apply(specs);
+        }
+        if (value == null && existing != null) {
+            value = fromExisting.apply(existing);
+        }
+        if (value == null) {
+            value = defaultValue;
+        }
+        return value;
     }
 
     @Override

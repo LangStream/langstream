@@ -148,7 +148,7 @@ public class LocalApplicationRunner
                 applicationInstance,
                 "no-code-archive-reference",
                 implementation,
-                false,
+                null,
                 false);
 
         return new ApplicationRuntime(

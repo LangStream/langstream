@@ -15,13 +15,7 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.ResourcesSpec;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.*;
 import ai.langstream.api.storage.ApplicationStore;
@@ -73,7 +67,7 @@ public class ApplicationService {
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
             String codeArchiveReference,
-            boolean autoUpgrade) {
+            ApplicationDeploySpecs applicationDeploySpecs) {
         checkTenant(tenant);
         if (applicationStore.get(tenant, applicationId, false) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Application already exists");
@@ -91,7 +85,7 @@ public class ApplicationService {
                 applicationInstance.getApplication(),
                 codeArchiveReference,
                 executionPlan,
-                autoUpgrade,
+                applicationDeploySpecs,
                 false);
     }
 
@@ -174,7 +168,7 @@ public class ApplicationService {
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
             String codeArchiveReference,
             boolean skipValidation,
-            boolean autoUpgrade,
+            ApplicationDeploySpecs applicationDeploySpecs,
             boolean forceRestart) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
@@ -183,7 +177,7 @@ public class ApplicationService {
                 applicationInstance,
                 codeArchiveReference,
                 skipValidation,
-                autoUpgrade,
+                applicationDeploySpecs,
                 forceRestart);
     }
 
@@ -193,7 +187,7 @@ public class ApplicationService {
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
             String codeArchiveReference,
             boolean skipValidation,
-            boolean autoUpgrade,
+            ApplicationDeploySpecs applicationDeploySpecs,
             boolean forceRestart) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
@@ -239,7 +233,7 @@ public class ApplicationService {
                 newApplication,
                 codeArchiveReference,
                 newPlan,
-                autoUpgrade,
+                applicationDeploySpecs,
                 forceRestart);
     }
 

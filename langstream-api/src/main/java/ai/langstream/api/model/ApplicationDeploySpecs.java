@@ -13,33 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.runtime.api.deployer;
+package ai.langstream.api.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
-public class RuntimeDeployerConfiguration {
-    private String applicationId;
-    private String tenant;
-    private String application;
-    private String codeStorageArchiveId;
-    private DeployFlags deployFlags;
+@NoArgsConstructor
+public class ApplicationDeploySpecs {
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    /*
-     * Flags specifically used for this deploy operation.
-     */
-    public static class DeployFlags {
-        private String runtimeVersion;
-        private boolean autoUpgradeRuntimeImagePullPolicy;
-        private boolean autoUpgradeAgentResources;
-        private boolean autoUpgradeAgentPodTemplate;
-        private long seed;
-    }
+    private String runtimeVersion;
+    private Boolean autoUpgradeRuntimeImagePullPolicy;
+    private Boolean autoUpgradeAgentResources;
+    private Boolean autoUpgradeAgentPodTemplate;
 }

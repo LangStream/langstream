@@ -97,7 +97,7 @@ public class AppResourcesFactory {
 
         RuntimeDeployerConfiguration.DeployFlags deployFlags =
                 new RuntimeDeployerConfiguration.DeployFlags();
-        deployFlags.setAutoUpgradeRuntimeImage(applicationSpecOptions.isAutoUpgradeRuntimeImage());
+        deployFlags.setRuntimeVersion(applicationSpecOptions.getRuntimeVersion());
         deployFlags.setAutoUpgradeRuntimeImagePullPolicy(
                 applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
         deployFlags.setAutoUpgradeAgentResources(

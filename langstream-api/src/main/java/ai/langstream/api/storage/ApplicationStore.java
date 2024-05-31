@@ -15,10 +15,7 @@
  */
 package ai.langstream.api.storage;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runtime.ExecutionPlan;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +39,7 @@ public interface ApplicationStore extends GenericStore {
             Application applicationInstance,
             String codeArchiveReference,
             ExecutionPlan executionPlan,
-            boolean autoUpgrade,
+            ApplicationDeploySpecs deploySpecs,
             boolean forceRestart);
 
     StoredApplication get(String tenant, String applicationId, boolean queryPods);

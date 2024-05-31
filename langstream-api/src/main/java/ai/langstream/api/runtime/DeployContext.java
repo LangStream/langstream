@@ -30,8 +30,8 @@ public interface DeployContext extends AutoCloseable {
         }
 
         @Override
-        public boolean isAutoUpgradeRuntimeImage() {
-            return false;
+        public String getRuntimeVersion() {
+            return null;
         }
 
         @Override
@@ -61,7 +61,7 @@ public interface DeployContext extends AutoCloseable {
     ApplicationCodeInfo getApplicationCodeInfo(
             String tenant, String applicationId, String codeArchiveId);
 
-    boolean isAutoUpgradeRuntimeImage();
+    String getRuntimeVersion();
 
     boolean isAutoUpgradeRuntimeImagePullPolicy();
 

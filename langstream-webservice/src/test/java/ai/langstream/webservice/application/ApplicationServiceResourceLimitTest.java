@@ -15,10 +15,7 @@
  */
 package ai.langstream.webservice.application;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
@@ -200,7 +197,7 @@ class ApplicationServiceResourceLimitTest {
                 Application applicationInstance,
                 String codeArchiveReference,
                 ExecutionPlan executionPlan,
-                boolean autoUpgrade,
+                ApplicationDeploySpecs deploySpecs,
                 boolean forceRestart) {
             throw new UnsupportedOperationException();
         }

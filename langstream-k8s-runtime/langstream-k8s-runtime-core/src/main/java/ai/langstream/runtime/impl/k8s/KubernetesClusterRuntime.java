@@ -349,7 +349,7 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         AgentSpec.Options options =
                 new AgentSpec.Options(
                         disks,
-                        deployContext.isAutoUpgradeRuntimeImage(),
+                        deployContext.getRuntimeVersion(),
                         deployContext.isAutoUpgradeRuntimeImagePullPolicy(),
                         deployContext.isAutoUpgradeAgentResources(),
                         deployContext.isAutoUpgradeAgentPodTemplate(),

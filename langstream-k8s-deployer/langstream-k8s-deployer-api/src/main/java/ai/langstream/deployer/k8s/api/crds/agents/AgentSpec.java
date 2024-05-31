@@ -38,7 +38,7 @@ public class AgentSpec extends NamespacedSpec {
 
     public record Options(
             List<Disk> disks,
-            boolean autoUpgradeRuntimeImage,
+            String runtimeVersion,
             boolean autoUpgradeRuntimeImagePullPolicy,
             boolean autoUpgradeAgentResources,
             boolean autoUpgradeAgentPodTemplate,
@@ -83,12 +83,12 @@ public class AgentSpec extends NamespacedSpec {
     }
 
     @JsonIgnore
-    public boolean isAutoUpgradeRuntimeImage() {
+    public String getRuntimeVersion() {
         final Options options = parseOptions();
         if (options == null) {
-            return false;
+            return null;
         }
-        return options.autoUpgradeRuntimeImage();
+        return options.runtimeVersion();
     }
 
     @JsonIgnore

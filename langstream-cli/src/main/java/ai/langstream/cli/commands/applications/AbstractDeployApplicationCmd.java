@@ -65,10 +65,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         private Formats format = Formats.yaml;
 
         @CommandLine.Option(
-                names = {"--auto-upgrade"},
+                names = {"--runtime-version"},
                 description =
-                        "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
-        private boolean autoUpgrade;
+                        "Set the runtime version for the application. Values could be:\n\t'no-upgrade': to use the current runtime version and stick to it\n\t'auto-upgrade': to make the application to use the latest configured runtime version when restarted\n\t'x.y.z': to set a specific runtime version and stick to it.")
+        private String runtimeVersion;
+
+        @CommandLine.Option(
+                names = {"--auto-update-config"},
+                description =
+                        "Set whether the application should auto-update its configuration (resources, pod template..) to the latest configured.")
+        private Boolean autoUpdateConfig;
 
         @Override
         String applicationId() {
@@ -101,8 +107,13 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
-        boolean isAutoUpgrade() {
-            return autoUpgrade;
+        String getRuntimeVersion() {
+            return runtimeVersion;
+        }
+
+        @Override
+        Boolean isAutoUpdateConfig() {
+            return autoUpdateConfig;
         }
 
         @Override
@@ -149,10 +160,16 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         private boolean skipValidation;
 
         @CommandLine.Option(
-                names = {"--auto-upgrade"},
+                names = {"--runtime-version"},
                 description =
-                        "Whether to make the executors to automatically upgrades the environment (image, resources mapping etc.) when restarted")
-        private boolean autoUpgrade;
+                        "Set the runtime version for the application. Values could be:\n\t'no-upgrade': to use the current runtime version and stick to it\n\t'auto-upgrade': to make the application to use the latest configured runtime version when restarted\n\t'x.y.z': to set a specific runtime version and stick to it..")
+        private String runtimeVersion;
+
+        @CommandLine.Option(
+                names = {"--auto-update-config"},
+                description =
+                        "Set whether the application should auto-update its configuration (resources, pod template..) to the latest configured.")
+        private Boolean autoUpdateConfig;
 
         @CommandLine.Option(
                 names = {"--force-restart"},
@@ -190,8 +207,13 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
-        boolean isAutoUpgrade() {
-            return autoUpgrade;
+        String getRuntimeVersion() {
+            return runtimeVersion;
+        }
+
+        @Override
+        Boolean isAutoUpdateConfig() {
+            return autoUpdateConfig;
         }
 
         @Override
@@ -222,7 +244,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     abstract boolean isDryRun();
 
-    abstract boolean isAutoUpgrade();
+    abstract String getRuntimeVersion();
+
+    abstract Boolean isAutoUpdateConfig();
 
     abstract Boolean isForceRestart();
 
@@ -292,7 +316,8 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                     .update(
                             applicationId,
                             bodyPublisher,
-                            isAutoUpgrade(),
+                            getRuntimeVersion(),
+                            isAutoUpdateConfig(),
                             isForceRestart(),
                             isSkipValidation());
             log(String.format("application %s updated", applicationId));
@@ -309,7 +334,12 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             final String response =
                     getClient()
                             .applications()
-                            .deploy(applicationId, bodyPublisher, dryRun, isAutoUpgrade());
+                            .deploy(
+                                    applicationId,
+                                    bodyPublisher,
+                                    dryRun,
+                                    getRuntimeVersion(),
+                                    isAutoUpdateConfig());
             if (dryRun) {
                 final Formats format = format();
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);

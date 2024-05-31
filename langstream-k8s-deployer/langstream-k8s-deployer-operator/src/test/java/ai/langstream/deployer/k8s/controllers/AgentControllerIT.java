@@ -255,7 +255,7 @@ public class AgentControllerIT {
             resource2
                     .getSpec()
                     .setOptions(
-                            "{\"autoUpgradeRuntimeImage\": true, \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true}");
+                            "{\"runtimeVersion\": \"auto-upgrade\", \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true}");
 
             client.resource(resource2).inNamespace(namespace).update();
 
@@ -286,7 +286,7 @@ public class AgentControllerIT {
             resource2
                     .getSpec()
                     .setOptions(
-                            "{\"autoUpgradeRuntimeImage\": true, \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true,\"applicationSeed\": 123}");
+                            "{\"runtimeVersion\": \"auto-upgrade\", \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true,\"applicationSeed\": 123}");
 
             client.resource(resource2).inNamespace(namespace).update();
 
@@ -303,6 +303,33 @@ public class AgentControllerIT {
                             namespace, "ai.langstream/config-checksum", "xx3");
             assertEquals(
                     "busybox:v3",
+                    sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+            resource2 =
+                    client.resources(AgentCustomResource.class)
+                            .inNamespace(namespace)
+                            .withName(agentCustomResourceName)
+                            .get();
+            resource2
+                    .getSpec()
+                    .setOptions(
+                            "{\"runtimeVersion\": \"v2\", \"autoUpgradeRuntimeImagePullPolicy\": true, \"autoUpgradeAgentResources\": true, \"autoUpgradeAgentPodTemplate\": true,\"applicationSeed\": 124}");
+
+            client.resource(resource2).inNamespace(namespace).update();
+
+            Awaitility.await()
+                    .untilAsserted(
+                            () -> {
+                                StatefulSet p =
+                                        findStatefulSetWithPodAnnotation(
+                                                namespace, "ai.langstream/application-seed", "124");
+                                assertNotNull(p);
+                            });
+            sts =
+                    findStatefulSetWithPodAnnotation(
+                            namespace, "ai.langstream/config-checksum", "xx3");
+            assertEquals(
+                    "busybox:v2",
                     sts.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
 
         } finally {

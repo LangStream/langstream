@@ -22,6 +22,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ApplicationSpecOptions {
 
+    public static String RUNTIME_VERSION_NO_UPGRADE = "no-upgrade";
+    public static String RUNTIME_VERSION_AUTO_UPGRADE = "auto-upgrade";
+
     public enum DeleteMode {
         CLEANUP_REQUIRED,
         CLEANUP_BEST_EFFORT;
@@ -30,7 +33,7 @@ public class ApplicationSpecOptions {
     private DeleteMode deleteMode = DeleteMode.CLEANUP_REQUIRED;
     private boolean markedForDeletion;
     private long seed;
-    private boolean autoUpgradeRuntimeImage;
+    private String runtimeVersion;
     private boolean autoUpgradeRuntimeImagePullPolicy;
     private boolean autoUpgradeAgentResources;
     private boolean autoUpgradeAgentPodTemplate;

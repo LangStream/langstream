@@ -22,6 +22,7 @@ import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentStatus;
+import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
 import ai.langstream.deployer.k8s.controllers.BaseController;
 import ai.langstream.deployer.k8s.controllers.InfiniteRetry;
 import ai.langstream.deployer.k8s.util.JSONComparator;
@@ -148,12 +149,28 @@ public class AgentController extends BaseController<AgentCustomResource>
                 }
 
                 if (status != null && status.getLastConfigApplied() != null) {
+                    log.infof(
+                            "Update for the agent statefulset %s, options: %s, last applied: %s",
+                            primary.getMetadata().getName(),
+                            primary.getSpec().getOptions(),
+                            status.getLastConfigApplied());
                     isUpdate = true;
                     // this is an update for the statefulset.
-                    // It's required to not keep the same deployer configuration of the current
-                    // version
+                    String runtimeVersion = primary.getSpec().getRuntimeVersion();
+                    if (runtimeVersion != null) {
 
-                    boolean autoUpgradeRuntimeImage = primary.getSpec().isAutoUpgradeRuntimeImage();
+                        if (runtimeVersion.equals(
+                                ApplicationSpecOptions.RUNTIME_VERSION_NO_UPGRADE)) {
+                            runtimeVersion = null;
+                        } else if (runtimeVersion.equals(
+                                ApplicationSpecOptions.RUNTIME_VERSION_AUTO_UPGRADE)) {
+                            runtimeVersion = configuration.getRuntimeImage();
+                        } else {
+                            String imageName = extractImageName(configuration.getRuntimeImage());
+                            runtimeVersion = imageName + ":" + runtimeVersion;
+                        }
+                    }
+
                     boolean autoUpgradeRuntimeImagePullPolicy =
                             primary.getSpec().isAutoUpgradeRuntimeImagePullPolicy();
                     boolean autoUpgradeAgentResources =
@@ -169,8 +186,8 @@ public class AgentController extends BaseController<AgentCustomResource>
                                             ? configuration.getAgentResources()
                                             : lastAppliedConfig.getAgentResourceUnitConfiguration())
                             .image(
-                                    autoUpgradeRuntimeImage
-                                            ? configuration.getRuntimeImage()
+                                    runtimeVersion != null
+                                            ? runtimeVersion
                                             : lastAppliedConfig.getImage())
                             .imagePullPolicy(
                                     autoUpgradeRuntimeImagePullPolicy
@@ -199,6 +216,14 @@ public class AgentController extends BaseController<AgentCustomResource>
                 throw new RuntimeException(t);
             }
         }
+    }
+
+    private static String extractImageName(String image) {
+        int colonIndex = image.lastIndexOf(':');
+        if (colonIndex > -1) {
+            return image.substring(0, colonIndex);
+        }
+        return image;
     }
 
     @JBossLog

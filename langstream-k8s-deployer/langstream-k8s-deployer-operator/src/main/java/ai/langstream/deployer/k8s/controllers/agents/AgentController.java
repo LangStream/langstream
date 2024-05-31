@@ -149,11 +149,13 @@ public class AgentController extends BaseController<AgentCustomResource>
                 }
 
                 if (status != null && status.getLastConfigApplied() != null) {
+                    log.infof(
+                            "Update for the agent statefulset %s, options: %s, last applied: %s",
+                            primary.getMetadata().getName(),
+                            primary.getSpec().getOptions(),
+                            status.getLastConfigApplied());
                     isUpdate = true;
                     // this is an update for the statefulset.
-                    // It's required to not keep the same deployer configuration of the current
-                    // version
-
                     String runtimeVersion = primary.getSpec().getRuntimeVersion();
                     if (runtimeVersion != null) {
 
@@ -183,7 +185,10 @@ public class AgentController extends BaseController<AgentCustomResource>
                                     autoUpgradeAgentResources
                                             ? configuration.getAgentResources()
                                             : lastAppliedConfig.getAgentResourceUnitConfiguration())
-                            .image(runtimeVersion)
+                            .image(
+                                    runtimeVersion != null
+                                            ? runtimeVersion
+                                            : lastAppliedConfig.getImage())
                             .imagePullPolicy(
                                     autoUpgradeRuntimeImagePullPolicy
                                             ? configuration.getRuntimeImagePullPolicy()

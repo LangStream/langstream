@@ -287,6 +287,12 @@ public class JstlEvaluator<T> {
                     }
                 }
             }
+            if (expression.startsWith("properties.")) {
+                final String propertiesString = mutableRecord.getProperties() == null ? "NULL" : mutableRecord.getProperties().toString();
+                throw new IllegalArgumentException(
+                        "The property referred by " + expression + " couldn't be found, properties: " + propertiesString,
+                        notFound);
+            }
             throw new IllegalArgumentException(notFound);
         }
     }

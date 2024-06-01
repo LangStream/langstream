@@ -106,9 +106,9 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     public void processRecord(Record record, RecordSink recordSink) {
         try {
-            MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
-
             for (Route r : routes) {
+                // a MutableRecord shouldn't be submit more than once that the predicate
+                MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
                 boolean test = r.predicate.test(context);
                 if (test) {
                     if (r.drop) {

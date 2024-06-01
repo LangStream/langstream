@@ -29,7 +29,7 @@ the default settings, you can change them by exporting other ENV variables.
 When LangStream deploys the application it automatically creates a database table named "chat_history". 
 
 ```
-./bin/langstream docekr run  test -app examples/applications/query-postgresql-chat-history -s examples/secrets/secrets.yaml
+./bin/langstream docker run  test -app examples/applications/query-postgresql-chat-history -s examples/secrets/secrets.yaml
 ```
 
 ## Talk with the Chat bot using the UI

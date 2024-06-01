@@ -16,109 +16,101 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import ai.langstream.agents.vector.couchbase.CouchbaseWriter;
-import ai.langstream.api.runner.code.Header;
+import ai.langstream.agents.vector.VectorDBSinkAgent;
+import ai.langstream.agents.vector.couchbase.CouchbaseDataSource;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
+import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
-// Add missing import statement
-import com.couchbase.client.java.kv.GetResult;
-import java.time.Duration;
+import ai.langstream.api.runner.code.SimpleRecord;
+import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.couchbase.BucketDefinition;
-import org.testcontainers.couchbase.CouchbaseContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-@Disabled
-public class CouchbaseWriterTest {
+class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
 
     // Explicitly declare the image as a compatible substitute
     private DockerImageName couchbaseImage =
-            DockerImageName.parse("couchbase/server:7.6.1")
+            DockerImageName.parse("couchbase/server:latest")
                     .asCompatibleSubstituteFor("couchbase/server");
 
-    // Initialize the Couchbase container
-    @Container
-    private CouchbaseContainer container =
-            new CouchbaseContainer(couchbaseImage)
-                    .withBucket(bucketDefinition)
-                    .waitingFor(Wait.forHttp("/pools").withStartupTimeout(Duration.ofMinutes(10)))
-                    .withExposedPorts(11210);
-
     @Test
-    public void testUpsertAndRetrieve() throws Exception {
-        // Set up CouchbaseWriter
-        Map<String, Object> dataSourceConfig = new HashMap<>();
-        dataSourceConfig.put("connectionString", container.getConnectionString());
-        dataSourceConfig.put("username", container.getUsername());
-        dataSourceConfig.put("password", container.getPassword());
-        dataSourceConfig.put("bucketName", "bucket-name");
+    @Disabled
+    void testCouchbaseWrite() throws Exception {
 
-        CouchbaseWriter.CouchbaseDatabaseWriter writer =
-                new CouchbaseWriter().createImplementation(dataSourceConfig);
+        Map<String, Object> datasourceConfig =
+                Map.of(
+                        "service", "couchbase",
+                        "connection-string", "couchbases://",
+                        "bucket-name", "",
+                        "username", "",
+                        "password", "");
 
-        // Create a sample record
+        VectorDBSinkAgent agent =
+                (VectorDBSinkAgent)
+                        new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();
 
-        String docId = "test-doc";
-        Map<String, Object> content = new HashMap<>();
-        content.put("field1", "value1");
-        content.put("field2", 123);
-        // add a vector field
-        content.put("vector", new double[] {1.0, 2.0, 3.0});
-        Record record =
-                new Record() {
-                    @Override
-                    public Object key() {
-                        return docId;
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("datasource", datasourceConfig);
+        configuration.put("vector.id", "value.id");
+        configuration.put("vector.vector", "value.vector");
+
+        AgentContext agentContext = mock(AgentContext.class);
+        when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
+        agent.init(configuration);
+        agent.start();
+        agent.setContext(agentContext);
+
+        List<Record> committed = new CopyOnWriteArrayList<>();
+        List<Double> vector = new ArrayList<>();
+        for (int i = 1; i <= 1536; i++) {
+            vector.add(1.0 / i);
+        }
+        Map<String, Object> value =
+                Map.of("id", "test-doc1", "document", "Hello", "embeddings", vector);
+        SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+        agent.write(record).thenRun(() -> committed.add(record)).get();
+
+        assertEquals(committed.get(0), record);
+        agent.close();
+
+        // Sleep for a while to allow the data to be indexed
+        log.info("Sleeping for 5 seconds to allow the data to be indexed");
+        Thread.sleep(5000);
+
+        CouchbaseDataSource dataSource = new CouchbaseDataSource();
+        QueryStepDataSource implementation =
+                dataSource.createDataSourceImplementation(datasourceConfig);
+        implementation.initialize(null);
+
+        String query =
+                """
+                {
+                      "vector": ?,
+                      "topK": 5
                     }
+                """;
+        List<Object> params = List.of(vector);
+        List<Map<String, Object>> results = implementation.fetchData(query, params);
+        log.info("Results: {}", results);
 
-                    @Override
-                    public Object value() {
-                        return content;
-                    }
-
-                    @Override
-                    public String origin() {
-                        // TODO Auto-generated method stub
-                        throw new UnsupportedOperationException("Unimplemented method 'origin'");
-                    }
-
-                    @Override
-                    public Long timestamp() {
-                        // TODO Auto-generated method stub
-                        throw new UnsupportedOperationException("Unimplemented method 'timestamp'");
-                    }
-
-                    @Override
-                    public java.util.Collection<Header> headers() {
-                        // TODO Auto-generated method stub
-                        throw new UnsupportedOperationException("Unimplemented method 'headers'");
-                    }
-                };
-
-        // Upsert the record
-        writer.upsert(record, null).get();
-
-        // Retrieve and verify the document
-        GetResult result = writer.collection.get(docId);
-        System.out.println(result.contentAsObject());
-        assertEquals("value1", result.contentAsObject().get("field1").toString());
-        assertEquals(123, (Integer) result.contentAsObject().get("field2"));
-
-        // add a pause to allow the test to complete
-        // Thread.sleep(10000000);
-
-        // Ensure the cluster connection is closed after the test
-        writer.close();
+        assertEquals(5, results.size());
     }
 }

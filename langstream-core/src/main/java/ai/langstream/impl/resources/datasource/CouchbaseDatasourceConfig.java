@@ -58,7 +58,7 @@ public class CouchbaseDatasourceConfig extends BaseDatasourceConfig {
                             Username parameter for connecting to Couchbase.
                                     """,
             defaultValue = "")
-    private String user;
+    private String username;
 
     @ConfigProperty(
             description =
@@ -72,15 +72,8 @@ public class CouchbaseDatasourceConfig extends BaseDatasourceConfig {
                     """
                             Host parameter for connecting to Couchbase.
                                     """)
-    private String host;
-
-    @ConfigProperty(
-            description =
-                    """
-                            Port parameter for connecting to Couchbase.
-                                    """,
-            defaultValue = "8091")
-    private int port;
+    @JsonProperty("connection-string")
+    private String connectionString;
 
     @ConfigProperty(
             description =

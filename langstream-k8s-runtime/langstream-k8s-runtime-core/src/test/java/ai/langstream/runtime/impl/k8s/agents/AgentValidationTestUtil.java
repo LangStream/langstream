@@ -57,6 +57,14 @@ public class AgentValidationTestUtil {
                               index-name: "xx"
                               project-name: "999x"
                               environment: "us-east1"
+                          - type: "vector-database"
+                            name: "CouchbaseDatasource"
+                            configuration:
+                              service: "couchbase"
+                              bucket-name: "bucket"
+                              username: "username"
+                              password: "pword"
+                              connection-string: "couchbase.com"
                     """;
         }
         Application applicationInstance =

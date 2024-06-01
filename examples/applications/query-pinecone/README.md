@@ -72,7 +72,7 @@ bin/langstream gateway produce test write-topic -v "{\"id\":\"myid\",\"document\
  bin/langstream gateway chat test -pg produce-input -cg consume-output -p sessionId=$(uuidgen)
  ```
 
- Send a JSON string with at matching question:
+ Send a JSON string with a matching question:
 
 ```
 {"question": "Hello"}

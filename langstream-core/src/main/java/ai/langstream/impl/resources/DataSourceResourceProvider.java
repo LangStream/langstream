@@ -18,6 +18,7 @@ package ai.langstream.impl.resources;
 import ai.langstream.impl.resources.datasource.AstraDatasourceConfig;
 import ai.langstream.impl.resources.datasource.AstraVectorDBDatasourceConfig;
 import ai.langstream.impl.resources.datasource.CassandraDatasourceConfig;
+// import ai.langstream.impl.resources.datasource.CouchbaseDatasourceConfig;
 import ai.langstream.impl.resources.datasource.JDBCDatasourceConfig;
 import ai.langstream.impl.resources.datasource.OpenSearchDatasourceConfig;
 import java.util.Map;
@@ -31,6 +32,8 @@ public class DataSourceResourceProvider extends BaseDataSourceResourceProvider {
     protected static final String SERVICE_JDBC = "jdbc";
     protected static final String SERVICE_OPENSEARCH = "opensearch";
 
+    // protected static final String SERVICE_COUCHBASE = "couchbase";
+
     public DataSourceResourceProvider() {
         super(
                 "datasource",
@@ -40,5 +43,6 @@ public class DataSourceResourceProvider extends BaseDataSourceResourceProvider {
                         SERVICE_JDBC, JDBCDatasourceConfig.CONFIG,
                         SERVICE_OPENSEARCH, OpenSearchDatasourceConfig.CONFIG,
                         SERVICE_ASTRA_VECTOR_DB, AstraVectorDBDatasourceConfig.CONFIG));
+        // SERVICE_COUCHBASE, CouchbaseDatasourceConfig.CONFIG));
     }
 }

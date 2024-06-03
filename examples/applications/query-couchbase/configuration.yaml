@@ -31,3 +31,5 @@ configuration:
         username: "${secrets.couchbase.username}"
         password: "${secrets.couchbase.password}"
         bucket-name: "${secrets.couchbase.bucket-name}"
+        scope-name: "example"
+        collection-name: "default"

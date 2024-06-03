@@ -38,5 +38,8 @@ pipeline:
       username: "${secrets.couchbase.username}"
       password: "${secrets.couchbase.password}"
       connection-string: "${secrets.couchbase.connection-string}"
+      scope-name: "example"
+      collection-name: "default"
       vector.id: "value.id"
       vector.vector: "value.embeddings"
+

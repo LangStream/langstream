@@ -82,4 +82,20 @@ public class CouchbaseDatasourceConfig extends BaseDatasourceConfig {
                                     """)
     @JsonProperty("bucket-name")
     private String bucketName;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Scope to use in Couchbase.
+                                    """)
+    @JsonProperty("scope-name")
+    private String scopeName;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Collection to use in Couchbase.
+                                    """)
+    @JsonProperty("collection-name")
+    private String collectionName;
 }

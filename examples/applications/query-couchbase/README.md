@@ -38,16 +38,22 @@ couchbases://cb.shnnjztaidekg6i.cloud.couchbase.com
 
 The above is an example of a connection string.
 
+## Create a scope
+
+Navigate to Databases > Data tools tab.
+On the right hand side hover over the bucket of your choice and click the ellipsis that appears when you hover over it and create a scope.
+Do the same but with the scope you just created to create a collection.
+
 ## Create a search index in the database in the Couchbase Capella UI
 
 1. **Select Your Cluster:**
    - From the dashboard, select the cluster where you want to create the search index.
 
-2. **Open the "Indexes" Tab:**
-   - In the cluster's overview page, go to the "Indexes" tab which can be found in the sidebar.
+2. **Open the "Search" Tab:**
+   - In the cluster's overview page, go to the "Search" tab which can be found in the sidebar.
 
 3. **Create a New Search Index:**
-   - Click on the "Add Index" button.
+   - Click on the "Create Search Index" button.
    - Choose "Full Text Search" from the index type options.
 
 4. **Configure the Index:**
@@ -79,7 +85,7 @@ Using the docker image:
 bin/langstream gateway produce test write-topic -v "{\"id\":\"myid\",\"document\":\"Kafkaesque: extremely unpleasant, frightening, and confusing, and similar to situations described in the novels of Franz Kafka.\"}" -p sessionId=$(uuidgen)
 
 ```
-You can view the uploaded document in the _default scope and _default collection of the bucket you selected.
+You can view the uploaded document in the example scope and default collection of the bucket you selected.
 
 ## Start a chat using the gateway to query the document
 

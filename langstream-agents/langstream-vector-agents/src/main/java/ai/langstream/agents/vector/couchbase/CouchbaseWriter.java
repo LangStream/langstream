@@ -61,10 +61,10 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
             String bucketName = (String) datasourceConfig.get("bucket-name");
-            String scopeName = (String) datasourceConfig.getOrDefault("scopeName", "_default");
+            String scopeName = (String) datasourceConfig.getOrDefault("scope-name", "_default");
             String connectionString = (String) datasourceConfig.get("connection-string");
             String collectionName =
-                    (String) datasourceConfig.getOrDefault("collectionName", "_default");
+                    (String) datasourceConfig.getOrDefault("collection-name", "_default");
 
             // Create a cluster with the WAN profile
             ClusterOptions clusterOptions =

@@ -138,6 +138,8 @@ class QueryVectorDBAgentProviderTest {
                                 bucket-name: "vectorize"
                                 username: ""
                                 password: ""
+                                scope-name: "example"
+                                collection-name: "default"
                                 connection-string: "couchbases://"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"

@@ -59,6 +59,12 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
         @JsonProperty(value = "password", required = true)
         private String password;
+
+        @JsonProperty(value = "scope-name", required = true)
+        private String scopeName;
+
+        @JsonProperty(value = "collection-name", required = true)
+        private String collectionName;
     }
 
     @Override
@@ -100,17 +106,23 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
+                // scope namen comes from querymap
 
                 SearchRequest request =
                         SearchRequest.create(
                                 VectorSearch.create(
                                         VectorQuery.create("embeddings", vector)
                                                 .numCandidates(topK)));
+                log.debug("SearchRequest created: {}", request);
 
                 SearchResult result =
                         cluster.search(
-                                "" + clientConfig.bucketName + "._default.vector-search",
-                                request); //
+                                ""
+                                        + clientConfig.bucketName
+                                        + "."
+                                        + clientConfig.scopeName
+                                        + ".vector-search",
+                                request);
 
                 return result.rows().stream()
                         .map(

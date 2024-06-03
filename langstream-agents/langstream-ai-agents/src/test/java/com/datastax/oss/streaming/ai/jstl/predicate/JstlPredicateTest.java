@@ -16,7 +16,6 @@
 package com.datastax.oss.streaming.ai.jstl.predicate;
 
 import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
@@ -68,42 +67,6 @@ public class JstlPredicateTest {
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
 
-    }
-
-    static JstlPredicate predicate = new JstlPredicate("properties.dbType == 'Ciccio'");
-
-    private static void m() {
-
-        while (true) {
-            {
-                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
-                record.getProperties().put("dbType", "Altro");
-                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-                MutableRecord mutableRecord =
-                        newTransformContext(context, record.getValue().getNativeObject());
-
-                assertFalse(predicate.test(mutableRecord));
-            }
-            {
-                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
-                record.getProperties().put("dbType", "Ciccio");
-                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-                MutableRecord mutableRecord =
-                        newTransformContext(context, record.getValue().getNativeObject());
-
-                assertTrue(predicate.test(mutableRecord));
-            }
-
-            {
-                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
-                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-                MutableRecord mutableRecord =
-                        newTransformContext(context, record.getValue().getNativeObject());
-
-                assertFalse(predicate.test(mutableRecord));
-            }
-            System.out.println("ok" + Thread.currentThread().getName());
-        }
     }
 
     @Test

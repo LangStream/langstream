@@ -40,10 +40,16 @@ public class JstlPredicate implements TransformPredicate {
     @Override
     public boolean test(MutableRecord mutableRecord) {
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("evaluating when expression: {}, record {}", when, mutableRecord);
+            }
             Boolean evaluate = this.evaluator.evaluate(mutableRecord);
             if (evaluate == null) {
                 log.warn("the when expression evaluated to null, expression: {}, record {}", when, mutableRecord);
                 return false;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("evaluated when expression: {}, record {} -> {}", when, mutableRecord, evaluate);
             }
             return evaluate;
         } catch (PropertyNotFoundException ex) {

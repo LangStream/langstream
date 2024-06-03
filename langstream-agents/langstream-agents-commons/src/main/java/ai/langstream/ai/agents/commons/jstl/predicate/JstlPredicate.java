@@ -45,20 +45,34 @@ public class JstlPredicate implements TransformPredicate {
             }
             Boolean evaluate = this.evaluator.evaluate(mutableRecord);
             if (evaluate == null) {
-                log.warn("the when expression evaluated to null, expression: {}, record {}", when, mutableRecord);
+                log.warn(
+                        "the when expression evaluated to null, expression: {}, record {}",
+                        when,
+                        mutableRecord);
                 return false;
             }
             if (log.isDebugEnabled()) {
-                log.debug("evaluated when expression: {}, record {} -> {}", when, mutableRecord, evaluate);
+                log.debug(
+                        "evaluated when expression: {}, record {} -> {}",
+                        when,
+                        mutableRecord,
+                        evaluate);
             }
             return evaluate;
         } catch (PropertyNotFoundException ex) {
-            log.warn("a property in the when expression was not found in the message, expression: {}, record {}", when, mutableRecord, ex);
+            log.warn(
+                    "a property in the when expression was not found in the message, expression: {}, record {}",
+                    when,
+                    mutableRecord,
+                    ex);
             return false;
         } catch (IllegalArgumentException ex) {
             if (ex.getCause() instanceof PropertyNotFoundException) {
-                log.warn("a property in the when expression was not found in the message, expression: {}, record {}",
-                        when, mutableRecord, ex.getCause());
+                log.warn(
+                        "a property in the when expression was not found in the message, expression: {}, record {}",
+                        when,
+                        mutableRecord,
+                        ex.getCause());
                 return false;
             } else {
                 throw ex;

@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -421,10 +420,7 @@ public class MutableRecord {
         context.setProperties(
                 record.headers().stream()
                         .filter(h -> h.key() != null && h.value() != null)
-                        .collect(
-                                Collectors.toMap(
-                                        Header::key,
-                                        Header::valueAsString)));
+                        .collect(Collectors.toMap(Header::key, Header::valueAsString)));
         return context;
     }
 

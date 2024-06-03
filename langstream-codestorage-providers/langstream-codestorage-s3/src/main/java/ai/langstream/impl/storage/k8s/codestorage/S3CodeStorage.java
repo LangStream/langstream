@@ -48,7 +48,6 @@ import okhttp3.Protocol;
 public class S3CodeStorage implements CodeStorage {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
     protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
@@ -145,7 +144,7 @@ public class S3CodeStorage implements CodeStorage {
                                 .userMetadata(userMetadata)
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
-                                .contentType("application")
+                                .contentType("application/zip")
                                 .filename(tempFile.toAbsolutePath().toString())
                                 .build();
                 uploadWithRetry(uploadObjectArgs);
@@ -272,8 +271,8 @@ public class S3CodeStorage implements CodeStorage {
         int maxRetries = uploadMaxRetries;
         while (attempt < maxRetries) {
             try {
-                log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
                 attempt++;
+                log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
                 minioClient.uploadObject(args);
                 return;
             } catch (IOException e) {

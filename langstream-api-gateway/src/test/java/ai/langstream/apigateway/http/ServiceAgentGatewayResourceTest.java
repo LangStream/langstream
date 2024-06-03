@@ -57,6 +57,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
@@ -68,6 +69,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Slf4j
 @AutoConfigureObservability
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ServiceAgentGatewayResourceTest {
 
     public static final Path agentsDirectory;

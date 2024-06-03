@@ -138,6 +138,7 @@ public class LRUTopicProducerCache implements TopicProducerCache {
 
     @Override
     public void close() {
+        log.info("Closing topic producer cache");
         cache.invalidateAll();
     }
 }

@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @Slf4j
 public class ClusterRuntimeRegistryBean {
-    @Bean
+    @Bean(destroyMethod = "close")
     public ClusterRuntimeRegistry registry() {
         return new ClusterRuntimeRegistry();
     }

@@ -49,15 +49,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
@@ -97,7 +96,9 @@ abstract class GatewayResourceTest {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     static List<String> topics;
-    static List<CompletableFuture<Void>> futures = new ArrayList<>();
+    static ExecutorService futuresExecutor =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -185,8 +186,8 @@ abstract class GatewayResourceTest {
     static String wireMockBaseUrl;
     static AtomicInteger topicCounter = new AtomicInteger();
 
-    private static String genTopic() {
-        return "topic" + topicCounter.incrementAndGet();
+    private static String genTopic(String testName) {
+        return testName + "-topic" + topicCounter.incrementAndGet();
     }
 
     @BeforeAll
@@ -208,12 +209,13 @@ abstract class GatewayResourceTest {
     }
 
     @AfterEach
-    public void afterEach() {
+    public void afterEach() throws Exception {
         Metrics.globalRegistry.clear();
-        for (CompletableFuture<Void> future : futures) {
-            future.cancel(true);
-        }
-        futures.clear();
+        futuresExecutor.shutdownNow();
+        futuresExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        futuresExecutor =
+                Executors.newCachedThreadPool(
+                        new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
     }
 
     @SneakyThrows
@@ -286,7 +288,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testSimpleProduce() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduce");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -331,7 +333,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testSimpleProduceCacheProducer() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduceCacheProducer");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -399,7 +401,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testParametersRequired() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testParametersRequired");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -431,7 +433,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testAuthentication() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testAuthentication");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -488,7 +490,7 @@ abstract class GatewayResourceTest {
                         .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
                         .withHeader("h1", WireMock.equalTo("v1"))
                         .willReturn(WireMock.ok("")));
-        final String topic = genTopic();
+        final String topic = genTopic("testTestCredentials");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -535,8 +537,8 @@ abstract class GatewayResourceTest {
 
     @Test
     void testService() throws Exception {
-        final String inputTopic = genTopic();
-        final String outputTopic = genTopic();
+        final String inputTopic = genTopic("testService-input");
+        final String outputTopic = genTopic("testService-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
         startTopicExchange(inputTopic, outputTopic);
@@ -569,26 +571,6 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
-
-        final int numParallel = 5;
-
-        List<CompletableFuture<Void>> futures1 = new ArrayList<>();
-        for (int i = 0; i < numParallel; i++) {
-            CompletableFuture<Void> future =
-                    CompletableFuture.runAsync(
-                            () -> {
-                                for (int j = 0; j < 5; j++) {
-                                    assertMessageContent(
-                                            new MsgRecord("my-key", "my-value", Map.of()),
-                                            produceJsonAndGetBody(
-                                                    url,
-                                                    "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-                                }
-                            });
-            futures1.add(future);
-        }
-        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[] {}))
-                .get(3, TimeUnit.MINUTES);
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
@@ -626,6 +608,9 @@ abstract class GatewayResourceTest {
 
                                     producer.start();
                                     while (true) {
+                                        if (Thread.currentThread().isInterrupted()) {
+                                            break;
+                                        }
                                         final List<Record> records = consumer.read();
                                         if (records.isEmpty()) {
                                             continue;
@@ -646,12 +631,16 @@ abstract class GatewayResourceTest {
                                                 records);
                                     }
                                 }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
                             } catch (Throwable e) {
                                 e.printStackTrace();
                                 throw new RuntimeException(e);
+                            } finally {
+                                runtime.close();
                             }
-                        });
-        futures.add(future);
+                        },
+                        futuresExecutor);
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

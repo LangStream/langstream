@@ -27,6 +27,7 @@ import ai.langstream.apigateway.websocket.handlers.ProduceHandler;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -96,10 +97,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     }
 
     @PreDestroy
-    public void onDestroy() {
+    public void onDestroy() throws Exception {
         log.info("Shutting down WebSocket");
         consumeThreadPool.shutdownNow();
-        clusterRuntimeRegistry.close();
-        topicProducerCache.close();
+        consumeThreadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }

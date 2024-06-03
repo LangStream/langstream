@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class TopicProducerCacheFactory {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public TopicProducerCache topicProducerCache(TopicProperties topicProperties) {
         if (topicProperties.isProducersCacheEnabled()) {
             final LRUTopicProducerCache cache =

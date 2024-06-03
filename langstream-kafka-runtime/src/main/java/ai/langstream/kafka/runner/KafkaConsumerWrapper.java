@@ -167,7 +167,11 @@ public class KafkaConsumerWrapper implements TopicConsumer, ConsumerRebalanceLis
                     pendingCommits.get(),
                     sum,
                     uncommittedOffsets);
-            consumer.close();
+            try {
+                consumer.close();
+            } catch (org.apache.kafka.common.errors.InterruptException e) {
+                log.warn("Interrupted while closing Kafka consumer: {}", e.getMessage());
+            }
         }
     }
 

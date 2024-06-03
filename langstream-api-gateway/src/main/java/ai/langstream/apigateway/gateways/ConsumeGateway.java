@@ -141,7 +141,7 @@ public class ConsumeGateway implements AutoCloseable {
 
     private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
         while (true) {
-            if (interrupted) {
+            if (Thread.interrupted() || interrupted) {
                 return;
             }
             if (stop.get()) {
@@ -202,14 +202,14 @@ public class ConsumeGateway implements AutoCloseable {
             try {
                 reader.close();
             } catch (Exception e) {
-                log.warn("error closing reader", e);
+                log.warn("error closing reader: {}", e.getMessage());
             }
         }
         if (topicConnectionsRuntime != null) {
             try {
                 topicConnectionsRuntime.close();
             } catch (Exception e) {
-                log.warn("error closing runtime", e);
+                log.warn("error closing runtime: {}", e.getMessage());
             }
         }
     }

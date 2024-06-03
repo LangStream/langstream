@@ -77,7 +77,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "-p 8090:8090 "
                                 + "-p 8790:8790 "
                                 + "-p 8000:8000 "
-                                + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
+                                + "891377311292.dkr.ecr.us-east-1.amazonaws.com/vectorize-runtime-tester"));
 
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());

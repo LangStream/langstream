@@ -29,7 +29,7 @@ import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
@@ -46,6 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -76,7 +77,6 @@ public class GatewayResource {
 
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
@@ -401,5 +401,14 @@ public class GatewayResource {
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
+    }
+
+    @PreDestroy
+    public void onDestroy() throws Exception {
+        log.info("Shutting down GatewayResource");
+        httpClientThreadPool.shutdownNow();
+        consumeThreadPool.shutdownNow();
+        consumeThreadPool.awaitTermination(1, TimeUnit.MINUTES);
+        httpClientThreadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }

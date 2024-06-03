@@ -132,7 +132,11 @@ class KafkaProducerWrapper implements TopicProducer {
     @Override
     public void close() {
         if (producer != null) {
-            producer.close();
+            try {
+                producer.close();
+            } catch (org.apache.kafka.common.errors.InterruptException e) {
+                log.warn("Interrupted while closing Kafka producer: {}", e.getMessage());
+            }
         }
     }
 

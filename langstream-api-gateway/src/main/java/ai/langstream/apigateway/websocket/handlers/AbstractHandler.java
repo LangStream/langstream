@@ -238,6 +238,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
             producer.write(record).get();
             log.info("sent event {}", recordValue);
+        } finally {
+            topicConnectionsRuntime.close();
         }
     }
 

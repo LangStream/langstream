@@ -41,7 +41,26 @@ class S3CodeStorageTest {
             new LocalStackContainer(localstackImage).withServices(S3);
 
     @Test
-    void testConnection() throws Exception {
+    void testConfig() throws Exception {
+        Map<String, Object> config =
+                Map.of(
+                        "type",
+                        "s3",
+                        "bucket-name",
+                        "test-b",
+                        "endpoint",
+                        localstack.getEndpointOverride(S3).toString(),
+                        "connection-timeout-seconds",
+                        60,
+                        "upload-max-retries",
+                        10,
+                        "upload-retries-initial-backoff-ms",
+                        1000);
+        new S3CodeStorageProvider().createImplementation("s3", config);
+    }
+
+    @Test
+    void testAll() throws Exception {
 
         S3CodeStorage storage =
                 (S3CodeStorage)

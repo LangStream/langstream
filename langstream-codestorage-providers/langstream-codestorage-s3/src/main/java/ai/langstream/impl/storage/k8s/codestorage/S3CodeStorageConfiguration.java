@@ -16,6 +16,7 @@
 package ai.langstream.impl.storage.k8s.codestorage;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -36,4 +37,13 @@ public class S3CodeStorageConfiguration {
 
     @JsonAlias({"secretkey", "secret-key"})
     private String secretKey;
+
+    @JsonProperty("connection-timeout-seconds")
+    private int connectionTimeoutSeconds = 30;
+
+    @JsonProperty("upload-max-retries")
+    private int uploadMaxRetries = 5;
+
+    @JsonProperty("upload-retries-initial-backoff-ms")
+    private int uploadRetriesInitialBackoffMs = 2000;
 }

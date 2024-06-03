@@ -60,6 +60,9 @@ public class S3CodeStorage implements CodeStorage {
     private final OkHttpClient httpClient;
     private final MinioClient minioClient;
 
+    private final int uploadMaxRetries;
+    private final int uploadRetriesInitialBackoffMs;
+
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         final S3CodeStorageConfiguration s3CodeStorageConfiguration =
@@ -69,14 +72,23 @@ public class S3CodeStorage implements CodeStorage {
         final String endpoint = s3CodeStorageConfiguration.getEndpoint();
         final String accessKey = s3CodeStorageConfiguration.getAccessKey();
         final String secretKey = s3CodeStorageConfiguration.getSecretKey();
+        uploadMaxRetries = s3CodeStorageConfiguration.getUploadMaxRetries();
+        uploadRetriesInitialBackoffMs =
+                s3CodeStorageConfiguration.getUploadRetriesInitialBackoffMs();
 
-        log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
+        final int connectionTimeoutSeconds =
+                s3CodeStorageConfiguration.getConnectionTimeoutSeconds();
+        log.info(
+                "Connecting to S3 BlobStorage at {} with accessKey {}, connection timeout {} seconds",
+                endpoint,
+                accessKey,
+                connectionTimeoutSeconds);
 
         httpClient =
                 new OkHttpClient.Builder()
-                        .connectTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
-                        .writeTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
-                        .readTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                        .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
                         .protocols(List.of(Protocol.HTTP_1_1))
                         .retryOnConnectionFailure(true)
                         .build();
@@ -128,17 +140,21 @@ public class S3CodeStorage implements CodeStorage {
                 if (pyBinariesDigest != null) {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
                 }
-                minioClient.uploadObject(
+                UploadObjectArgs uploadObjectArgs =
                         UploadObjectArgs.builder()
                                 .userMetadata(userMetadata)
                                 .bucket(bucketName)
                                 .object(tenant + "/" + codeStoreId)
-                                .contentType("application/zip")
+                                .contentType("application")
                                 .filename(tempFile.toAbsolutePath().toString())
-                                .build());
+                                .build();
+                uploadWithRetry(uploadObjectArgs);
                 return new CodeArchiveMetadata(
                         tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
-            } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException e) {
+            } catch (MinioException
+                    | NoSuchAlgorithmException
+                    | InvalidKeyException
+                    | IOException e) {
                 throw new CodeStorageException(e);
             } finally {
                 Files.delete(tempFile);
@@ -248,5 +264,39 @@ public class S3CodeStorage implements CodeStorage {
 
     MinioClient getMinioClient() {
         return minioClient;
+    }
+
+    private void uploadWithRetry(UploadObjectArgs args)
+            throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+        int attempt = 0;
+        int maxRetries = uploadMaxRetries;
+        while (attempt < maxRetries) {
+            try {
+                log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
+                attempt++;
+                minioClient.uploadObject(args);
+                return;
+            } catch (IOException e) {
+                log.error("error uploading object to s3", e);
+                if (e.getMessage() != null && e.getMessage().contains("unexpected end of stream")) {
+                    if (attempt == maxRetries) {
+                        throw e;
+                    }
+                    long backoffTime =
+                            (long) Math.pow(2, attempt - 1) * uploadRetriesInitialBackoffMs;
+                    log.info(
+                            "retrying upload due to unexpected end of stream, retrying in {} ms",
+                            backoffTime);
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(backoffTime);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(ie);
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        }
     }
 }

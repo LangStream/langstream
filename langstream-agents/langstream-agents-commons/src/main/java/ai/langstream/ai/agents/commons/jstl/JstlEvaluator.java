@@ -244,7 +244,7 @@ public class JstlEvaluator<T> {
                                 "dateadd", Object.class, Object.class, Object.class));
     }
 
-    public T evaluate(MutableRecord mutableRecord) {
+    public synchronized T evaluate(MutableRecord mutableRecord) {
         JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
         FACTORY.createValueExpression(expressionContext, "${key}", Object.class)
                 .setValue(expressionContext, adapter.getKey());
@@ -303,7 +303,7 @@ public class JstlEvaluator<T> {
         }
     }
 
-    public T evaluateRawContext(Map<String, Object> context) {
+    public synchronized T evaluateRawContext(Map<String, Object> context) {
         for (Map.Entry<String, Object> stringObjectEntry : context.entrySet()) {
             FACTORY.createValueExpression(
                             expressionContext,

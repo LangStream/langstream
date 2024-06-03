@@ -37,7 +37,8 @@ public class DockerImageUtils {
                 dockerImageName = "langstream/langstream-runtime-tester";
             } else {
                 // default to latest
-                dockerImageName = "ghcr.io/langstream/langstream-runtime-tester";
+                dockerImageName =
+                        "891377311292.dkr.ecr.us-east-1.amazonaws.com/vectorize-runtime-tester";
             }
         }
 

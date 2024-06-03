@@ -424,17 +424,7 @@ public class MutableRecord {
                         .collect(
                                 Collectors.toMap(
                                         Header::key,
-                                        (h -> {
-                                            if (h.value() == null) {
-                                                return null;
-                                            }
-                                            if (h.value() instanceof byte[]) {
-                                                return new String(
-                                                        (byte[]) h.value(), StandardCharsets.UTF_8);
-                                            } else {
-                                                return h.value().toString();
-                                            }
-                                        }))));
+                                        Header::valueAsString)));
         return context;
     }
 

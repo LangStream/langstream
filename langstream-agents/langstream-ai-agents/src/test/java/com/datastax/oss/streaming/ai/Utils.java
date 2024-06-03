@@ -216,6 +216,7 @@ public class Utils {
         Map<String, String> props = new HashMap<>();
         props.put("p1", "v1");
         props.put("p2", "v2");
+        props.put("p3", null);
 
         return TestRecord.<GenericObject>builder()
                 .schema(keyValueSchema)

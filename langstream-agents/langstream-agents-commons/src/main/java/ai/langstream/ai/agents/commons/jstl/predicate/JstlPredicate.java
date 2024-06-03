@@ -25,9 +25,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JstlPredicate implements TransformPredicate {
     private final JstlEvaluator<Boolean> evaluator;
+    private final String when;
 
     public JstlPredicate(String when) {
         try {
+            this.when = when;
             final String expression = String.format("${%s}", when);
             this.evaluator = new JstlEvaluator<>(expression, boolean.class);
         } catch (ELException ex) {
@@ -38,15 +40,19 @@ public class JstlPredicate implements TransformPredicate {
     @Override
     public boolean test(MutableRecord mutableRecord) {
         try {
-            return this.evaluator.evaluate(mutableRecord);
+            Boolean evaluate = this.evaluator.evaluate(mutableRecord);
+            if (evaluate == null) {
+                log.warn("the when expression evaluated to null, expression: {}, record {}", when, mutableRecord);
+                return false;
+            }
+            return evaluate;
         } catch (PropertyNotFoundException ex) {
-            log.warn("a property in the when expression was not found in the message", ex);
+            log.warn("a property in the when expression was not found in the message, expression: {}, record {}", when, mutableRecord, ex);
             return false;
         } catch (IllegalArgumentException ex) {
             if (ex.getCause() instanceof PropertyNotFoundException) {
-                log.warn(
-                        "a property in the when expression was not found in the message",
-                        ex.getCause());
+                log.warn("a property in the when expression was not found in the message, expression: {}, record {}",
+                        when, mutableRecord, ex.getCause());
                 return false;
             } else {
                 throw ex;

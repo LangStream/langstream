@@ -16,13 +16,20 @@
 package com.datastax.oss.streaming.ai.jstl.predicate;
 
 import static com.datastax.oss.streaming.ai.Utils.newTransformContext;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.datastax.oss.streaming.ai.Utils;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.common.schema.KeyValue;
@@ -37,14 +44,66 @@ public class JstlPredicateTest {
     @ParameterizedTest
     @MethodSource("keyValuePredicates")
     void testKeyValueAvro(String when, boolean match) {
+
+    }
+
+    @ParameterizedTest
+    @MethodSource("keyValuePredicates")
+    void testConcurrenctAccessJstlPredicate(String when, boolean match) throws Exception {
+        ExecutorService tp = Executors.newFixedThreadPool(10);
         JstlPredicate predicate = new JstlPredicate(when);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                for (int j = 0; j < 10; j++) {
+                    Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
+                    Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
+                    MutableRecord mutableRecord =
+                            newTransformContext(context, record.getValue().getNativeObject());
 
-        Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
-        Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
-        MutableRecord mutableRecord =
-                newTransformContext(context, record.getValue().getNativeObject());
+                    assertEquals(predicate.test(mutableRecord), match);
+                }
+            }, tp);
+            futures.add(future);
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
 
-        assertEquals(predicate.test(mutableRecord), match);
+    }
+
+    static JstlPredicate predicate = new JstlPredicate("properties.dbType == 'Ciccio'");
+
+    private static void m() {
+
+        while (true) {
+            {
+                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
+                record.getProperties().put("dbType", "Altro");
+                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
+                MutableRecord mutableRecord =
+                        newTransformContext(context, record.getValue().getNativeObject());
+
+                assertFalse(predicate.test(mutableRecord));
+            }
+            {
+                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
+                record.getProperties().put("dbType", "Ciccio");
+                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
+                MutableRecord mutableRecord =
+                        newTransformContext(context, record.getValue().getNativeObject());
+
+                assertTrue(predicate.test(mutableRecord));
+            }
+
+            {
+                Record<GenericObject> record = Utils.createNestedAvroKeyValueRecord(2);
+                Utils.TestContext context = new Utils.TestContext(record, new HashMap<>());
+                MutableRecord mutableRecord =
+                        newTransformContext(context, record.getValue().getNativeObject());
+
+                assertFalse(predicate.test(mutableRecord));
+            }
+            System.out.println("ok" + Thread.currentThread().getName());
+        }
     }
 
     @Test
@@ -52,10 +111,10 @@ public class JstlPredicateTest {
         assertEquals(
                 "invalid when: `invalid",
                 assertThrows(
-                                IllegalArgumentException.class,
-                                () -> {
-                                    new JstlPredicate("`invalid");
-                                })
+                        IllegalArgumentException.class,
+                        () -> {
+                            new JstlPredicate("`invalid");
+                        })
                         .getMessage());
     }
 
@@ -85,11 +144,11 @@ public class JstlPredicateTest {
         MutableRecord primitiveKVContext =
                 Utils.createContextWithPrimitiveRecord(keyValueSchema, keyValue, "");
 
-        return new Object[][] {
-            // match
-            {"key=='key' && value==42", primitiveKVContext, true},
-            // no-match
-            {"key=='key' && value<42", primitiveKVContext, false},
+        return new Object[][]{
+                // match
+                {"key=='key' && value==42", primitiveKVContext, true},
+                // no-match
+                {"key=='key' && value<42", primitiveKVContext, false},
         };
     }
 
@@ -108,35 +167,35 @@ public class JstlPredicateTest {
         MutableRecord primitiveKVContext =
                 Utils.createContextWithPrimitiveRecord(keyValueSchema, keyValue, "header-key");
 
-        return new Object[][] {
-            // match
-            {"value=='test-message'", primitiveStringContext, true},
-            {"messageKey=='header-key'", primitiveStringContext, true},
-            {"key=='header-key'", primitiveStringContext, true},
-            {"value==33", primitiveIntContext, true},
-            {"value eq 33", primitiveIntContext, true},
-            {"value eq 32 + 1", primitiveIntContext, true},
-            {"value eq 34 - 1", primitiveIntContext, true},
-            {"value eq 66 / 2", primitiveIntContext, true},
-            {"value eq 66 div 2", primitiveIntContext, true},
-            {"value % 10 == 3", primitiveIntContext, true},
-            {"value mod 10 == 3", primitiveIntContext, true},
-            {"value>32", primitiveIntContext, true},
-            {"value gt 32", primitiveIntContext, true},
-            {"value<=33 && key=='header-key'", primitiveIntContext, true},
-            {"key=='key' && value==42", primitiveKVContext, true},
-            {"key=='key' and value==42", primitiveKVContext, true},
-            {"key=='key1' || value==42", primitiveKVContext, true},
-            {"key=='key1' or value==42", primitiveKVContext, true},
-            {"key=='key' && value==42", primitiveKVContext, true},
-            // no-match
-            {"value=='test-message-'", primitiveStringContext, false},
-            {"key!='header-key'", primitiveStringContext, false},
-            {"key ne 'header-key'", primitiveStringContext, false},
-            {"value==34", primitiveIntContext, false},
-            {"value>33", primitiveIntContext, false},
-            {"value<=20 && key=='test-key'", primitiveIntContext, false},
-            {"value le 20 && key=='test-key'", primitiveIntContext, false},
+        return new Object[][]{
+                // match
+                {"value=='test-message'", primitiveStringContext, true},
+                {"messageKey=='header-key'", primitiveStringContext, true},
+                {"key=='header-key'", primitiveStringContext, true},
+                {"value==33", primitiveIntContext, true},
+                {"value eq 33", primitiveIntContext, true},
+                {"value eq 32 + 1", primitiveIntContext, true},
+                {"value eq 34 - 1", primitiveIntContext, true},
+                {"value eq 66 / 2", primitiveIntContext, true},
+                {"value eq 66 div 2", primitiveIntContext, true},
+                {"value % 10 == 3", primitiveIntContext, true},
+                {"value mod 10 == 3", primitiveIntContext, true},
+                {"value>32", primitiveIntContext, true},
+                {"value gt 32", primitiveIntContext, true},
+                {"value<=33 && key=='header-key'", primitiveIntContext, true},
+                {"key=='key' && value==42", primitiveKVContext, true},
+                {"key=='key' and value==42", primitiveKVContext, true},
+                {"key=='key1' || value==42", primitiveKVContext, true},
+                {"key=='key1' or value==42", primitiveKVContext, true},
+                {"key=='key' && value==42", primitiveKVContext, true},
+                // no-match
+                {"value=='test-message-'", primitiveStringContext, false},
+                {"key!='header-key'", primitiveStringContext, false},
+                {"key ne 'header-key'", primitiveStringContext, false},
+                {"value==34", primitiveIntContext, false},
+                {"value>33", primitiveIntContext, false},
+                {"value<=20 && key=='test-key'", primitiveIntContext, false},
+                {"value le 20 && key=='test-key'", primitiveIntContext, false},
         };
     }
 
@@ -144,35 +203,36 @@ public class JstlPredicateTest {
      * @return {"expression", "expected match boolean"}
      */
     public static Object[][] keyValuePredicates() {
-        return new Object[][] {
-            // match
-            {"key.level1String == 'level1_1'", true},
-            {"key.level1Record.level2String == 'level2_1'", true},
-            {"key.level1Record.level2Integer == 9", true},
-            {"key.level1Record.level2Double == 8.8", true},
-            {"key.level1Record.level2Array[0] == 'level2_1'", true},
-            {"value.level1Record.level2Integer > 8", true},
-            {"value.level1Record.level2Double < 8.9", true},
-            {"value.level1Record.level2Array[0] == 'level2_1'", true},
-            {"messageKey == 'key1'", true},
-            {"destinationTopic == 'dest-topic-1'", true},
-            {"topicName == 'topic-1'", true},
-            {"properties.p1 == 'v1'", true},
-            {"properties.p2 == 'v2'", true},
-            // no match
-            {"key.level1String == 'leVel1_1'", false},
-            {"key.level1Record.random == 'level2_1'", false},
-            {"key.level1Record.level2Integer != 9", false},
-            {"key.level1Record.level2Double < 8.8", false},
-            {"key.level1Record.level2Array[0] == 'non_existing_item'", false},
-            {"key.randomKey == 'k1'", false},
-            {"value.level1Record.level2Integer > 10", false},
-            {"value.level1Record.level2Double < 0", false},
-            {"value.randomValue < 0", false},
-            {"messageKey == 'key2'", false},
-            {"topicName != 'topic-1'", false},
-            {"properties.p2 == 'v3'", false},
-            {"randomHeader == 'h1'", false}
+        return new Object[][]{
+                // match
+                {"key.level1String == 'level1_1'", true},
+                {"key.level1Record.level2String == 'level2_1'", true},
+                {"key.level1Record.level2Integer == 9", true},
+                {"key.level1Record.level2Double == 8.8", true},
+                {"key.level1Record.level2Array[0] == 'level2_1'", true},
+                {"value.level1Record.level2Integer > 8", true},
+                {"value.level1Record.level2Double < 8.9", true},
+                {"value.level1Record.level2Array[0] == 'level2_1'", true},
+                {"messageKey == 'key1'", true},
+                {"destinationTopic == 'dest-topic-1'", true},
+                {"topicName == 'topic-1'", true},
+                {"properties.p1 == 'v1'", true},
+                {"properties.p2 == 'v2'", true},
+                {"properties.p3 == 'v3'", false},
+                // no match
+                {"key.level1String == 'leVel1_1'", false},
+                {"key.level1Record.random == 'level2_1'", false},
+                {"key.level1Record.level2Integer != 9", false},
+                {"key.level1Record.level2Double < 8.8", false},
+                {"key.level1Record.level2Array[0] == 'non_existing_item'", false},
+                {"key.randomKey == 'k1'", false},
+                {"value.level1Record.level2Integer > 10", false},
+                {"value.level1Record.level2Double < 0", false},
+                {"value.randomValue < 0", false},
+                {"messageKey == 'key2'", false},
+                {"topicName != 'topic-1'", false},
+                {"properties.p2 == 'v3'", false},
+                {"randomHeader == 'h1'", false}
         };
     }
 }

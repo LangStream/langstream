@@ -33,12 +33,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -61,10 +56,22 @@ public class WebCrawler {
 
     private final Map<String, SimpleRobotRules> robotsRules = new HashMap<>();
 
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+
+    private final DocumentDeletedVisitor onDocumentDeleted;
+
     public WebCrawler(
             WebCrawlerConfiguration configuration,
             WebCrawlerStatus status,
             DocumentVisitor visitor) {
+        this(configuration, status, visitor, url -> {});
+    }
+
+    public WebCrawler(
+            WebCrawlerConfiguration configuration,
+            WebCrawlerStatus status,
+            DocumentVisitor visitor,
+            DocumentDeletedVisitor onDocumentDeleted) {
         this.configuration = configuration;
         this.visitor = visitor;
         this.status = status;
@@ -75,6 +82,7 @@ public class WebCrawler {
                         ? CookiePolicy.ACCEPT_ALL
                         : CookiePolicy.ACCEPT_NONE);
         this.cookieStore = cookieManager.getCookieStore();
+        this.onDocumentDeleted = onDocumentDeleted;
     }
 
     public void crawl(String startUrl) {
@@ -152,18 +160,12 @@ public class WebCrawler {
             return true;
         }
 
-        Connection connect = Jsoup.connect(current);
-        connect.cookieStore(cookieStore);
-        connect.followRedirects(false);
-        if (configuration.getUserAgent() != null) {
-            connect.userAgent(configuration.getUserAgent());
-        }
-        connect.timeout(configuration.getHttpTimeout());
+        Connection connect = jsoupConnect(current);
 
         boolean redirectedToForbiddenDomain = false;
-        Document document = null;
-        String contentType = null;
-        byte[] binaryContent = null;
+        Document document;
+        String contentType;
+        byte[] binaryContent;
         try {
             document = connect.get();
             Connection.Response response = connect.response();
@@ -222,10 +224,7 @@ public class WebCrawler {
                                 .firstValue("content-type")
                                 .orElse("application/octet-stream");
                 binaryContent = httpResponse.body();
-                visitor.visit(
-                        new ai.langstream.agents.webcrawler.crawler.Document(
-                                current, binaryContent, contentType));
-
+                onDocumentFound(current, binaryContent, contentType);
                 handleThrottling(current);
 
                 return true;
@@ -270,17 +269,96 @@ public class WebCrawler {
                                     }
                                 });
             }
-            visitor.visit(
-                    new ai.langstream.agents.webcrawler.crawler.Document(
-                            current,
-                            document.html().getBytes(StandardCharsets.UTF_8),
-                            contentType));
+            onDocumentFound(current, document.html().getBytes(StandardCharsets.UTF_8), contentType);
         }
 
         // prevent from being banned for flooding
         handleThrottling(current);
 
         return true;
+    }
+
+    private Connection jsoupConnect(String current) {
+        Connection connect = Jsoup.connect(current);
+        connect.cookieStore(cookieStore);
+        connect.followRedirects(false);
+        if (configuration.getUserAgent() != null) {
+            connect.userAgent(configuration.getUserAgent());
+        }
+        connect.timeout(configuration.getHttpTimeout());
+        return connect;
+    }
+
+    public void runDeletedDocumentsChecker() throws Exception {
+        Set<String> toRemove = new HashSet<>();
+        for (String url : status.getAllTimeDocuments().keySet()) {
+            log.info("Checking url still available: {}", url);
+            handleThrottling(url);
+            boolean deleted = false;
+            try {
+                try {
+                    Connection connect = jsoupConnect(url);
+                    connect.get();
+                    Connection.Response response = connect.response();
+                    int statusCode = response.statusCode();
+                    if (statusCode >= 300) {
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                statusCode);
+                        deleted = true;
+                    }
+                } catch (HttpStatusException e) {
+                    int code = e.getStatusCode();
+                    if (code >= 400 && code < 500) {
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                code);
+                        deleted = true;
+                    } else {
+                        // might be a temporary error
+                    }
+                } catch (UnsupportedMimeTypeException notHtml) {
+                    handleThrottling(url);
+                    HttpResponse<byte[]> httpResponse = downloadUrl(url);
+                    int statusCode = httpResponse.statusCode();
+                    if (statusCode < 300) {
+                        continue;
+                    }
+                    if (statusCode >= 300 && statusCode < 500) {
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                statusCode);
+                        deleted = true;
+                    } else {
+                        // might be a temporary error
+                    }
+                }
+            } catch (IOException e) {
+                log.warn("Error while checking the url: {}", url, e);
+            }
+            if (deleted) {
+                toRemove.add(url);
+            }
+        }
+        if (toRemove.isEmpty()) {
+            return;
+        }
+        for (String url : toRemove) {
+            onDocumentDeleted.visit(url);
+            status.getAllTimeDocuments().remove(url);
+        }
+    }
+
+    private void onDocumentFound(String url, byte[] content, String contentType) {
+        ai.langstream.agents.webcrawler.crawler.Document.ContentDiff contentDiff =
+                status.onDocumentFound(url, content);
+        ai.langstream.agents.webcrawler.crawler.Document doc =
+                new ai.langstream.agents.webcrawler.crawler.Document(
+                        url, content, contentType, contentDiff);
+        visitor.visit(doc);
     }
 
     private void handleThrottling(String current) throws InterruptedException {
@@ -434,11 +512,10 @@ public class WebCrawler {
     }
 
     private HttpResponse<byte[]> downloadUrl(String url) throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
         IOException lastError = null;
         for (int i = 0; i < configuration.getMaxErrorCount(); i++) {
             try {
-                return client.send(
+                return httpClient.send(
                         HttpRequest.newBuilder()
                                 .uri(URI.create(url))
                                 .header("User-Agent", configuration.getUserAgent())

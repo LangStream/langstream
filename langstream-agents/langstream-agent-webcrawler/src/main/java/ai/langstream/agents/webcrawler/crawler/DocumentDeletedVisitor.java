@@ -15,10 +15,6 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-public record Document(String url, byte[] content, String contentType, ContentDiff contentDiff) {
-    public enum ContentDiff {
-        NEW,
-        CONTENT_CHANGED,
-        CONTENT_UNCHANGED,
-    }
+public interface DocumentDeletedVisitor {
+    void visit(String url) throws Exception;
 }

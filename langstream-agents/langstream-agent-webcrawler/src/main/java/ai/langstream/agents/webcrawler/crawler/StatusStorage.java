@@ -30,7 +30,8 @@ public interface StatusStorage {
             List<StoreUrlReference> urls,
             Long lastIndexEndTimestamp,
             Long lastIndexStartTimestamp,
-            Map<String, RobotsFile> robotFiles) {}
+            Map<String, RobotsFile> robotFiles,
+            Map<String, String> allTimeDocuments) {}
 
     Status getCurrentStatus() throws Exception;
 }

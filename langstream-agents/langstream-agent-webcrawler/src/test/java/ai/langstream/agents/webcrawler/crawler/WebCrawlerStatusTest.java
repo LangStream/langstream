@@ -170,7 +170,7 @@ class WebCrawlerStatusTest {
         public Status getCurrentStatus() {
             return lastMetadata != null
                     ? lastMetadata
-                    : new Status(List.of(), List.of(), null, null, Map.of());
+                    : new Status(List.of(), List.of(), null, null, Map.of(), Map.of());
         }
     }
 }

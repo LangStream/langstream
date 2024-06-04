@@ -15,9 +15,7 @@
  */
 package ai.langstream.kafka;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -87,6 +85,8 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                 topics:
                                   - name: "${globals.output-topic}"
                                     creation-mode: create-if-not-exists
+                                  - name: "deleted-documents"
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - type: "webcrawler-source"
                                     id: "step1"
@@ -96,6 +96,7 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                         allow-non-html-contents: true
                                         allowed-domains: ["%s"]
                                         state-storage: disk
+                                        deleted-documents-topic: "deleted-documents"
                                 """
                                 .formatted(
                                         wireMockRuntimeInfo.getHttpBaseUrl(),
@@ -104,8 +105,10 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (KafkaConsumer<String, String> consumer =
-                    createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
+            try (KafkaConsumer<String, String> deletedDocumentsConsumer =
+                            createConsumer("deleted-documents");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 
@@ -139,6 +142,16 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                 .resolve("step1")
                                 .resolve("%s-%s.webcrawler.status.json".formatted(appId, "step1"));
                 assertTrue(Files.exists(statusFile));
+
+                stubFor(get("/thirdPage.html").willReturn(notFound()));
+
+                executeAgentRunners(applicationRuntime);
+
+                waitForMessages(
+                        deletedDocumentsConsumer,
+                        List.of(
+                                "%s/thirdPage.html"
+                                        .formatted(wireMockRuntimeInfo.getHttpBaseUrl())));
             }
         }
     }

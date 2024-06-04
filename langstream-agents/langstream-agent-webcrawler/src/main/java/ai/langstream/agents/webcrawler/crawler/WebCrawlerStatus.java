@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -28,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Slf4j
 public class WebCrawlerStatus {
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     /** Timestamp of the last index start. This is used to avoid reprocessing the indexing. */
     private long lastIndexStartTimestamp = 0;
@@ -65,10 +68,12 @@ public class WebCrawlerStatus {
      */
     private final Map<String, Integer> errorCount = new HashMap<>();
 
+    private final Map<String, String> allTimeDocuments = new HashMap<>();
+
     public void reloadFrom(StatusStorage statusStorage) throws Exception {
         StatusStorage.Status currentStatus = statusStorage.getCurrentStatus();
         if (currentStatus != null) {
-            log.info("Found a saved status, reloading...");
+            log.info("Found a saved status, reloading");
             pendingUrls.clear();
             remainingUrls.clear();
             urls.clear();
@@ -113,6 +118,10 @@ public class WebCrawlerStatus {
             if (robots != null) {
                 robotsFiles.putAll(robots);
             }
+            this.allTimeDocuments.clear();
+            if (currentStatus.allTimeDocuments() != null) {
+                this.allTimeDocuments.putAll(currentStatus.allTimeDocuments());
+            }
         } else {
             log.info("No saved status found, starting from scratch");
         }
@@ -156,7 +165,8 @@ public class WebCrawlerStatus {
                         urlReferencesForStore,
                         lastIndexEndTimestamp,
                         lastIndexStartTimestamp,
-                        new HashMap<>(robotsFiles)));
+                        new HashMap<>(robotsFiles),
+                        allTimeDocuments));
     }
 
     public void addUrl(String url, URLReference.Type type, int depth, boolean toScan) {
@@ -234,5 +244,37 @@ public class WebCrawlerStatus {
             throw new IllegalStateException("Unknown url " + current);
         }
         return reference;
+    }
+
+    public Document.ContentDiff onDocumentFound(final String url, final byte[] content) {
+        try {
+            byte[] md5 = MessageDigest.getInstance("MD5").digest(content);
+            String contentHash = bytesToHex(md5);
+            Document.ContentDiff contentDiff;
+            if (allTimeDocuments.containsKey(url)) {
+                String previousHash = allTimeDocuments.get(url);
+                if (!previousHash.equals(contentHash)) {
+                    contentDiff = Document.ContentDiff.CONTENT_CHANGED;
+                } else {
+                    contentDiff = Document.ContentDiff.CONTENT_UNCHANGED;
+                }
+            } else {
+                contentDiff = Document.ContentDiff.NEW;
+            }
+            allTimeDocuments.put(url, contentHash);
+            return contentDiff;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }

@@ -301,5 +301,14 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                 defaultValue = "true")
         @JsonProperty("handle-cookies")
         private boolean handleCookies;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Detect documents that have been deleted from the website and send the URL to this topic.
+                        """,
+                defaultValue = "")
+        @JsonProperty("deleted-documents-topic")
+        private String deletedDocumentsTopic;
     }
 }

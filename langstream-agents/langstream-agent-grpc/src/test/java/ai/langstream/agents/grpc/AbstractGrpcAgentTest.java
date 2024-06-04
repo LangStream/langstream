@@ -253,6 +253,11 @@ public class AbstractGrpcAgentTest {
         }
 
         @Override
+        public String getTenant() {
+            return null;
+        }
+
+        @Override
         public TopicAdmin getTopicAdmin() {
             return null;
         }

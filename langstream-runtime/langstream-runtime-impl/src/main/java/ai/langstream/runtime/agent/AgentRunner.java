@@ -370,6 +370,7 @@ public class AgentRunner {
                     topicAdmin.start();
                     AgentContext agentContext =
                             new SimpleAgentContext(
+                                    configuration.agent().tenant(),
                                     agentId,
                                     consumer,
                                     producer,
@@ -1039,6 +1040,8 @@ public class AgentRunner {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
         private final TopicAdmin topicAdmin;
+
+        private final String tenant;
         private final String globalAgentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
@@ -1051,6 +1054,7 @@ public class AgentRunner {
         private final Set<String> agentsWithPersistentState;
 
         public SimpleAgentContext(
+                String tenant,
                 String globalAgentId,
                 TopicConsumer consumer,
                 TopicProducer producer,
@@ -1061,6 +1065,7 @@ public class AgentRunner {
                 Path basePersistentStateDirectory,
                 Set<String> agentsWithPersistentState,
                 MetricsReporter metricsReporter) {
+            this.tenant = tenant;
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
@@ -1098,6 +1103,11 @@ public class AgentRunner {
         @Override
         public String getGlobalAgentId() {
             return globalAgentId;
+        }
+
+        @Override
+        public String getTenant() {
+            return tenant;
         }
 
         @Override

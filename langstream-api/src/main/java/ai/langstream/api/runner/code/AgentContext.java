@@ -38,6 +38,8 @@ public interface AgentContext {
 
     String getGlobalAgentId();
 
+    String getTenant();
+
     TopicAdmin getTopicAdmin();
 
     TopicConnectionProvider getTopicConnectionProvider();

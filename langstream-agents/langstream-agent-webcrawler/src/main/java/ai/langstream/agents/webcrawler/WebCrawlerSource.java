@@ -33,16 +33,15 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.minio.BucketExistsArgs;
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
+import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.errors.MinioException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,7 +51,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -111,13 +112,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
         flushNext.set(maxUnflushedPages);
-        int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
-        String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
-        int maxErrorCount = getInt("max-error-count", 5, configuration);
-        int httpTimeout = getInt("http-timeout", 10000, configuration);
-        boolean allowNonHtmlContents = getBoolean("allow-non-html-contents", false, configuration);
+        final int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
+        final String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
+        final int maxErrorCount = getInt("max-error-count", 5, configuration);
+        final int httpTimeout = getInt("http-timeout", 10000, configuration);
+        final boolean allowNonHtmlContents =
+                getBoolean("allow-non-html-contents", false, configuration);
 
-        boolean handleCookies = getBoolean("handle-cookies", true, configuration);
+        final boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
@@ -156,12 +158,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
-        String globalAgentId = context.getGlobalAgentId();
-        statusFileName = globalAgentId + ".webcrawler.status.json";
-        log.info("Status file is {}", statusFileName);
+        final String globalAgentId = context.getGlobalAgentId();
+        final boolean prependTenant =
+                getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
+        final String prefix = getString("state-storage-file-prefix", "", agentConfiguration);
         final String agentId = agentId();
         localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
         String stateStorage = getString("state-storage", "s3", agentConfiguration);
+
         if (stateStorage.equals("disk")) {
             if (!localDiskPath.isPresent()) {
                 throw new IllegalArgumentException(
@@ -170,6 +174,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
+            final String pathPrefix;
+            if (prependTenant) {
+                pathPrefix = prefix + context.getTenant() + "-" + globalAgentId;
+            } else {
+                pathPrefix = prefix + globalAgentId;
+            }
+            statusFileName = pathPrefix + ".webcrawler.status.json";
 
             statusStorage = new LocalDiskStatusStorage();
         } else {
@@ -196,8 +207,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             minioClient = builder.build();
 
             makeBucketIfNotExists(bucketName);
+            final String pathPrefix;
+            if (prependTenant) {
+                pathPrefix = prefix + context.getTenant() + "/" + globalAgentId;
+            } else {
+                pathPrefix = prefix + globalAgentId;
+            }
+            statusFileName = pathPrefix + ".webcrawler.status.json";
             statusStorage = new S3StatusStorage();
         }
+        log.info("Status file is {}", statusFileName);
     }
 
     @SneakyThrows
@@ -392,13 +411,50 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         public void storeStatus(Status status) throws Exception {
             byte[] content = MAPPER.writeValueAsBytes(status);
             log.info("Storing status in {}, {} bytes", statusFileName, content.length);
-            minioClient.putObject(
-                    io.minio.PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(statusFileName)
-                            .contentType("text/json")
-                            .stream(new ByteArrayInputStream(content), content.length, -1)
-                            .build());
+            putWithRetries(
+                    () ->
+                            PutObjectArgs.builder()
+                                    .bucket(bucketName)
+                                    .object(statusFileName)
+                                    .contentType("text/json")
+                                    .stream(new ByteArrayInputStream(content), content.length, -1)
+                                    .build());
+        }
+
+        private void putWithRetries(Supplier<PutObjectArgs> args)
+                throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+            int attempt = 0;
+            int maxRetries = 5;
+            while (attempt < maxRetries) {
+                try {
+                    attempt++;
+                    log.info("attempting to put object to s3 {}/{}", attempt, maxRetries);
+                    minioClient.putObject(args.get());
+                    return;
+                } catch (IOException e) {
+                    log.error("error putting object to s3", e);
+                    if (e.getMessage() != null
+                                    && e.getMessage().contains("unexpected end of stream")
+                            || e.getMessage().contains("unexpected EOF")
+                            || e.getMessage().contains("Broken pipe")) {
+                        if (attempt == maxRetries) {
+                            throw e;
+                        }
+                        long backoffTime = (long) Math.pow(2, attempt - 1) * 2000;
+                        log.info(
+                                "retrying put due to unexpected end of stream, retrying in {} ms",
+                                backoffTime);
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(backoffTime);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException(ie);
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+            }
         }
 
         @Override

@@ -36,9 +36,8 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
+import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -122,37 +121,85 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamDocs() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = "https://docs.langstream.ai/";
         String allowed = "https://docs.langstream.ai/";
 
-        WebCrawlerSource agentSource =
+        try (WebCrawlerSource agentSource =
                 buildAgentSource(
                         bucket,
                         allowed,
                         Set.of("/pipeline-agents", "/building-applications"),
                         url,
-                        Map.of("reindex-interval-seconds", "30", "max-urls", 5));
-        List<Record> read = agentSource.read();
-        Set<String> urls = new HashSet<>();
-        agentSource.setOnReindexStart(
-                () -> {
-                    urls.clear();
-                });
-        int count = 0;
-        while (count < 30000) {
-            log.info("read: {}", read);
-            for (Record r : read) {
-                String docUrl = r.key().toString();
-                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "1",
+                                "max-urls",
+                                50,
+                                "state-storage-file-prepend-tenant",
+                                "true",
+                                "state-storage-file-prefix",
+                                "langstream-apps/")); ) {
+            List<Record> read = agentSource.read();
+            Set<String> urls = new HashSet<>();
+            agentSource.setOnReindexStart(
+                    () -> {
+                        urls.clear();
+                    });
+            int count = 0;
+            while (count < 5) {
+                log.info("read: {}", read);
+                for (Record r : read) {
+                    String docUrl = r.key().toString();
+                    assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                }
+                count += read.size();
+                agentSource.commit(read);
+                read = agentSource.read();
             }
-            count += read.size();
-            agentSource.commit(read);
-            read = agentSource.read();
         }
-        agentSource.close();
+        Iterable<Result<Item>> results =
+                minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build());
+        int count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals("langstream-apps/", item.objectName());
+            assertTrue(item.isDir());
+        }
+        assertEquals(1, count);
+        results =
+                minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucket)
+                                .prefix("langstream-apps/")
+                                .build());
+        count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals("langstream-apps/test-tenant/", item.objectName());
+            assertTrue(item.isDir());
+        }
+        assertEquals(1, count);
+
+        results =
+                minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucket)
+                                .prefix("langstream-apps/test-tenant/")
+                                .build());
+        count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals(
+                    "langstream-apps/test-tenant/test-global-agent-id.webcrawler.status.json",
+                    item.objectName());
+            assertFalse(item.isDir());
+        }
+        assertEquals(1, count);
     }
 
     @Test
@@ -440,6 +487,11 @@ public class WebCrawlerSourceTest {
                     @Override
                     public String getGlobalAgentId() {
                         return "test-global-agent-id";
+                    }
+
+                    @Override
+                    public String getTenant() {
+                        return "test-tenant";
                     }
 
                     @Override

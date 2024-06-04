@@ -39,6 +39,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -139,15 +140,21 @@ public class S3CodeStorage implements CodeStorage {
                 if (pyBinariesDigest != null) {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
                 }
-                UploadObjectArgs uploadObjectArgs =
-                        UploadObjectArgs.builder()
-                                .userMetadata(userMetadata)
-                                .bucket(bucketName)
-                                .object(tenant + "/" + codeStoreId)
-                                .contentType("application/zip")
-                                .filename(tempFile.toAbsolutePath().toString())
-                                .build();
-                uploadWithRetry(uploadObjectArgs);
+                String filename = tempFile.toAbsolutePath().toString();
+                uploadWithRetry(
+                        () -> {
+                            try {
+                                return UploadObjectArgs.builder()
+                                        .userMetadata(userMetadata)
+                                        .bucket(bucketName)
+                                        .object(tenant + "/" + codeStoreId)
+                                        .contentType("application/zip")
+                                        .filename(filename)
+                                        .build();
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                 return new CodeArchiveMetadata(
                         tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
             } catch (MinioException
@@ -265,7 +272,7 @@ public class S3CodeStorage implements CodeStorage {
         return minioClient;
     }
 
-    private void uploadWithRetry(UploadObjectArgs args)
+    private void uploadWithRetry(Supplier<UploadObjectArgs> args)
             throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
         int attempt = 0;
         int maxRetries = uploadMaxRetries;
@@ -273,11 +280,13 @@ public class S3CodeStorage implements CodeStorage {
             try {
                 attempt++;
                 log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
-                minioClient.uploadObject(args);
+                minioClient.uploadObject(args.get());
                 return;
             } catch (IOException e) {
                 log.error("error uploading object to s3", e);
-                if (e.getMessage() != null && e.getMessage().contains("unexpected end of stream")) {
+                if (e.getMessage() != null && e.getMessage().contains("unexpected end of stream")
+                        || e.getMessage().contains("unexpected EOF")
+                        || e.getMessage().contains("Broken pipe")) {
                     if (attempt == maxRetries) {
                         throw e;
                     }

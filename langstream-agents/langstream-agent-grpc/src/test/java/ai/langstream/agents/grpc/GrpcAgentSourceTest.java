@@ -255,6 +255,11 @@ public class GrpcAgentSourceTest {
         }
 
         @Override
+        public String getTenant() {
+            return null;
+        }
+
+        @Override
         public TopicAdmin getTopicAdmin() {
             return null;
         }

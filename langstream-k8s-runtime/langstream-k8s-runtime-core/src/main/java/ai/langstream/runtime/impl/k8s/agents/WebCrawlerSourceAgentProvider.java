@@ -109,6 +109,24 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
         @ConfigProperty(
                 description =
                         """
+                        Whether to prepend the tenant to the state storage path.
+                        """,
+                defaultValue = "false")
+        @JsonProperty("state-storage-file-prepend-tenant")
+        private boolean stateStorageFilePrependTenant;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Prepend a prefix to the state storage path, before the tenant (if enabled).
+                        """,
+                defaultValue = "")
+        @JsonProperty("state-storage-file-prefix")
+        private boolean stateStorageFilePrefix;
+
+        @ConfigProperty(
+                description =
+                        """
                                 Configuration for handling the agent status.
                                 The name of the bucket.
                                         """,

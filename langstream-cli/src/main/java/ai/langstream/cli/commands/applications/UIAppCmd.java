@@ -179,26 +179,33 @@ public class UIAppCmd extends BaseApplicationCmd {
         actualPort.set(
                 ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
-        logger.log("Starting UI at http://localhost:" + actualPort.get());
-        String os = System.getProperty("os.name").toLowerCase();
-        logger.log("Operating system identified as: " + os);
-        if (openBrowserAtPort("http://localhost:", actualPort.get())) {
-            logger.log("Started UI at http://localhost:" + actualPort.get());
+        final String uri = "http://localhost:" + actualPort.get();
+        logger.log("Starting UI at:" + uri);
+
+        logger.log(
+                "Operating system identified as: "
+                        + SystemUtils.OS_NAME
+                        + "/"
+                        + SystemUtils.OS_VERSION
+                        + "/"
+                        + SystemUtils.OS_ARCH);
+        if (openBrowser(uri)) {
+            logger.log("Browser opened at: " + uri);
         } else {
             logger.log(
-                    "Could not Start browser.  Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at http://localhost:"
-                            + actualPort.get());
+                    "Could not start the browser. Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at "
+                            + uri);
         }
 
         return server;
     }
 
-    static boolean checkAndLaunch(String openCommand, int port) {
-        File f = new File(openCommand);
+    static boolean runCommand(String command, String arg1) {
+        File f = new File(command);
         boolean existsInFilesystem = f.exists();
         if (existsInFilesystem) {
             try {
-                new ProcessBuilder(openCommand, "http://localhost:" + port).start();
+                new ProcessBuilder(command, arg1).start();
                 Thread.sleep(1000);
                 return true;
             } catch (InterruptedException interruptedException) {
@@ -212,19 +219,17 @@ public class UIAppCmd extends BaseApplicationCmd {
         }
     }
 
-    static boolean openBrowserAtPort(String URL, int port) {
-        String openCommand = "";
+    static boolean openBrowser(final String uri) {
         if (SystemUtils.IS_OS_MAC || SystemUtils.IS_OS_WINDOWS) {
             Desktop desktop = Desktop.getDesktop();
             try {
-                desktop.browse(new URI(URL + port));
+                desktop.browse(new URI(uri));
             } catch (Exception e) {
                 return false;
             }
             return true;
         } else if (SystemUtils.IS_OS_LINUX) {
-            openCommand = "/usr/bin/xdg-open";
-            return checkAndLaunch(openCommand, port);
+            return runCommand("/usr/bin/xdg-open", uri);
         }
         return false;
     }

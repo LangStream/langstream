@@ -15,41 +15,29 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class UIAppCmdTest {
 
-    static void writeExecutableFile(String fname, String contents) throws IOException {
-
-        var path = Files.writeString(Path.of(fname), contents);
-
-        Files.setPosixFilePermissions(
-                path, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE));
-    }
-
     @Test
-    void openBrowser() throws IOException {
-        // write test file
-        String fname = "/tmp/" + UUID.randomUUID().toString();
-        writeExecutableFile(fname, "#!/usr/bin/bash\necho hello\n");
-        // ok
-        String command = fname;
-        boolean Result = UIAppCmd.checkAndLaunch(command, 80);
-        assertTrue(Result, command + "\nif found in filesystem should be true");
-        new File(fname).delete();
-        // fail
-        command = "_no_such_command_";
-        Result = UIAppCmd.checkAndLaunch("_no_such_command_", 80);
-        assertFalse(Result, command + "\nif not found in filesystemi should be false");
+    void openBrowser() throws Exception {
+        Path outputFile = Files.createTempFile("langstream", ".txt");
+        Path commandFile = Files.createTempFile("langstream", ".sh");
+        Files.writeString(
+                commandFile, "#!/bin/bash\necho $1 > " + outputFile.toFile().getAbsolutePath());
+        String filePath = commandFile.toFile().getAbsolutePath();
+        Files.setPosixFilePermissions(
+                commandFile,
+                Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE));
+        boolean result = UIAppCmd.runCommand(filePath, "http://localhost:9999");
+        assertTrue(result);
+        assertEquals("http://localhost:9999\n", Files.readString(outputFile));
+        assertFalse(UIAppCmd.runCommand("_no_such_command_", ""));
     }
 }

@@ -13,9 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway;
+package ai.langstream.apigateway.gateways;
 
-public class MetricsNames {
-    public static final String TOPIC_PRODUCER_CACHE = "topic_producer_cache";
-    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE = "topic_connections_runtime_cache";
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
+import java.util.function.Supplier;
+
+public interface TopicConnectionsRuntimeCache extends AutoCloseable {
+    record Key(String tenant, String application, String gatewayId, String configString) {}
+
+    TopicConnectionsRuntime getOrCreate(
+            Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier);
+
+    @Override
+    void close();
 }

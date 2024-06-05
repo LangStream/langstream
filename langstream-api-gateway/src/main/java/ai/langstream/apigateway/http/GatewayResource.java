@@ -23,10 +23,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import jakarta.annotation.PreDestroy;
@@ -81,6 +78,7 @@ public class GatewayResource {
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ApplicationStore applicationStore;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final ExecutorService httpClientThreadPool =
@@ -124,7 +122,8 @@ public class GatewayResource {
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
                         clusterRuntimeRegistry,
-                        topicProducerCache)) {
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache)) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
@@ -263,13 +262,15 @@ public class GatewayResource {
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
                         clusterRuntimeRegistry,
-                        topicProducerCache); ) {
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache); ) {
 
             final ConsumeGateway consumeGateway =
                     new ConsumeGateway(
                             topicConnectionsRuntimeRegistryProvider
                                     .getTopicConnectionsRuntimeRegistry(),
-                            clusterRuntimeRegistry);
+                            clusterRuntimeRegistry,
+                            topicConnectionsRuntimeCache);
             completableFuture.thenRunAsync(consumeGateway::close, consumeThreadPool);
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();

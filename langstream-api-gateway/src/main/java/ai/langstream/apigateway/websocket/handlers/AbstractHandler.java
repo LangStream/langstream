@@ -32,10 +32,8 @@ import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceResponse;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -43,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.CloseStatus;
@@ -60,15 +59,19 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected final ApplicationStore applicationStore;
     private final TopicProducerCache topicProducerCache;
 
+    protected final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
+
     public AbstractHandler(
             ApplicationStore applicationStore,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
             ClusterRuntimeRegistry clusterRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
         this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.applicationStore = applicationStore;
         this.topicProducerCache = topicProducerCache;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
     }
 
     public abstract String path();
@@ -185,61 +188,90 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (gateway.getEventsTopic() == null) {
             return;
         }
+
         final StreamingCluster streamingCluster =
                 context.application().getInstance().streamingCluster();
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime();
 
-        topicConnectionsRuntime.init(streamingCluster);
+        TopicConnectionsRuntimeCache.Key key =
+                new TopicConnectionsRuntimeCache.Key(
+                        context.tenant(),
+                        context.applicationId(),
+                        context.gateway().getId(),
+                        StreamingClusterUtil.asKey(streamingCluster));
 
-        TopicDefinition topicDefinition =
-                context.application().resolveTopic(gateway.getEventsTopic());
-        StreamingClusterRuntime streamingClusterRuntime =
-                new ClusterRuntimeRegistry().getStreamingClusterRuntime(streamingCluster);
-        Topic topicImplementation =
-                streamingClusterRuntime.createTopicImplementation(
-                        topicDefinition, streamingCluster);
-        final String resolvedTopicName = topicImplementation.topicName();
+        try (final TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        key,
+                        () -> {
+                            TopicConnectionsRuntime runtime =
+                                    topicConnectionsRuntimeRegistry
+                                            .getTopicConnectionsRuntime(streamingCluster)
+                                            .asTopicConnectionsRuntime();
+                            runtime.init(streamingCluster);
+                            return runtime;
+                        }); ) {
 
-        try (final TopicProducer producer =
-                topicConnectionsRuntime.createProducer(
-                        "langstream-events",
-                        streamingCluster,
-                        Map.of("topic", resolvedTopicName))) {
-            producer.start();
+            TopicDefinition topicDefinition =
+                    context.application().resolveTopic(gateway.getEventsTopic());
+            StreamingClusterRuntime streamingClusterRuntime =
+                    clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
+            Topic topicImplementation =
+                    streamingClusterRuntime.createTopicImplementation(
+                            topicDefinition, streamingCluster);
+            final String resolvedTopicName = topicImplementation.topicName();
+            final TopicProducerCache.Key topicProducerKey =
+                    new TopicProducerCache.Key(
+                            context.tenant(),
+                            context.applicationId(),
+                            context.gateway().getId(),
+                            resolvedTopicName,
+                            StreamingClusterUtil.asKey(streamingCluster));
 
-            final EventSources.GatewaySource source =
-                    EventSources.GatewaySource.builder()
-                            .tenant(context.tenant())
-                            .applicationId(context.applicationId())
-                            .gateway(gateway)
-                            .build();
+            TopicProducer eventsProducer =
+                    topicProducerCache.getOrCreate(
+                            topicProducerKey,
+                            new Supplier<TopicProducer>() {
+                                @Override
+                                public TopicProducer get() {
+                                    TopicProducer prod =
+                                            topicConnectionsRuntime.createProducer(
+                                                    null,
+                                                    streamingCluster,
+                                                    Map.of("topic", resolvedTopicName));
+                                    prod.start();
+                                    return prod;
+                                }
+                            });
+            try (eventsProducer) {
+                final EventSources.GatewaySource source =
+                        EventSources.GatewaySource.builder()
+                                .tenant(context.tenant())
+                                .applicationId(context.applicationId())
+                                .gateway(gateway)
+                                .build();
 
-            final GatewayEventData data =
-                    GatewayEventData.builder()
-                            .userParameters(context.userParameters())
-                            .options(context.options())
-                            .httpRequestHeaders(context.httpHeaders())
-                            .build();
+                final GatewayEventData data =
+                        GatewayEventData.builder()
+                                .userParameters(context.userParameters())
+                                .options(context.options())
+                                .httpRequestHeaders(context.httpHeaders())
+                                .build();
 
-            final EventRecord event =
-                    EventRecord.builder()
-                            .category(EventRecord.Categories.Gateway)
-                            .type(type.toString())
-                            .timestamp(System.currentTimeMillis())
-                            .source(mapper.convertValue(source, Map.class))
-                            .data(mapper.convertValue(data, Map.class))
-                            .build();
+                final EventRecord event =
+                        EventRecord.builder()
+                                .category(EventRecord.Categories.Gateway)
+                                .type(type.toString())
+                                .timestamp(System.currentTimeMillis())
+                                .source(mapper.convertValue(source, Map.class))
+                                .data(mapper.convertValue(data, Map.class))
+                                .build();
 
-            final String recordValue = mapper.writeValueAsString(event);
+                final String recordValue = mapper.writeValueAsString(event);
 
-            final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
-            producer.write(record).get();
-            log.info("sent event {}", recordValue);
-        } finally {
-            topicConnectionsRuntime.close();
+                final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
+                eventsProducer.write(record).get();
+                log.info("sent event {}", recordValue);
+            }
         }
     }
 
@@ -265,7 +297,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             AuthenticatedGatewayRequestContext context)
             throws Exception {
         final ConsumeGateway consumeGateway =
-                new ConsumeGateway(topicConnectionsRuntimeRegistry, clusterRuntimeRegistry);
+                new ConsumeGateway(
+                        topicConnectionsRuntimeRegistry,
+                        clusterRuntimeRegistry,
+                        topicConnectionsRuntimeCache);
         try {
             consumeGateway.setup(topic, filters, context);
         } catch (Exception ex) {
@@ -283,7 +318,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistry,
                         clusterRuntimeRegistry,
-                        topicProducerCache);
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache);
 
         try {
             produceGateway.start(topic, commonHeaders, context);

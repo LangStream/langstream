@@ -19,6 +19,7 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicConnectionsRuntimeCache;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.handlers.ChatHandler;
@@ -54,6 +55,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final TopicProducerCache topicProducerCache;
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ExecutorService consumeThreadPool =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build());
@@ -68,14 +70,16 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
                                 clusterRuntimeRegistry,
-                                topicProducerCache),
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         CONSUME_PATH)
                 .addHandler(
                         new ProduceHandler(
                                 applicationStore,
                                 topicConnectionsRuntimeRegistry,
                                 clusterRuntimeRegistry,
-                                topicProducerCache),
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         PRODUCE_PATH)
                 .addHandler(
                         new ChatHandler(
@@ -83,7 +87,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
                                 clusterRuntimeRegistry,
-                                topicProducerCache),
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         CHAT_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(

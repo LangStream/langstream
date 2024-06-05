@@ -23,10 +23,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,12 +46,14 @@ public class ChatHandler extends AbstractHandler {
             ExecutorService executor,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
             ClusterRuntimeRegistry clusterRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         super(
                 applicationStore,
                 topicConnectionsRuntimeRegistry,
                 clusterRuntimeRegistry,
-                topicProducerCache);
+                topicProducerCache,
+                topicConnectionsRuntimeCache);
         this.executor = executor;
     }
 

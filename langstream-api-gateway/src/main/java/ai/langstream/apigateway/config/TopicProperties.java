@@ -32,4 +32,10 @@ public class TopicProperties {
 
     @JsonProperty("producers-cache-size")
     private int producersCacheSize;
+
+    @JsonProperty("connections-runtime-cache-enabled")
+    private boolean connectionsRuntimeCacheEnabled;
+
+    @JsonProperty("connections-runtime-cache-size")
+    private int connectionsRuntimeCacheSize;
 }

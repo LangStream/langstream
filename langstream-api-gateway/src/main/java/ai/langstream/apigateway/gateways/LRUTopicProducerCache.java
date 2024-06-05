@@ -17,77 +17,40 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalNotification;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class LRUTopicProducerCache implements TopicProducerCache {
+public class LRUTopicProducerCache
+        extends LRUCache<TopicProducerCache.Key, LRUTopicProducerCache.SharedTopicProducer>
+        implements TopicProducerCache {
 
-    private static class SharedTopicProducer implements TopicProducer {
-        private TopicProducer producer;
-        private volatile int referenceCount;
-        private volatile boolean cached = true;
+    public static class SharedTopicProducer extends LRUCache.CachedObject<TopicProducer>
+            implements TopicProducer {
 
         public SharedTopicProducer(TopicProducer producer) {
-            this.producer = producer;
-        }
-
-        public boolean acquire() {
-            synchronized (this) {
-                if (producer == null) {
-                    return false;
-                }
-                referenceCount++;
-                return true;
-            }
-        }
-
-        public void removedFromCache() {
-            synchronized (this) {
-                cached = false;
-                if (referenceCount == 0) {
-                    producer.close();
-                    producer = null;
-                }
-            }
+            super(producer);
         }
 
         @Override
         public void start() {
-            producer.start();
-        }
-
-        @Override
-        public void close() {
-            synchronized (this) {
-                referenceCount--;
-                if (referenceCount == 0 && !cached) {
-                    producer.close();
-                    producer = null;
-                }
-            }
+            object.start();
         }
 
         @Override
         public CompletableFuture<?> write(Record record) {
-            return producer.write(record);
+            return object.write(record);
         }
 
         @Override
         public Object getNativeProducer() {
-            return producer.getNativeProducer();
+            return object.getNativeProducer();
         }
 
         @Override
         public Object getInfo() {
-            return producer.getInfo();
+            return object.getInfo();
         }
 
         @Override
@@ -96,49 +59,13 @@ public class LRUTopicProducerCache implements TopicProducerCache {
         }
     }
 
-    @Getter private final Cache<Key, SharedTopicProducer> cache;
-
     public LRUTopicProducerCache(int size) {
-        this.cache =
-                CacheBuilder.newBuilder()
-                        .maximumSize(size)
-                        .expireAfterWrite(10, TimeUnit.MINUTES)
-                        .expireAfterAccess(10, TimeUnit.MINUTES)
-                        .removalListener(
-                                (RemovalNotification<Key, SharedTopicProducer> notification) -> {
-                                    SharedTopicProducer resource = notification.getValue();
-                                    resource.removedFromCache();
-                                })
-                        .recordStats()
-                        .build();
+        super(size);
     }
 
     @Override
     public TopicProducer getOrCreate(
             TopicProducerCache.Key key, Supplier<TopicProducer> topicProducerSupplier) {
-        try {
-            final SharedTopicProducer sharedTopicProducer =
-                    cache.get(
-                            key,
-                            () -> {
-                                final SharedTopicProducer result =
-                                        new SharedTopicProducer(topicProducerSupplier.get());
-                                log.debug("Created new topic producer {}", key);
-                                return result;
-                            });
-            if (!sharedTopicProducer.acquire()) {
-                log.warn("Not able to acquire topic producer {}, retry", key);
-                return getOrCreate(key, topicProducerSupplier);
-            }
-            return sharedTopicProducer;
-        } catch (ExecutionException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    @Override
-    public void close() {
-        log.info("Closing topic producer cache");
-        cache.invalidateAll();
+        return super.getOrCreate(key, () -> new SharedTopicProducer(topicProducerSupplier.get()));
     }
 }

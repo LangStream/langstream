@@ -20,7 +20,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import java.util.Map;
 
 /** This is the interface that the LangStream runtime to connect to Topics. */
-public interface TopicConnectionsRuntime {
+public interface TopicConnectionsRuntime extends AutoCloseable {
 
     default void init(StreamingCluster streamingCluster) {}
 

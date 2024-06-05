@@ -13,9 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway;
+package ai.langstream.apigateway.util;
 
-public class MetricsNames {
-    public static final String TOPIC_PRODUCER_CACHE = "topic_producer_cache";
-    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE = "topic_connections_runtime_cache";
+import ai.langstream.api.model.StreamingCluster;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.tuple.Pair;
+
+public class StreamingClusterUtil {
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    @SneakyThrows
+    public static String asKey(StreamingCluster streamingCluster) {
+        return mapper.writeValueAsString(
+                Pair.of(streamingCluster.type(), streamingCluster.configuration()));
+    }
 }

@@ -59,7 +59,7 @@ class CouchbaseWriterTest {
                 Map.of(
                         "service", "couchbase",
                         "connection-string", "couchbases://",
-                        "bucket-name", "",
+                        "bucket-name", "", // scope namen comes from querymap
                         "username", "",
                         "password", "");
 

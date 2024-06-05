@@ -19,17 +19,23 @@ import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.GetResult;
+import com.couchbase.client.java.search.SearchQuery;
 import com.couchbase.client.java.search.SearchRequest;
 import com.couchbase.client.java.search.result.SearchResult;
+import com.couchbase.client.java.search.result.SearchRow;
 import com.couchbase.client.java.search.vector.VectorQuery;
 import com.couchbase.client.java.search.vector.VectorSearch;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
@@ -51,20 +57,11 @@ public class CouchbaseDataSource implements DataSourceProvider {
         @JsonProperty(value = "connection-string", required = true)
         private String connectionString;
 
-        @JsonProperty(value = "bucket-name", required = true)
-        private String bucketName;
-
         @JsonProperty(value = "username", required = true)
         private String username;
 
         @JsonProperty(value = "password", required = true)
         private String password;
-
-        @JsonProperty(value = "scope-name", required = true)
-        private String scopeName;
-
-        @JsonProperty(value = "collection-name", required = true)
-        private String collectionName;
     }
 
     @Override
@@ -92,7 +89,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
                             clientConfig.connectionString,
                             clientConfig.username,
                             clientConfig.password);
-            log.info("Connected to Couchbase Bucket: {}", clientConfig.bucketName);
+            log.info("Connected to Couchbase: {}", clientConfig.connectionString);
         }
 
         @Override
@@ -103,37 +100,110 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 if (queryMap.isEmpty()) {
                     throw new UnsupportedOperationException("Query is empty");
                 }
+                log.info("QueryMap: {}", queryMap);
+                log.info("Params: {}", params);
+
+                // todo get bucketname scopename collection name to be populated - it doesn't appear
+                // to be in the query or params ATM
 
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
-                // scope namen comes from querymap
+                String vecPlanId = (String) queryMap.remove("vecPlanId");
+                String bucketName = (String) params.get(0);
+                String scopeName = (String) params.get(1);
+                String collectionName = (String) params.get(2);
+                log.info("vecPlanId: {}", vecPlanId);
+                log.info("bucketName: {}", bucketName);
+                log.info("scopeName: {}", scopeName);
+                log.info("collectionName: {}", collectionName);
+                // log.info("username: {}", vector);
+                // Perform the term search for vecPlanId first
+                SearchRequest termSearchRequest =
+                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"));
+                log.info("Term SearchRequest created: {}", termSearchRequest);
 
-                SearchRequest request =
-                        SearchRequest.create(
-                                VectorSearch.create(
-                                        VectorQuery.create("embeddings", vector)
-                                                .numCandidates(topK)));
-                log.debug("SearchRequest created: {}", request);
-
-                SearchResult result =
+                SearchResult termSearchResult =
                         cluster.search(
-                                ""
-                                        + clientConfig.bucketName
-                                        + "."
-                                        + clientConfig.scopeName
-                                        + ".vector-search",
-                                request);
+                                bucketName + "." + scopeName + ".semantic", termSearchRequest);
 
-                return result.rows().stream()
-                        .map(
-                                hit -> {
-                                    Map<String, Object> r = new HashMap<>();
-                                    r.put("id", hit.id());
-                                    r.put("similarity", hit.score()); // Adds the similarity score
+                List<SearchRow> termSearchRows = termSearchResult.rows();
+                Set<String> validIds =
+                        termSearchRows.stream().map(SearchRow::id).collect(Collectors.toSet());
+                log.info("Term Search Result IDs: {}", validIds);
 
-                                    return r;
-                                })
-                        .collect(Collectors.toList());
+                if (validIds.isEmpty()) {
+                    return Collections.emptyList();
+                }
+
+                Map<String, Double> termSearchScores =
+                        termSearchRows.stream()
+                                .collect(Collectors.toMap(SearchRow::id, SearchRow::score));
+
+                log.info("Term Search Scores: {}", termSearchScores);
+
+                // Perform the vector search on the filtered documents
+                SearchRequest vectorSearchRequest =
+                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"))
+                                .vectorSearch(
+                                        VectorSearch.create(
+                                                VectorQuery.create("embeddings", vector)
+                                                        .numCandidates(topK)));
+                log.info("Vector SearchRequest created: {}", vectorSearchRequest);
+
+                SearchResult vectorSearchResult =
+                        cluster.search(
+                                bucketName + "." + scopeName + ".vector-search",
+                                vectorSearchRequest);
+
+                for (SearchRow row : vectorSearchResult.rows()) {
+                    log.info("ID: {}", row.id());
+                    log.info("Score: {}", row.score());
+                    // Log the full row content if available
+                    // log.info("Row: {}", row.fieldsAs(JsonObject.class));
+                }
+
+                // Process and collect results
+                List<Map<String, Object>> results =
+                        vectorSearchResult.rows().stream()
+                                .filter(hit -> validIds.contains(hit.id()))
+                                .limit(topK)
+                                .map(
+                                        hit -> {
+                                            Map<String, Object> result = new HashMap<>();
+                                            double adjustedScore =
+                                                    hit.score() - termSearchScores.get(hit.id());
+                                            result.put("similarity", adjustedScore);
+                                            result.put("id", hit.id());
+
+                                            // Fetch and add the document content using collection
+                                            // API
+                                            try {
+                                                String documentId = hit.id();
+                                                GetResult getResult =
+                                                        cluster.bucket(bucketName)
+                                                                .scope(scopeName)
+                                                                .collection(collectionName)
+                                                                .get(documentId);
+                                                if (getResult != null) {
+                                                    JsonObject content =
+                                                            getResult.contentAsObject();
+                                                    content.removeKey("embeddings");
+                                                    result.putAll(content.toMap());
+                                                }
+                                            } catch (Exception e) {
+                                                log.error(
+                                                        "Error retrieving document content for ID: {}",
+                                                        hit.id(),
+                                                        e);
+                                            }
+
+                                            return result;
+                                        })
+                                .collect(Collectors.toList());
+
+                log.info("Final Intersected Results: {}", results);
+
+                return results;
 
             } catch (Exception e) {
                 log.error("Error executing query: {}", e.getMessage(), e);
@@ -145,7 +215,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
         public void close() {
             if (cluster != null) {
                 cluster.disconnect();
-                log.info("Disconnected from Couchbase Bucket: {}", clientConfig.bucketName);
+                log.info("Disconnected from Couchbase Bucket: {}", clientConfig.connectionString);
             }
         }
     }

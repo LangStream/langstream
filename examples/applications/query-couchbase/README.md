@@ -67,6 +67,17 @@ Do the same but with the scope you just created to create a collection.
 6. **Verify the Index Creation:**
    - Once created, the index should appear in the list of indexes. You can manage or modify the index from this interface as needed.
 
+## Deploy the LangStream application
+Allow your IP to connect to the capella server
+
+Settings > Networking > Allowed IP Addresses 
+
+Add Allowed IP 
+
+Add Current IP Address
+
+Add Allowed IP
+
 
 ## Deploy the LangStream application
 
@@ -82,7 +93,7 @@ Using the docker image:
 ## Send a message using the gateway to upload a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"myid\",\"document\":\"Kafkaesque: extremely unpleasant, frightening, and confusing, and similar to situations described in the novels of Franz Kafka.\"}" -p sessionId=$(uuidgen)
+bin/langstream gateway produce test write-topic -v "{\"id\":\"animal2\",\"document\":\"Crocodile.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\",\"chunkId\":\"10\"}" -p sessionId=$(uuidgen)
 
 ```
 You can view the uploaded document in the example scope and default collection of the bucket you selected.

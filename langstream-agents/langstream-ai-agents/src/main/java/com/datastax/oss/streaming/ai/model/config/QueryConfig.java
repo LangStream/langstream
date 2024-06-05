@@ -41,4 +41,13 @@ public class QueryConfig extends StepConfig {
 
     @JsonProperty("generated-keys")
     private List<String> generatedKeys;
+
+    @JsonProperty("bucket-name")
+    private String bucketName;
+
+    @JsonProperty("scope-name")
+    private String scopeName;
+
+    @JsonProperty("collection-name")
+    private String collectionName;
 }

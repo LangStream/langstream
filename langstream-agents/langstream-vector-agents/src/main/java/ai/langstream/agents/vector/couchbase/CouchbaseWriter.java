@@ -53,18 +53,24 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
     public static class CouchbaseDatabaseWriter implements VectorDatabaseWriter, AutoCloseable {
 
         private final Cluster cluster;
-        public final Collection collection;
+        public Collection collection;
         private JstlEvaluator idFunction;
         private JstlEvaluator vectorFunction;
+        private JstlEvaluator fileName;
+        private JstlEvaluator vecPlanId;
+        private String scopeName;
+        private String bucketName;
+        private String collectionName;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
-            String bucketName = (String) datasourceConfig.get("bucket-name");
-            String scopeName = (String) datasourceConfig.getOrDefault("scope-name", "_default");
+            // String bucketName = (String) datasourceConfig.getOrDefault("bucket-name",
+            // "vectorize");
+            // String scopeName = (String) datasourceConfig.getOrDefault("scope-name", "_default");
             String connectionString = (String) datasourceConfig.get("connection-string");
-            String collectionName =
-                    (String) datasourceConfig.getOrDefault("collection-name", "_default");
+            // String collectionName =
+            //         (String) datasourceConfig.getOrDefault("collection-name", "_default");
 
             // Create a cluster with the WAN profile
             ClusterOptions clusterOptions =
@@ -75,13 +81,6 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                     });
 
             cluster = Cluster.connect(connectionString, clusterOptions);
-
-            // Get the bucket, scope, and collection
-            Bucket bucket = cluster.bucket(bucketName);
-            bucket.waitUntilReady(Duration.ofSeconds(10));
-
-            Scope scope = bucket.scope(scopeName);
-            collection = scope.collection(collectionName);
         }
 
         @Override
@@ -96,6 +95,19 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             //         agentConfiguration);
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
+            this.fileName = buildEvaluator(agentConfiguration, "vector.filename", String.class);
+            this.vecPlanId = buildEvaluator(agentConfiguration, "vector.planId", String.class);
+            this.bucketName = (String) agentConfiguration.get("bucket-name");
+            this.scopeName = (String) agentConfiguration.get("scope-name");
+            this.collectionName = (String) agentConfiguration.get("collection-name");
+
+            // Get the bucket, scope, and collection
+            Bucket bucket = cluster.bucket(bucketName);
+            bucket.waitUntilReady(Duration.ofSeconds(10));
+
+            Scope scope = bucket.scope(scopeName);
+            collection = scope.collection(collectionName);
+            // make more generic
         }
 
         @Override

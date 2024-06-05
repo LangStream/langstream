@@ -510,6 +510,18 @@ components:
                 type:
                   - string
               description: The record fields to pass as query parameters.
+            bucket-name:
+              type:
+                - string
+              description: The bucket name.
+            scope-name:
+              type:
+                - string
+              description: The scope name.
+            collection-name:
+              type:
+                - string
+              description: The collection name.
         - "$ref": "#/components/schemas/Part"
 
 type: object

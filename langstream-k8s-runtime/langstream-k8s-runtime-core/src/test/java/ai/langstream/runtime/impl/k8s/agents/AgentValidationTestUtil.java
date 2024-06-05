@@ -62,9 +62,8 @@ public class AgentValidationTestUtil {
                             configuration:
                               service: "couchbase"
                               bucket-name: "bucket"
-                              username: "username"
-                              password: "pword"
-                              connection-string: "couchbase.com"
+                              scope-name: "scope"
+                              collection-name: "collection"
                     """;
         }
         Application applicationInstance =

@@ -34,10 +34,7 @@ pipeline:
     type: "vector-db-sink"
     configuration:
       datasource: "CouchbaseDatasource"
-      bucket-name: "${secrets.couchbase.bucket-name}"
-      username: "${secrets.couchbase.username}"
-      password: "${secrets.couchbase.password}"
-      connection-string: "${secrets.couchbase.connection-string}"
+      bucket-name: "vectorize"
       scope-name: "example"
       collection-name: "default"
       vector.id: "value.id"

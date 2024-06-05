@@ -139,6 +139,30 @@ public class QueryConfiguration extends BaseGenAIStepConfiguration {
     @JsonProperty("generated-keys")
     private List<String> generatedKeys;
 
+    @ConfigProperty(
+            description =
+                    """
+                   The name of the bucket to use in the database.
+                   """)
+    @JsonProperty("bucket-name")
+    private String bucketName;
+
+    @ConfigProperty(
+            description =
+                    """
+                           The name of the scope to use in the database.
+                           """)
+    @JsonProperty("scope-name")
+    private String scopeName;
+
+    @ConfigProperty(
+            description =
+                    """
+                           The name of the collection to use in the database.
+                           """)
+    @JsonProperty("collection-name")
+    private String collectionName;
+
     enum Mode {
         query,
         execute

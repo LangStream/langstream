@@ -39,6 +39,9 @@ class QueryVectorDBAgentProviderTest {
                       query: "select xxx"
                       datasource: "cassandra"
                       unknown-field: "..."
+                      bucket-name: "..."
+                      scope-name: "..."
+                      collection-name: "..."
                 """,
                 "Found error on agent configuration (agent: 'db', type: 'query-vector-db'). Property 'unknown-field' is unknown");
 
@@ -136,11 +139,8 @@ class QueryVectorDBAgentProviderTest {
                             configuration:
                                 datasource: "CouchbaseDatasource"
                                 bucket-name: "vectorize"
-                                username: ""
-                                password: ""
                                 scope-name: "example"
                                 collection-name: "default"
-                                connection-string: "couchbases://"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"
                         """,
@@ -168,6 +168,16 @@ class QueryVectorDBAgentProviderTest {
                             "name" : "Query a vector database",
                             "description" : "Query a vector database using Vector Search capabilities.",
                             "properties" : {
+                              "bucket-name" : {
+                                "description" : "The name of the bucket to use in the database.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "collection-name" : {
+                                "description" : "The name of the collection to use in the database.",
+                                "required" : false,
+                                "type" : "string"
+                              },
                               "composable" : {
                                 "description" : "Whether this step can be composed with other steps.",
                                 "required" : false,
@@ -227,6 +237,11 @@ class QueryVectorDBAgentProviderTest {
                               "query" : {
                                 "description" : "The query to use to extract the data.",
                                 "required" : true,
+                                "type" : "string"
+                              },
+                              "scope-name" : {
+                                "description" : "The name of the scope to use in the database.",
+                                "required" : false,
                                 "type" : "string"
                               },
                               "when" : {
@@ -341,11 +356,6 @@ class QueryVectorDBAgentProviderTest {
                               },
                               "collection-name" : {
                                 "description" : "Collection to use in Couchbase.",
-                                "required" : false,
-                                "type" : "string"
-                              },
-                              "connection-string" : {
-                                "description" : "The connection string to the Couchbase cluster.",
                                 "required" : true,
                                 "type" : "string"
                               },
@@ -356,11 +366,6 @@ class QueryVectorDBAgentProviderTest {
                               },
                               "scope-name" : {
                                 "description" : "Scope to use in Couchbase.",
-                                "required" : false,
-                                "type" : "string"
-                              },
-                              "username" : {
-                                "description" : "The username to connect to the Couchbase cluster.",
                                 "required" : true,
                                 "type" : "string"
                               }

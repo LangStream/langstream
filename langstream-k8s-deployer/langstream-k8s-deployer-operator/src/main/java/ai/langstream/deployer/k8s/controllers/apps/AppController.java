@@ -30,6 +30,7 @@ import ai.langstream.deployer.k8s.util.SpecDiffer;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.javaoperatorsdk.operator.api.reconciler.Constants;
@@ -309,13 +310,20 @@ public class AppController extends BaseController<ApplicationCustomResource>
                         .image(configuration.getRuntimeImage())
                         .imagePullPolicy(configuration.getRuntimeImagePullPolicy())
                         .build();
-        final Job job =
-                setupJob
-                        ? AppResourcesFactory.generateSetupJob(params)
-                        : AppResourcesFactory.generateDeployerJob(params);
+
+        Job job;
+        ConfigMap configMap;
+        if (setupJob) {
+            job = AppResourcesFactory.generateSetupJob(params);
+            configMap = AppResourcesFactory.generateJobConfigMap(params, true);
+        } else {
+            job = AppResourcesFactory.generateDeployerJob(params);
+            configMap = AppResourcesFactory.generateJobConfigMap(params, false);
+        }
         log.debugf(
-                "Applying job %s in namespace %s",
+                "Applying job%s in namespace %s",
                 job.getMetadata().getName(), job.getMetadata().getNamespace());
+        client.resource(configMap).serverSideApply();
         KubeUtil.patchJob(client, job);
     }
 

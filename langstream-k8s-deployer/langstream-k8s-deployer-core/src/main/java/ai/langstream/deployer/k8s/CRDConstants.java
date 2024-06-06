@@ -29,9 +29,12 @@ public class CRDConstants {
 
     public static final String DEPLOYER_JOB_PREFIX_CLEANUP = "langstream-runtime-deployer-cleanup-";
     public static final String DEPLOYER_JOB_PREFIX_DEPLOYER = "langstream-runtime-deployer-";
+    public static final String DEPLOYER_JOB_CONFIGMAP_PREFIX = "langstream-runtime-deployer-";
 
     public static final String SETUP_JOB_PREFIX_CLEANUP = "langstream-app-setup-cleanup-";
     public static final String SETUP_JOB_PREFIX_DEPLOYER = "langstream-app-setup-";
+
+    public static final String SETUP_JOB_CONFIGMAP_PREFIX = "langstream-app-setup-";
 
     // The name of the secret containing the cluster configuration.
     // This secret cannot clash with application's secrets since this is an invalid application id

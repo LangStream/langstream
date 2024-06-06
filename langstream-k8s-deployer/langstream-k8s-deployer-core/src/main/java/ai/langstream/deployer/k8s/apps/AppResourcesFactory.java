@@ -33,33 +33,22 @@ import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EmptyDirVolumeSource;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
-import io.fabric8.kubernetes.api.model.KeyToPathBuilder;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
 public class AppResourcesFactory {
+
+    public static final String JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME = "cluster-runtime-config";
+    public static final String JOB_CONFIGMAP_KEY_APP_CONFIG = "app-config";
 
     @Builder
     @Getter
@@ -77,67 +66,36 @@ public class AppResourcesFactory {
         final ApplicationCustomResource applicationCustomResource =
                 Objects.requireNonNull(params.getApplicationCustomResource());
         final boolean isDeleteJob = params.isDeleteJob();
-        final Map<String, Object> clusterRuntimeConfiguration =
-                params.getClusterRuntimeConfiguration();
         final String image = params.getImage();
         final String imagePullPolicy = params.getImagePullPolicy();
 
         final String applicationId = applicationCustomResource.getMetadata().getName();
         final ApplicationSpec spec = applicationCustomResource.getSpec();
         final String tenant = spec.getTenant();
-        final ApplicationSpecOptions applicationSpecOptions =
-                ApplicationSpec.deserializeOptions(spec.getOptions());
-
-        final String clusterRuntimeConfigVolumeName = "cluster-runtime-config";
-        final String appConfigVolumeName = "app-config";
 
         final String containerImage = resolveContainerImage(image, spec);
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
 
-        RuntimeDeployerConfiguration.DeployFlags deployFlags =
-                new RuntimeDeployerConfiguration.DeployFlags();
-        deployFlags.setRuntimeVersion(applicationSpecOptions.getRuntimeVersion());
-        deployFlags.setAutoUpgradeRuntimeImagePullPolicy(
-                applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
-        deployFlags.setAutoUpgradeAgentResources(
-                applicationSpecOptions.isAutoUpgradeAgentResources());
-        deployFlags.setAutoUpgradeAgentPodTemplate(
-                applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
-        deployFlags.setSeed(applicationSpecOptions.getSeed());
-        final RuntimeDeployerConfiguration config =
-                new RuntimeDeployerConfiguration(
-                        applicationId,
-                        tenant,
-                        spec.getApplication(),
-                        spec.getCodeArchiveId(),
-                        deployFlags);
-
-        Map<String, Object> initContainerConfigs = new LinkedHashMap<>();
-        initContainerConfigs.put(appConfigVolumeName, config);
-        initContainerConfigs.put(clusterRuntimeConfigVolumeName, clusterRuntimeConfiguration);
-        final Container initContainer =
-                createInitContainerInjectingConfig(
-                        "deployer-init-config",
-                        containerImage,
-                        containerImagePullPolicy,
-                        initContainerConfigs);
         final String command = isDeleteJob ? "delete" : "deploy";
         final String clusterConfigVolume = "cluster-config";
+        final String configMapVolumeName = "app-configs";
 
         final List<VolumeMount> volumeMounts =
                 List.of(
                         new VolumeMountBuilder()
-                                .withName(appConfigVolumeName)
-                                .withMountPath("/%s".formatted(appConfigVolumeName))
+                                .withName(configMapVolumeName)
+                                .withMountPath("/%s".formatted(JOB_CONFIGMAP_KEY_APP_CONFIG))
+                                .withSubPath(JOB_CONFIGMAP_KEY_APP_CONFIG)
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName(configMapVolumeName)
+                                .withMountPath("/%s".formatted(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME))
+                                .withSubPath(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME)
                                 .build(),
                         new VolumeMountBuilder()
                                 .withName("app-secrets")
                                 .withMountPath("/app-secrets")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(clusterRuntimeConfigVolumeName)
-                                .withMountPath("/%s".formatted(clusterRuntimeConfigVolumeName))
                                 .build(),
                         new VolumeMountBuilder()
                                 .withName(clusterConfigVolume)
@@ -147,11 +105,11 @@ public class AppResourcesFactory {
                 List.of(
                         new EnvVarBuilder()
                                 .withName(RuntimeDeployerConstants.APP_CONFIG_ENV)
-                                .withValue("/%s/config".formatted(appConfigVolumeName))
+                                .withValue("/%s".formatted(JOB_CONFIGMAP_KEY_APP_CONFIG))
                                 .build(),
                         new EnvVarBuilder()
                                 .withName(RuntimeDeployerConstants.CLUSTER_RUNTIME_CONFIG_ENV)
-                                .withValue("/%s/config".formatted(clusterRuntimeConfigVolumeName))
+                                .withValue("/%s".formatted(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME))
                                 .build(),
                         new EnvVarBuilder()
                                 .withName(RuntimeDeployerConstants.APP_SECRETS_ENV)
@@ -170,8 +128,8 @@ public class AppResourcesFactory {
                 List.of(
                         "deployer-runtime",
                         command,
-                        "/%s/config".formatted(clusterRuntimeConfigVolumeName),
-                        "/%s/config".formatted(appConfigVolumeName),
+                        "/%s".formatted(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME),
+                        "/%s".formatted(JOB_CONFIGMAP_KEY_APP_CONFIG),
                         "/app-secrets/secrets");
         final String containerName = "deployer";
         final Container container =
@@ -187,18 +145,16 @@ public class AppResourcesFactory {
         final List<Volume> volumes =
                 List.of(
                         new VolumeBuilder()
-                                .withName(appConfigVolumeName)
-                                .withEmptyDir(new EmptyDirVolumeSource())
+                                .withName(configMapVolumeName)
+                                .withNewConfigMap()
+                                .withName(getDeployerJobConfigMap(applicationId))
+                                .endConfigMap()
                                 .build(),
                         new VolumeBuilder()
                                 .withName("app-secrets")
                                 .withNewSecret()
                                 .withSecretName(applicationId)
                                 .endSecret()
-                                .build(),
-                        new VolumeBuilder()
-                                .withName(clusterRuntimeConfigVolumeName)
-                                .withEmptyDir(new EmptyDirVolumeSource())
                                 .build(),
                         new VolumeBuilder()
                                 .withName(clusterConfigVolume)
@@ -217,14 +173,70 @@ public class AppResourcesFactory {
 
         final String serviceAccountName =
                 CRDConstants.computeDeployerServiceAccountForTenant(tenant);
-        return generateJob(
-                params,
-                jobName,
-                labels,
-                List.of(initContainer),
-                container,
-                volumes,
-                serviceAccountName);
+        return generateJob(params, jobName, labels, container, volumes, serviceAccountName);
+    }
+
+    @SneakyThrows
+    public static ConfigMap generateJobConfigMap(GenerateJobParams params, boolean isSetup) {
+        final ApplicationCustomResource applicationCustomResource =
+                Objects.requireNonNull(params.getApplicationCustomResource());
+        final String applicationId = applicationCustomResource.getMetadata().getName();
+        final ApplicationSpec spec = applicationCustomResource.getSpec();
+        final String tenant = spec.getTenant();
+        final String serializedAppConfig;
+
+        if (isSetup) {
+            final ApplicationSetupConfiguration config =
+                    new ApplicationSetupConfiguration(
+                            applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
+            serializedAppConfig = SerializationUtil.writeAsJson(config);
+        } else {
+            final ApplicationSpecOptions applicationSpecOptions =
+                    ApplicationSpec.deserializeOptions(spec.getOptions());
+            RuntimeDeployerConfiguration.DeployFlags deployFlags =
+                    new RuntimeDeployerConfiguration.DeployFlags();
+            deployFlags.setRuntimeVersion(applicationSpecOptions.getRuntimeVersion());
+            deployFlags.setAutoUpgradeRuntimeImagePullPolicy(
+                    applicationSpecOptions.isAutoUpgradeRuntimeImagePullPolicy());
+            deployFlags.setAutoUpgradeAgentResources(
+                    applicationSpecOptions.isAutoUpgradeAgentResources());
+            deployFlags.setAutoUpgradeAgentPodTemplate(
+                    applicationSpecOptions.isAutoUpgradeAgentPodTemplate());
+            deployFlags.setSeed(applicationSpecOptions.getSeed());
+            final RuntimeDeployerConfiguration config =
+                    new RuntimeDeployerConfiguration(
+                            applicationId,
+                            tenant,
+                            spec.getApplication(),
+                            spec.getCodeArchiveId(),
+                            deployFlags);
+            serializedAppConfig = SerializationUtil.writeAsJson(config);
+        }
+
+        final Map<String, String> labels =
+                isSetup
+                        ? getLabelsForSetup(false, applicationId)
+                        : getLabelsForDeployer(false, applicationId);
+        final String name =
+                isSetup
+                        ? getSetupJobConfigMap(applicationId)
+                        : getDeployerJobConfigMap(applicationId);
+        return new ConfigMapBuilder()
+                .withNewMetadata()
+                .withName(name)
+                .withNamespace(applicationCustomResource.getMetadata().getNamespace())
+                .withOwnerReferences(
+                        List.of(KubeUtil.getOwnerReferenceForResource(applicationCustomResource)))
+                .withLabels(labels)
+                .endMetadata()
+                .withData(
+                        Map.of(
+                                JOB_CONFIGMAP_KEY_APP_CONFIG,
+                                serializedAppConfig,
+                                JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME,
+                                SerializationUtil.writeAsJson(
+                                        params.getClusterRuntimeConfiguration())))
+                .build();
     }
 
     @SneakyThrows
@@ -232,8 +244,6 @@ public class AppResourcesFactory {
         final ApplicationCustomResource applicationCustomResource =
                 Objects.requireNonNull(params.getApplicationCustomResource());
         final boolean isDeleteJob = params.isDeleteJob();
-        final Map<String, Object> clusterRuntimeConfiguration =
-                params.getClusterRuntimeConfiguration();
         final String image = params.getImage();
         final String imagePullPolicy = params.getImagePullPolicy();
 
@@ -241,40 +251,28 @@ public class AppResourcesFactory {
         final ApplicationSpec spec = applicationCustomResource.getSpec();
         final String tenant = spec.getTenant();
 
-        final String clusterRuntimeConfigVolumeName = "cluster-runtime-config";
-        final String appConfigVolumeName = "app-config";
         final String clusterConfigVolume = "cluster-config";
 
         final String containerImage = resolveContainerImage(image, spec);
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
 
-        final ApplicationSetupConfiguration config =
-                new ApplicationSetupConfiguration(
-                        applicationId, tenant, spec.getApplication(), spec.getCodeArchiveId());
-
-        Map<String, Object> initContainerConfigs = new LinkedHashMap<>();
-        initContainerConfigs.put(appConfigVolumeName, config);
-        initContainerConfigs.put(clusterRuntimeConfigVolumeName, clusterRuntimeConfiguration);
-        final Container initContainer =
-                createInitContainerInjectingConfig(
-                        "setup-init-config",
-                        containerImage,
-                        containerImagePullPolicy,
-                        initContainerConfigs);
+        String configMapVolumeName = "app-configs";
         final List<VolumeMount> volumeMounts =
                 List.of(
                         new VolumeMountBuilder()
-                                .withName(appConfigVolumeName)
-                                .withMountPath("/%s".formatted(appConfigVolumeName))
+                                .withName(configMapVolumeName)
+                                .withMountPath("/%s".formatted(JOB_CONFIGMAP_KEY_APP_CONFIG))
+                                .withSubPath(JOB_CONFIGMAP_KEY_APP_CONFIG)
+                                .build(),
+                        new VolumeMountBuilder()
+                                .withName(configMapVolumeName)
+                                .withMountPath("/%s".formatted(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME))
+                                .withSubPath(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME)
                                 .build(),
                         new VolumeMountBuilder()
                                 .withName("app-secrets")
                                 .withMountPath("/app-secrets")
-                                .build(),
-                        new VolumeMountBuilder()
-                                .withName(clusterRuntimeConfigVolumeName)
-                                .withMountPath("/%s".formatted(clusterRuntimeConfigVolumeName))
                                 .build(),
                         new VolumeMountBuilder()
                                 .withName(clusterConfigVolume)
@@ -284,11 +282,11 @@ public class AppResourcesFactory {
                 List.of(
                         new EnvVarBuilder()
                                 .withName(ApplicationSetupConstants.APP_CONFIG_ENV)
-                                .withValue("/%s/config".formatted(appConfigVolumeName))
+                                .withValue("/%s".formatted(JOB_CONFIGMAP_KEY_APP_CONFIG))
                                 .build(),
                         new EnvVarBuilder()
                                 .withName(ApplicationSetupConstants.CLUSTER_RUNTIME_CONFIG_ENV)
-                                .withValue("/%s/config".formatted(clusterRuntimeConfigVolumeName))
+                                .withValue("/%s".formatted(JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME))
                                 .build(),
                         new EnvVarBuilder()
                                 .withName(ApplicationSetupConstants.APP_SECRETS_ENV)
@@ -319,18 +317,16 @@ public class AppResourcesFactory {
         final List<Volume> volumes =
                 List.of(
                         new VolumeBuilder()
-                                .withName(appConfigVolumeName)
-                                .withEmptyDir(new EmptyDirVolumeSource())
+                                .withName(configMapVolumeName)
+                                .withNewConfigMap()
+                                .withName(getSetupJobConfigMap(applicationId))
+                                .endConfigMap()
                                 .build(),
                         new VolumeBuilder()
                                 .withName("app-secrets")
                                 .withNewSecret()
                                 .withSecretName(applicationId)
                                 .endSecret()
-                                .build(),
-                        new VolumeBuilder()
-                                .withName(clusterRuntimeConfigVolumeName)
-                                .withEmptyDir(new EmptyDirVolumeSource())
                                 .build(),
                         new VolumeBuilder()
                                 .withName(clusterConfigVolume)
@@ -349,14 +345,7 @@ public class AppResourcesFactory {
 
         final String serviceAccountName =
                 CRDConstants.computeRuntimeServiceAccountForTenant(tenant);
-        return generateJob(
-                params,
-                jobName,
-                labels,
-                List.of(initContainer),
-                container,
-                volumes,
-                serviceAccountName);
+        return generateJob(params, jobName, labels, container, volumes, serviceAccountName);
     }
 
     private static Container createContainer(
@@ -386,7 +375,6 @@ public class AppResourcesFactory {
             GenerateJobParams params,
             String jobName,
             final Map<String, String> labels,
-            List<Container> initContainers,
             Container container,
             List<Volume> volumes,
             String serviceAccountName) {
@@ -414,7 +402,6 @@ public class AppResourcesFactory {
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
                 .withServiceAccountName(serviceAccountName)
                 .withVolumes(volumes)
-                .withInitContainers(initContainers)
                 .withContainers(List.of(container))
                 .withRestartPolicy("Never")
                 .endSpec()
@@ -445,34 +432,6 @@ public class AppResourcesFactory {
                     "Runtime image is not specified, neither in the resource and in the deployer configuration.");
         }
         return containerImage;
-    }
-
-    private static Container createInitContainerInjectingConfig(
-            String containerName,
-            String containerImage,
-            String containerImagePullPolicy,
-            Map<String, Object> configs) {
-        final ContainerBuilder builder =
-                new ContainerBuilder()
-                        .withName(containerName)
-                        .withImage(containerImage)
-                        .withImagePullPolicy(containerImagePullPolicy)
-                        .withCommand("bash", "-c");
-
-        List<String> cmds = new ArrayList<>();
-        List<VolumeMount> volumeMounts = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : configs.entrySet()) {
-            final String jsonValue = SerializationUtil.writeInlineBashJson(entry.getValue());
-            cmds.add("echo '%s' > /%s/config".formatted(jsonValue, entry.getKey()));
-            volumeMounts.add(
-                    new VolumeMountBuilder()
-                            .withName(entry.getKey())
-                            .withMountPath("/%s".formatted(entry.getKey()))
-                            .build());
-        }
-        return builder.withArgs(cmds.stream().collect(Collectors.joining(" && ")))
-                .withVolumeMounts(volumeMounts)
-                .build();
     }
 
     private static Map<String, String> getPodAnnotations(PodTemplate podTemplate) {
@@ -517,6 +476,14 @@ public class AppResourcesFactory {
         } else {
             return SETUP_JOB_PREFIX_DEPLOYER + applicationId;
         }
+    }
+
+    public static String getSetupJobConfigMap(String applicationId) {
+        return CRDConstants.SETUP_JOB_CONFIGMAP_PREFIX + applicationId;
+    }
+
+    public static String getDeployerJobConfigMap(String applicationId) {
+        return CRDConstants.DEPLOYER_JOB_CONFIGMAP_PREFIX + applicationId;
     }
 
     public static ApplicationLifecycleStatus computeApplicationStatus(

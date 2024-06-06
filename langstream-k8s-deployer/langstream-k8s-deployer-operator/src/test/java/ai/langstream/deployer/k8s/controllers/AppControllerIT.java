@@ -26,13 +26,7 @@ import ai.langstream.deployer.k8s.api.crds.apps.ApplicationStatus;
 import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.controllers.apps.AppController;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
@@ -352,29 +346,64 @@ public class AppControllerIT {
         assertEquals(Quantity.parse("100m"), container.getResources().getRequests().get("cpu"));
         assertEquals(Quantity.parse("128Mi"), container.getResources().getRequests().get("memory"));
         assertEquals("/app-config", container.getVolumeMounts().get(0).getMountPath());
-        assertEquals("app-config", container.getVolumeMounts().get(0).getName());
-        assertEquals("/app-secrets", container.getVolumeMounts().get(1).getMountPath());
-        assertEquals("app-secrets", container.getVolumeMounts().get(1).getName());
+        assertEquals("app-configs", container.getVolumeMounts().get(0).getName());
+        assertEquals("/cluster-runtime-config", container.getVolumeMounts().get(1).getMountPath());
+        assertEquals("app-configs", container.getVolumeMounts().get(1).getName());
+        assertEquals("/app-secrets", container.getVolumeMounts().get(2).getMountPath());
+        assertEquals("app-secrets", container.getVolumeMounts().get(2).getName());
+        assertEquals("/cluster-config", container.getVolumeMounts().get(3).getMountPath());
+        assertEquals("cluster-config", container.getVolumeMounts().get(3).getName());
         assertEquals(0, container.getCommand().size());
         int args = 0;
         assertEquals("application-setup", container.getArgs().get(args++));
         assertEquals("deploy", container.getArgs().get(args++));
+        assertEquals(
+                "/app-config",
+                container.getEnv().stream()
+                        .filter(
+                                e ->
+                                        "LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION"
+                                                .equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
+        assertEquals(
+                "/cluster-runtime-config",
+                container.getEnv().stream()
+                        .filter(
+                                e ->
+                                        "LANGSTREAM_APPLICATION_SETUP_CLUSTER_RUNTIME_CONFIGURATION"
+                                                .equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
+        assertEquals(
+                "/app-secrets/secrets",
+                container.getEnv().stream()
+                        .filter(e -> "LANGSTREAM_APPLICATION_SETUP_APP_SECRETS".equals(e.getName()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getValue());
 
-        final Container initContainer = templateSpec.getInitContainers().get(0);
-        assertEquals("bash", initContainer.getImage());
-        assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
-        assertEquals("setup-init-config", initContainer.getName());
-        assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
-        assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());
+        List<Volume> volumes = spec.getTemplate().getSpec().getVolumes();
+        Volume appConfigsVolume = volumes.get(0);
+        assertEquals("app-configs", appConfigsVolume.getName());
+        assertEquals("langstream-app-setup-my-app", appConfigsVolume.getConfigMap().getName());
+
+        ConfigMap configMap =
+                deployment
+                        .getClient()
+                        .configMaps()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withName(appConfigsVolume.getConfigMap().getName())
+                        .get();
+
+        assertEquals(2, configMap.getData().size());
         assertEquals(
-                "/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
-        assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
-        assertEquals("bash", initContainer.getCommand().get(0));
-        assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals(
-                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": "
-                        + "{}}\",\"codeArchiveId\":null}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
-                initContainer.getArgs().get(0));
+                "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeArchiveId\":null}",
+                configMap.getData().get("app-config"));
+
+        assertEquals("{}", configMap.getData().get("cluster-runtime-config"));
     }
 
     private void checkDeployerJob(Job job, boolean cleanup) {
@@ -387,27 +416,31 @@ public class AppControllerIT {
         assertEquals(Quantity.parse("100m"), container.getResources().getRequests().get("cpu"));
         assertEquals(Quantity.parse("128Mi"), container.getResources().getRequests().get("memory"));
         assertEquals("/app-config", container.getVolumeMounts().get(0).getMountPath());
-        assertEquals("app-config", container.getVolumeMounts().get(0).getName());
-        assertEquals("/app-secrets", container.getVolumeMounts().get(1).getMountPath());
-        assertEquals("app-secrets", container.getVolumeMounts().get(1).getName());
+        assertEquals("app-configs", container.getVolumeMounts().get(0).getName());
+        assertEquals("/cluster-runtime-config", container.getVolumeMounts().get(1).getMountPath());
+        assertEquals("app-configs", container.getVolumeMounts().get(1).getName());
+        assertEquals("/app-secrets", container.getVolumeMounts().get(2).getMountPath());
+        assertEquals("app-secrets", container.getVolumeMounts().get(2).getName());
+        assertEquals("/cluster-config", container.getVolumeMounts().get(3).getMountPath());
+        assertEquals("cluster-config", container.getVolumeMounts().get(3).getName());
         assertEquals(0, container.getCommand().size());
         if (cleanup) {
             int args = 0;
             assertEquals("deployer-runtime", container.getArgs().get(args++));
             assertEquals("delete", container.getArgs().get(args++));
-            assertEquals("/cluster-runtime-config/config", container.getArgs().get(args++));
-            assertEquals("/app-config/config", container.getArgs().get(args++));
+            assertEquals("/cluster-runtime-config", container.getArgs().get(args++));
+            assertEquals("/app-config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         } else {
             int args = 0;
             assertEquals("deployer-runtime", container.getArgs().get(args++));
             assertEquals("deploy", container.getArgs().get(args++));
-            assertEquals("/cluster-runtime-config/config", container.getArgs().get(args++));
-            assertEquals("/app-config/config", container.getArgs().get(args++));
+            assertEquals("/cluster-runtime-config", container.getArgs().get(args++));
+            assertEquals("/app-config", container.getArgs().get(args++));
             assertEquals("/app-secrets/secrets", container.getArgs().get(args++));
         }
         assertEquals(
-                "/app-config/config",
+                "/app-config",
                 container.getEnv().stream()
                         .filter(
                                 e ->
@@ -417,7 +450,7 @@ public class AppControllerIT {
                         .orElseThrow()
                         .getValue());
         assertEquals(
-                "/cluster-runtime-config/config",
+                "/cluster-runtime-config",
                 container.getEnv().stream()
                         .filter(
                                 e ->
@@ -434,20 +467,26 @@ public class AppControllerIT {
                         .orElseThrow()
                         .getValue());
 
-        final Container initContainer = templateSpec.getInitContainers().get(0);
-        assertEquals("bash", initContainer.getImage());
-        assertEquals("IfNotPresent", initContainer.getImagePullPolicy());
-        assertEquals("deployer-init-config", initContainer.getName());
-        assertEquals("/app-config", initContainer.getVolumeMounts().get(0).getMountPath());
-        assertEquals("app-config", initContainer.getVolumeMounts().get(0).getName());
+        List<Volume> volumes = spec.getTemplate().getSpec().getVolumes();
+        Volume appConfigsVolume = volumes.get(0);
+        assertEquals("app-configs", appConfigsVolume.getName());
+        String configMapName = appConfigsVolume.getConfigMap().getName();
+        assertEquals("langstream-runtime-deployer-my-app", configMapName);
+
+        ConfigMap configMap =
+                deployment
+                        .getClient()
+                        .configMaps()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withName(configMapName)
+                        .get();
+
+        assertEquals(2, configMap.getData().size());
         assertEquals(
-                "/cluster-runtime-config", initContainer.getVolumeMounts().get(1).getMountPath());
-        assertEquals("cluster-runtime-config", initContainer.getVolumeMounts().get(1).getName());
-        assertEquals("bash", initContainer.getCommand().get(0));
-        assertEquals("-c", initContainer.getCommand().get(1));
-        assertEquals(
-                "echo '{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeStorageArchiveId\":null,\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}' > /app-config/config && echo '{}' > /cluster-runtime-config/config",
-                initContainer.getArgs().get(0));
+                "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeStorageArchiveId\":null,\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}",
+                configMap.getData().get("app-config"));
+
+        assertEquals("{}", configMap.getData().get("cluster-runtime-config"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

@@ -60,7 +60,7 @@ class ApplicationCustomResourceTest {
                                     status.getStatus());
                             assertEquals(
                                     "failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                                            + "runc create failed: unable to start container process: exec: \"bash\": executable file not "
+                                            + "runc create failed: unable to start container process: exec: \"deployer-runtime\": executable file not "
                                             + "found in $PATH: unknown",
                                     status.getReason());
                         });
@@ -84,7 +84,7 @@ class ApplicationCustomResourceTest {
                                     status.getStatus());
                             assertEquals(
                                     "failed to create containerd task: failed to create shim task: OCI runtime create failed: "
-                                            + "runc create failed: unable to start container process: exec: \"bash\": executable file not "
+                                            + "runc create failed: unable to start container process: exec: \"deployer-runtime\": executable file not "
                                             + "found in $PATH: unknown",
                                     status.getReason());
                         });
@@ -211,6 +211,17 @@ class ApplicationCustomResourceTest {
         }
         resource.setStatus(status);
         k3s.getClient().resource(resource).inNamespace(namespace).updateStatus();
+
+        k3s.getClient()
+                .resource(
+                        AppResourcesFactory.generateJobConfigMap(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(deleteJob)
+                                        .build(),
+                                false))
+                .inNamespace(namespace)
+                .serverSideApply();
         k3s.getClient()
                 .resource(
                         AppResourcesFactory.generateDeployerJob(
@@ -218,6 +229,16 @@ class ApplicationCustomResourceTest {
                                         .applicationCustomResource(resource)
                                         .deleteJob(deleteJob)
                                         .build()))
+                .inNamespace(namespace)
+                .serverSideApply();
+        k3s.getClient()
+                .resource(
+                        AppResourcesFactory.generateJobConfigMap(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .deleteJob(deleteJob)
+                                        .build(),
+                                true))
                 .inNamespace(namespace)
                 .serverSideApply();
 

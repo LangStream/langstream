@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.config.TikaConfig;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
@@ -68,7 +69,12 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         if (record == null) {
             return List.of();
         }
-        AutoDetectParser parser = new AutoDetectParser();
+
+        // Load custom Tika configuration to disable OCR
+        InputStream configStream =
+                getClass().getClassLoader().getResourceAsStream("tika-config.xml");
+        TikaConfig tikaConfig = new TikaConfig(configStream);
+        AutoDetectParser parser = new AutoDetectParser(tikaConfig);
         Object value = record.value();
         final InputStream stream = Utils.toStream(value);
         Metadata metadata = new Metadata();

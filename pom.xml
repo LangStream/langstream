@@ -41,7 +41,7 @@
     <netty.version>4.1.97.Final</netty.version>
     <netty.boringssl.version>2.0.61.Final</netty.boringssl.version>
     <netty.iouring.version>0.0.21.Final</netty.iouring.version>
-    <testcontainers.version>1.18.3</testcontainers.version>
+    <testcontainers.version>1.19.8</testcontainers.version>
     <junit-jupiter.version>5.9.3</junit-jupiter.version>
     <lombok.version>1.18.30</lombok.version>
     <jackson.version>2.14.2</jackson.version>

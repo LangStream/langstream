@@ -3,5 +3,6 @@ ai.langstream.impl.assets.MilvusAssetsProvider
 ai.langstream.impl.assets.JdbcAssetsProvider
 ai.langstream.impl.assets.SolrAssetsProvider
 ai.langstream.impl.assets.OpenSearchAssetsProvider
+ai.langstream.impl.assets.ElasticSearchAssetsProvider
 ai.langstream.impl.assets.AstraVectorDBAssetsProvider
 ai.langstream.impl.assets.CouchbaseAssetsProvider

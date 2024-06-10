@@ -371,6 +371,99 @@ class QueryVectorDBAgentProviderTest {
                               }
                             }
                           },
+                          "vector-db-sink_elasticsearch" : {
+                            "type" : "vector-db-sink",
+                            "name" : "ElasticSearch",
+                            "description" : "Writes data to Elastic or ElasticSearch.",
+                            "properties" : {
+                              "batch-size" : {
+                                "description" : "Batch size for bulk operations. Hitting the batch size will trigger a flush.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "10"
+                              },
+                              "bulk-parameters" : {
+                                "description" : "ElasticSearch bulk URL parameters.",
+                                "required" : false,
+                                "type" : "object",
+                                "properties" : {
+                                  "pipeline" : {
+                                    "description" : "The pipeline ID for preprocessing documents.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "refresh" : {
+                                    "description" : "Whether to refresh the affected shards after performing the indexing operations. Default is false. true makes the changes show up in search results immediately, but hurts cluster performance. wait_for waits for a refresh. Requests take longer to return, but cluster performance doesn’t suffer.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "require_alias" : {
+                                    "description" : "Set to true to require that all actions target an index alias rather than an index.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "boolean"
+                                  },
+                                  "routing" : {
+                                    "description" : "Routes the request to the specified shard.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "timeout" : {
+                                    "description" : "How long to wait for the request to return.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  },
+                                  "wait_for_active_shards" : {
+                                    "description" : "Specifies the number of active shards that must be available before ElasticSearch processes the bulk request. Default is 1 (only the primary shard). Set to all or a positive integer. Values greater than 1 require replicas. For example, if you specify a value of 3, the index must have two replicas distributed across two additional nodes for the request to succeed.\\nRefer to the ElasticSearch documentation for more details.",
+                                    "required" : false,
+                                    "type" : "string"
+                                  }
+                                }
+                              },
+                              "datasource" : {
+                                "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'elasticsearch'.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "fields" : {
+                                "description" : "Index fields definition.",
+                                "required" : true,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Index fields definition.",
+                                  "required" : true,
+                                  "type" : "object",
+                                  "properties" : {
+                                    "expression" : {
+                                      "description" : "JSTL Expression for computing the field value.",
+                                      "required" : true,
+                                      "type" : "string"
+                                    },
+                                    "name" : {
+                                      "description" : "Field name",
+                                      "required" : true,
+                                      "type" : "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "flush-interval" : {
+                                "description" : "Flush interval in milliseconds",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "1000"
+                              },
+                              "id" : {
+                                "description" : "JSTL Expression to compute the index _id field. Leave it empty to let ElasticSearch auto-generate the _id field.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "index" : {
+                                "description" : "Index to write data to.",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
                           "vector-db-sink_jdbc" : {
                             "type" : "vector-db-sink",
                             "name" : "JDBC",

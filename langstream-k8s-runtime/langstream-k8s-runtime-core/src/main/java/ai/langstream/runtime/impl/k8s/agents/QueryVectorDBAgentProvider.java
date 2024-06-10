@@ -31,14 +31,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
-import ai.langstream.runtime.impl.k8s.agents.vectors.AstraVectorDBVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.CassandraVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.CouchbaseVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.JDBCVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.MilvusVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.OpenSearchVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.PineconeVectorDatabaseWriterConfig;
-import ai.langstream.runtime.impl.k8s.agents.vectors.SolrVectorDatabaseWriterConfig;
+import ai.langstream.runtime.impl.k8s.agents.vectors.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,6 +74,7 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
                             "jdbc", JDBCVectorDatabaseWriterConfig.INSTANCE,
                             "pinecone", PineconeVectorDatabaseWriterConfig.INSTANCE,
                             "opensearch", OpenSearchVectorDatabaseWriterConfig.INSTANCE,
+                            "elasticsearch", ElasticSearchVectorDatabaseWriterConfig.INSTANCE,
                             "solr", SolrVectorDatabaseWriterConfig.INSTANCE,
                             "milvus", MilvusVectorDatabaseWriterConfig.INSTANCE,
                             "astra-vector-db", AstraVectorDBVectorDatabaseWriterConfig.INSTANCE,

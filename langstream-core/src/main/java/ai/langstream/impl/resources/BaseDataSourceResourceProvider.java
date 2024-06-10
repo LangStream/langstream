@@ -53,14 +53,14 @@ public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
                     ClassConfigValidator.formatErrString(
                             new ClassConfigValidator.ResourceEntityRef(resource),
                             "service",
-                            "service must be set to one of: " + supportedServices.keySet()));
+                            "must be set to one of: " + supportedServices.keySet()));
         }
         if (!supportedServices.keySet().contains(service)) {
             throw new IllegalArgumentException(
                     ClassConfigValidator.formatErrString(
                             new ClassConfigValidator.ResourceEntityRef(resource),
                             "service",
-                            "service must be set to one of: " + supportedServices.keySet()));
+                            "must be set to one of: " + supportedServices.keySet()));
         }
         supportedServices.get(service).validate(resource);
         return resource.configuration();

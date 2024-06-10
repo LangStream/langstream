@@ -292,10 +292,16 @@ public class JstlEvaluator<T> {
                         mutableRecord.getProperties() == null
                                 ? "NULL"
                                 : mutableRecord.getProperties().toString();
+                final String propertiesKeys =
+                        mutableRecord.getProperties() == null
+                                ? "NULL"
+                                : mutableRecord.getProperties().keySet().toString();
                 throw new IllegalArgumentException(
                         "The property referred by "
                                 + expression
-                                + " couldn't be found, properties: "
+                                + " couldn't be found, properties keys: "
+                                + propertiesKeys
+                                + ", with values "
                                 + propertiesString,
                         notFound);
             }

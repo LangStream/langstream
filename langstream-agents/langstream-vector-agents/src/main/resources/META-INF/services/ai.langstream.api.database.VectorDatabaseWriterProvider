@@ -4,5 +4,6 @@ ai.langstream.agents.vector.milvus.MilvusWriter
 ai.langstream.agents.vector.jdbc.JdbcWriter
 ai.langstream.agents.vector.solr.SolrWriter
 ai.langstream.agents.vector.opensearch.OpenSearchWriter
+ai.langstream.agents.vector.elasticsearch.ElasticSearchWriter
 ai.langstream.agents.vector.astra.AstraVectorDBWriter
 ai.langstream.agents.vector.couchbase.CouchbaseWriter

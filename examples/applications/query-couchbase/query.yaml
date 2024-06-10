@@ -35,19 +35,25 @@ pipeline:
     type: "query-vector-db"
     configuration:
       datasource: "CouchbaseDatasource"
-      bucket-name: "vectorize"
-      scope-name: "example"
-      collection-name: "default"
       query: |
         {
               "vector": ?,
               "topK": 5,
-              "vecPlanId": "ijklmn-opq-4567",
-              "filter":
-                {"genre": {"$eq": "comedy"}}
+              "vecPlanId": ?,
+              "bucket-name": ?,
+              "scope-name": ?,
+              "collection-name": ?,
+              "vector-name": ?,
+              "semantic-name": ?
          }
       fields:
         - "value.embeddings"
+        - "value.vecPlanId"
+        - "value.bucket"
+        - "value.scope"
+        - "value.collection"
+        - "value.vectorSearch"
+        - "value.semanticSearch"
       output-field: "value.query-result"
   - name: "Remove embeddings from the output"
     type: "drop-fields"

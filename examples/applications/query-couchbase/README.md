@@ -21,7 +21,6 @@ You also have to set your OpenAI API keys in the secrets.yaml file.
 Export some ENV variables in order to configure access to the database:
 
 ```
-export COUCHBASE_BUCKET_NAME=...
 export COUCHBASE_USERNAME=...
 export COUCHBASE_PASSWORD=...
 export COUCHBASE_CONNECTION_STRING=...
@@ -33,7 +32,7 @@ For the username and password you will need to create a new 'Database Access' us
 You can find the connection string from the Couchbase web interface in the Connect tab.
 
 ```
-couchbases://cb.shnnjztaidekg6i.cloud.couchbase.com
+couchbases://cb.lans3la99acks.cloud.couchbase.com
 ```
 
 The above is an example of a connection string.
@@ -93,10 +92,29 @@ Using the docker image:
 ## Send a message using the gateway to upload a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"animal2\",\"document\":\"Crocodile.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\",\"chunkId\":\"10\"}" -p sessionId=$(uuidgen)
+bin/langstream gateway produce test write-topic -v "{\"id\":\"animal3\",\"document\":\"Monkey.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\",\"chunkId\":\"10\",\"bucket\":\"vectorize\",\"scope\":\"example\",\"collection\":\"default\"}" -p sessionId=$(uuidgen)
 
 ```
 You can view the uploaded document in the example scope and default collection of the bucket you selected.
+
+
+## Query using langstream UI
+
+Select write-topic in the UI for 
+
+Send a JSON object with the query parameters:
+
+```
+{
+  "question": "What's the definition of Kafkaesque?",
+  "vecPlanId": "ijklmn-opq-4567",
+  "bucket": "vectorize",
+  "scope": "example",
+  "collection": "default",
+  "vectorSearch":"vector-search",
+  "semanticSearch":"semantic"
+}
+```
 
 ## Start a chat using the gateway to query the document
 
@@ -104,11 +122,9 @@ You can view the uploaded document in the example scope and default collection o
  bin/langstream gateway chat test -pg produce-input -cg consume-output -p sessionId=$(uuidgen)
  ```
 
- Send a JSON string with at matching question:
+ Send a JSON string with a  question:
 
-```
-{"question": "What's the definition of Kafkaesque?"}
-```
+"{\"question\":\"Who is the President?\",\"vecPlanId\":\"ijklmn-opq-4567\",\"bucket\":\"vectorize\",\"scope\":\"example\",\"collection\":\"default\",\"vectorSearch\":\"vector-search\",\"semanticSearch\":\"semantic\"}"
 
 
 

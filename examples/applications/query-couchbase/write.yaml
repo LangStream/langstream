@@ -34,9 +34,9 @@ pipeline:
     type: "vector-db-sink"
     configuration:
       datasource: "CouchbaseDatasource"
-      bucket-name: "vectorize"
-      scope-name: "example"
-      collection-name: "default"
-      vector.id: "value.id"
+      bucket-name: "value.bucket"
+      scope-name: "value.scope"
+      collection-name: "value.collection"
+      vector.id: "value.id"             
       vector.vector: "value.embeddings"
 

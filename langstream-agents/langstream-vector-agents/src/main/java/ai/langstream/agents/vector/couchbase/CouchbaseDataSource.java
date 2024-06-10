@@ -76,8 +76,6 @@ public class CouchbaseDataSource implements DataSourceProvider {
         @Getter private final CouchbaseConfig clientConfig;
         private Cluster cluster;
 
-        // private Collection collection;
-
         public CouchbaseQueryStepDataSource(CouchbaseConfig clientConfig) {
             this.clientConfig = clientConfig;
         }
@@ -103,28 +101,23 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 log.info("QueryMap: {}", queryMap);
                 log.info("Params: {}", params);
 
-                // todo get bucketname scopename collection name to be populated - it doesn't appear
-                // to be in the query or params ATM
-
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
                 String vecPlanId = (String) queryMap.remove("vecPlanId");
-                String bucketName = (String) params.get(0);
-                String scopeName = (String) params.get(1);
-                String collectionName = (String) params.get(2);
-                log.info("vecPlanId: {}", vecPlanId);
-                log.info("bucketName: {}", bucketName);
-                log.info("scopeName: {}", scopeName);
-                log.info("collectionName: {}", collectionName);
-                // log.info("username: {}", vector);
+                String bucketName = (String) queryMap.remove("bucket-name");
+                String scopeName = (String) queryMap.remove("scope-name");
+                String collectionName = (String) queryMap.remove("collection-name");
+                String vectorIndexName = (String) queryMap.remove("vector-name");
+                String semanticIndexName = (String) queryMap.remove("semantic-name");
+
                 // Perform the term search for vecPlanId first
                 SearchRequest termSearchRequest =
                         SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"));
-                log.info("Term SearchRequest created: {}", termSearchRequest);
 
                 SearchResult termSearchResult =
                         cluster.search(
-                                bucketName + "." + scopeName + ".semantic", termSearchRequest);
+                                bucketName + "." + scopeName + "." + semanticIndexName,
+                                termSearchRequest);
 
                 List<SearchRow> termSearchRows = termSearchResult.rows();
                 Set<String> validIds =
@@ -148,19 +141,11 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                         VectorSearch.create(
                                                 VectorQuery.create("embeddings", vector)
                                                         .numCandidates(topK)));
-                log.info("Vector SearchRequest created: {}", vectorSearchRequest);
 
                 SearchResult vectorSearchResult =
                         cluster.search(
-                                bucketName + "." + scopeName + ".vector-search",
+                                bucketName + "." + scopeName + "." + vectorIndexName,
                                 vectorSearchRequest);
-
-                for (SearchRow row : vectorSearchResult.rows()) {
-                    log.info("ID: {}", row.id());
-                    log.info("Score: {}", row.score());
-                    // Log the full row content if available
-                    // log.info("Row: {}", row.fieldsAs(JsonObject.class));
-                }
 
                 // Process and collect results
                 List<Map<String, Object>> results =
@@ -177,6 +162,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                                             // Fetch and add the document content using collection
                                             // API
+
                                             try {
                                                 String documentId = hit.id();
                                                 GetResult getResult =
@@ -200,8 +186,6 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                             return result;
                                         })
                                 .collect(Collectors.toList());
-
-                log.info("Final Intersected Results: {}", results);
 
                 return results;
 

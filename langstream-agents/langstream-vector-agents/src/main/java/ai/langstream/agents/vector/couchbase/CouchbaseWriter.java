@@ -58,9 +58,9 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
         private JstlEvaluator vectorFunction;
         private JstlEvaluator fileName;
         private JstlEvaluator vecPlanId;
-        private String scopeName;
-        private String bucketName;
-        private String collectionName;
+        private JstlEvaluator scopeName;
+        private JstlEvaluator bucketName;
+        private JstlEvaluator collectionName;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String username = (String) datasourceConfig.get("username");
@@ -90,28 +90,20 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
-            // log.info(
-            //         "Initializing CouchbaseDatabaseWriter with configuration: {}",
-            //         agentConfiguration);
+
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
             this.fileName = buildEvaluator(agentConfiguration, "vector.filename", String.class);
             this.vecPlanId = buildEvaluator(agentConfiguration, "vector.planId", String.class);
-            this.bucketName = (String) agentConfiguration.get("bucket-name");
-            this.scopeName = (String) agentConfiguration.get("scope-name");
-            this.collectionName = (String) agentConfiguration.get("collection-name");
-
-            // Get the bucket, scope, and collection
-            Bucket bucket = cluster.bucket(bucketName);
-            bucket.waitUntilReady(Duration.ofSeconds(10));
-
-            Scope scope = bucket.scope(scopeName);
-            collection = scope.collection(collectionName);
-            // make more generic
+            this.bucketName = buildEvaluator(agentConfiguration, "bucket-name", String.class);
+            this.scopeName = buildEvaluator(agentConfiguration, "scope-name", String.class);
+            this.collectionName =
+                    buildEvaluator(agentConfiguration, "collection-name", String.class);
         }
 
         @Override
         public CompletableFuture<Void> upsert(Record record, Map<String, Object> context) {
+
             CompletableFuture<Void> handle = new CompletableFuture<>();
             return CompletableFuture.runAsync(
                             () -> {
@@ -130,6 +122,27 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                         throw new IllegalArgumentException(
                                                 "docId is null, cannot upsert document");
                                     }
+
+                                    String bucketS =
+                                            bucketName != null
+                                                    ? (String) bucketName.evaluate(mutableRecord)
+                                                    : null;
+                                    String scopeS =
+                                            scopeName != null
+                                                    ? (String) scopeName.evaluate(mutableRecord)
+                                                    : null;
+                                    String collectionS =
+                                            collectionName != null
+                                                    ? (String)
+                                                            collectionName.evaluate(mutableRecord)
+                                                    : null;
+
+                                    // Get the bucket, scope, and collection
+                                    Bucket bucket = cluster.bucket(bucketS);
+                                    bucket.waitUntilReady(Duration.ofSeconds(10));
+
+                                    Scope scope = bucket.scope(scopeS);
+                                    collection = scope.collection(collectionS);
 
                                     Object value = record.value();
                                     Map<String, Object> content;

@@ -43,8 +43,7 @@ pipeline:
               "bucket-name": ?,
               "scope-name": ?,
               "collection-name": ?,
-              "vector-name": ?,
-              "semantic-name": ?
+              "index-name": ?
          }
       fields:
         - "value.embeddings"
@@ -53,7 +52,6 @@ pipeline:
         - "value.scope"
         - "value.collection"
         - "value.vectorSearch"
-        - "value.semanticSearch"
       output-field: "value.query-result"
   - name: "Remove embeddings from the output"
     type: "drop-fields"

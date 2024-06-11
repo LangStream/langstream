@@ -106,14 +106,14 @@ Send a JSON object with the query parameters:
 
 ```
 {
-  "question": "What's the definition of Kafkaesque?",
-  "vecPlanId": "ijklmn-opq-4567",
-  "bucket": "vectorize",
-  "scope": "example",
+  "question": "Animal?",
+  "vecPlanId": "abc",
+  "bucket": "travel-sample",
+  "scope": "mistral",
   "collection": "default",
-  "vectorSearch":"vector-search",
-  "semanticSearch":"semantic"
-}
+  "vectorSearch":"vector-search"
+  }
+  
 ```
 
 ## Start a chat using the gateway to query the document
@@ -124,7 +124,7 @@ Send a JSON object with the query parameters:
 
  Send a JSON string with a  question:
 
-"{\"question\":\"Who is the President?\",\"vecPlanId\":\"ijklmn-opq-4567\",\"bucket\":\"vectorize\",\"scope\":\"example\",\"collection\":\"default\",\"vectorSearch\":\"vector-search\",\"semanticSearch\":\"semantic\"}"
+"{\"question\":\"Who is the President?\",\"vecPlanId\":\"ijklmn-opq-4567\",\"bucket\":\"vectorize\",\"scope\":\"example\",\"collection\":\"default\",\"vectorSearch\":\"vector-search\""}"
 
 
 

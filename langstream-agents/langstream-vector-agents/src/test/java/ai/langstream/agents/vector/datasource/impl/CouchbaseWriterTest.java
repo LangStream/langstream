@@ -55,8 +55,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
-@Disabled
 @Testcontainers
+@Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
@@ -295,8 +295,7 @@ class CouchbaseWriterTest {
                       "vecPlanId": "12345",
                       "scope-name": "_default",
                       "collection-name": "_default",
-                      "vector-name":"semantic",
-                      "semantic-name":"semantic"
+                      "index-name":"semantic"
                     }
                 """;
         List<Object> params = List.of(vector);

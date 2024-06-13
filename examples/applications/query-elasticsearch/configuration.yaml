@@ -24,11 +24,11 @@ configuration:
         access-key: "${secrets.open-ai.access-key}"
         provider: "${secrets.open-ai.provider}"
     - type: "vector-database"
-      name: "opensearch-datasource"
+      name: "elasticsearch-datasource"
       configuration:
-        service: "opensearch"
-        host: "${secrets.opensearch.host}"
-        port: "${secrets.opensearch.port}"
-        https: "${secrets.opensearch.https}"
-        api-key: "${secrets.opensearch.api-key}"
-        index-name: "langstream-index"
+        service: "elasticsearch"
+        host: "${secrets.elasticsearch.host}"
+        port: "${secrets.elasticsearch.port}"
+        https: "${secrets.elasticsearch.https}"
+        api-key: "${secrets.elasticsearch.api-key}"
+

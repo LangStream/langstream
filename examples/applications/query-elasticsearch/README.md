@@ -64,3 +64,10 @@ $ > Food
 My cat eats carrots
 ```
 
+./bin/langstream docker run test -app examples/applications/query-elasticsearch -s examples/secrets/secrets.yaml
+
+
+
+bin/langstream gateway produce test fill-index -v "{\"id\":\"myid\",\"document\":\"Hello\",\"index\":\"comedy\"}"
+
+

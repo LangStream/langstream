@@ -40,18 +40,24 @@ pipeline:
       datasource: "elasticsearch-datasource"
       query: |
         {
-          "size": 1,
-          "query": {
-            "knn": {
-              "embeddings": {
-                "vector": ?,
-                "k": 1
+          "index": ?,
+          "knn": {
+            "field": "vector",
+            "query_vector": ?,
+            "k": ?,
+            "filter": {
+              "term": {
+                "chunkid": ?
               }
             }
-          }
+          },
+          "fields": ["document"]
         }
       fields:
+        - "value.embeddingModel"
         - "value.embeddings"
+        - "value.numResults"
+        - "value.numResults"
       output-field: "value.query_result"
       only-first: true
   - name: "Format response"

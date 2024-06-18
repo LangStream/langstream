@@ -19,10 +19,10 @@ assets:
       mappings: |
         {
              "properties": {
-                   "content": {
-                         "type": "text"
+                   "vecPlanId": {
+                         "type": "keyword"
                    },
-                   "embeddings": {
+                   "vector": {
                          "type": "knn_vector",
                          "dimension": 1536
                    }

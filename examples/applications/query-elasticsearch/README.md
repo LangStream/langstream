@@ -67,6 +67,11 @@ My cat eats carrots
 ./bin/langstream docker run test -app examples/applications/query-elasticsearch -s examples/secrets/secrets.yaml
 
 
+{
+  "question": "Animal?", "vecPlanId": "abc", "embeddingModel": "e5_mistral_7b_instruct","numResults":10
+  }
+
+
 
 bin/langstream gateway produce test fill-index -v "{\"id\":\"myid\",\"document\":\"Hello\",\"index\":\"comedy\"}"
 

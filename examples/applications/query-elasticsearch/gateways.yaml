@@ -27,3 +27,24 @@ gateways:
       - value-from-parameters: sessionId
       questions-topic: input-topic
       answers-topic: output-topic
+
+  - id: produce-input
+    type: produce
+    topic: input-topic
+    parameters:
+      - sessionId
+    produceOptions:
+      headers:
+        - key: client_session_id
+          valueFromParameters: sessionId
+
+  - id: consume-output
+    type: consume
+    topic: output-topic
+    parameters:
+      - sessionId
+    consumeOptions:
+      filters:
+        headers:
+          - key: client_session_id
+            valueFromParameters: sessionId

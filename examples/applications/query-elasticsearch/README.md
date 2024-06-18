@@ -63,6 +63,8 @@ langstream gateway chat test -g chat
 $ > Food
 My cat eats carrots
 ```
+Work in progress...
+
 
 ./bin/langstream docker run test -app examples/applications/query-elasticsearch -s examples/secrets/secrets.yaml
 

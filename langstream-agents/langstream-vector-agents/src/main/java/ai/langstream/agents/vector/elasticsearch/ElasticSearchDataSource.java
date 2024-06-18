@@ -122,9 +122,17 @@ public class ElasticSearchDataSource implements DataSourceProvider {
                                 h -> {
                                     Map<String, Object> object = new HashMap<>();
                                     object.put("id", h.id());
-                                    object.put("document", h.source());
-                                    object.put("score", h.score());
+                                    object.put("similarity", h.score());
                                     object.put("index", h.index());
+                                    Map<String, Object> source = h.source();
+                                    if (source != null) {
+                                        source.forEach(
+                                                (key, value) -> {
+                                                    if (!key.equals("vector")) {
+                                                        object.put(key, value);
+                                                    }
+                                                });
+                                    }
                                     return object;
                                 })
                         .collect(Collectors.toList());

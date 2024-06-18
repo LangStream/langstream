@@ -52,5 +52,5 @@ pipeline:
       fields:
         - name: "embeddings"
           expression: "value.embeddings"
-        - name: "content"
+        - name: "text"
           expression: "value.document"

@@ -47,17 +47,16 @@ pipeline:
             "k": ?,
             "filter": {
               "term": {
-                "chunkid": ?
+                "vecPlanId": ?
               }
             }
-          },
-          "fields": ["document"]
+          }
         }
       fields:
         - "value.embeddingModel"
         - "value.embeddings"
         - "value.numResults"
-        - "value.numResults"
+        - "value.vecPlanId"
       output-field: "value.query_result"
       only-first: true
   - name: "Format response"
